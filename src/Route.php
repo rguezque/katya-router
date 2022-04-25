@@ -5,7 +5,7 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
- namespace rguezque;
+namespace rguezque;
 
 use Closure;
 
@@ -57,6 +57,13 @@ class Route {
      */
     private $onlyuse = [];
  
+    /**
+     * Create route
+     * 
+     * @param string $verb Route http method
+     * @param string $path Route path
+     * @param closure $closure Route controller
+     */
     public function __construct(string $verb, string $path, Closure $closure) {
         $this->verb = $verb;
         $this->path = $path;

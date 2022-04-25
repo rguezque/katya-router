@@ -81,6 +81,17 @@ class Request {
      */
     private $matches;
 
+    /**
+     * Create Request
+     * 
+     * @param array $query $_GET params
+     * @param array $body $_POST params
+     * @param array $server $_SERVER params
+     * @param array $cookies $_COOKIE params
+     * @param array $files $_FILES params
+     * @param array $params Route params
+     * @param array $matches Route regex matches
+     */
     public function __construct(
         array $query, 
         array $body, 

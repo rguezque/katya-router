@@ -71,7 +71,7 @@ use rguezque\Exceptions\{
 
 $router = new Katya;
 
-$router->route('GET', '/', function(Request $request, Response $response) {
+$router->route(Katya::GET, '/', function(Request $request, Response $response) {
     $response->send('hola mundo!');
 });
 

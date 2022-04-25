@@ -55,6 +55,13 @@ class Group {
      */
     private $onlyuse = [];
 
+    /**
+     * Create route group
+     * 
+     * @param string $prefix Route group prefix
+     * @param Closure $closure Group definition
+     * @param Katya $router Router object
+     */
     public function __construct(string $prefix, Closure $closure, Katya $router) {
         $this->prefix = '/' . trim($prefix, '/\\');
         $this->closure = $closure;

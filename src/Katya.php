@@ -32,6 +32,20 @@ class Katya {
     private const SUPPORTED_VERBS = ['GET', 'POST'];
 
     /**
+     * GET constant
+     * 
+     * @var string
+     */
+    const GET = 'GET';
+
+    /**
+     * POST constant
+     * 
+     * @var string
+     */
+    const POST = 'POST';
+
+    /**
      * Routes collection
      * 
      * @var Route[]
@@ -80,6 +94,7 @@ class Katya {
      * Set services to use into controllers
      * 
      * @param Services $services Service object
+     * @return Katya
      */
     public function useServices(Services $services): Katya {
         $this->services = $services;

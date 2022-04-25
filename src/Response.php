@@ -7,7 +7,7 @@
 
 namespace rguezque;
 
-use rguezque\Exceptions\NotFoundException;
+use rguezque\Exceptions\FileNotFoundException;
 
 /**
  * Represent a response
@@ -45,6 +45,13 @@ class Response {
      */
     private $headers = [];
 
+    /**
+     * Create a response
+     * 
+     * @param string $content Response content
+     * @param int $status Response status
+     * @param array $headers Headers array
+     */
     public function __construct(string $content = '', int $status = 200, array $headers = []) {
         $this->content = $content;
         $this->status = $status;
@@ -165,7 +172,7 @@ class Response {
      * @param string $template The template file
      * @param array $arguments Arguments passed to template
      * @return void
-     * @throws NotFoundException
+     * @throws FileNotFoundException
      */
     public function render(string $template, array $arguments = []): void {
         $template = trim($template, '/\\');
@@ -175,7 +182,7 @@ class Response {
         }
 
         if(!file_exists($template)) {
-            throw new NotFoundException(sprintf('The template "%s" wasn\'t found.', $template));
+            throw new FileNotFoundException(sprintf('The template "%s" wasn\'t found.', $template));
         }
 
         extract($arguments);
@@ -183,7 +190,7 @@ class Response {
         include $template;
         $result = ob_get_clean();
 
-        $this->send($result);
+        $this->clear()->status(200)->send($result);
     }
 
     /**
