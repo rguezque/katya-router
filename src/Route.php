@@ -123,7 +123,7 @@ class Route {
      * @return bool
      */
     public function hasHookBefore(): bool {
-        return null !== $this->before ? true : false;
+        return null !== $this->before;
     }
 
     /**

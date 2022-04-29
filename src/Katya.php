@@ -8,7 +8,6 @@
 namespace rguezque;
 
 use Closure;
-use InvalidArgumentException;
 use rguezque\Exceptions\RouteNotFoundException;
 use rguezque\Exceptions\UnsupportedRequestMethodException;
 use UnexpectedValueException;
@@ -20,6 +19,7 @@ use UnexpectedValueException;
  * @method Route get(string $path, Closure $closure) Shortcut to add route with GET method
  * @method Route post(string $path, Closure $closure) Shortcut to add route with POST method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
+ * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method void run(array $server, bool $json_strategy = false) Start the router
  */
 class Katya {
@@ -81,6 +81,13 @@ class Katya {
     public static $viewspath;
 
     /**
+     * Default controller to exec
+     * 
+     * @var Closure
+     */
+    private $default_controller;
+
+    /**
      * Configure the router options
      * 
      * @param array $options Set basepath and viewspath
@@ -108,7 +115,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure $closure The route controller
      * @return Route
-     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function get(string $path, Closure $closure): Route {
         $route = $this->route('GET', $path, $closure);
@@ -122,7 +129,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure $closure The route controller
      * @return Route
-     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function post(string $path, Closure $closure): Route {
         $route = $this->route('POST', $path, $closure);
@@ -137,7 +144,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure $closure The route controller
      * @return Route
-     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function route(string $verb, string $path, Closure $closure): Route {
         $verb = strtoupper(trim($verb));
@@ -151,6 +158,16 @@ class Katya {
         $this->routes[$verb][] = $new_route;
 
         return $new_route;
+    }
+
+    /**
+     * Default controller to exec if don't match any route. Match any request method
+     * 
+     * @param closure $closure
+     * @return void
+     */
+    public function default(Closure $closure): void {
+        $this->default_controller = $closure;
     }
 
     /**
@@ -172,9 +189,8 @@ class Katya {
      * 
      * @param Request $request The Request object with global params
      * @return void
-     * @throws UnsupportedRequestMethodException When the http method isn't allowed by router
-     * @throws UnexpectedValueException When the controller don't return a result
-     * @throws RouteNotFoundException When the request uri don't match any route
+     * @throws UnsupportedRequestMethodException When request method isn't supported
+     * @throws RouteNotFoundException When request uri don't match any route
      */
     public function run(Request $request): void {
         static $invoke = false;
@@ -217,7 +233,7 @@ class Katya {
         }
 
         // Trailing slash no matters
-        $request_uri = ('/' !== $request_uri) 
+        $request_uri = '/' !== $request_uri 
         ? rtrim($request_uri, '/\\') 
         : $request_uri;
 
@@ -227,7 +243,7 @@ class Katya {
         foreach($routes as $route) {
             $full_path = $this->basepath.$route->getPath();
             
-            if(preg_match(self::getPattern($full_path), $request_uri, $arguments)) {
+            if(preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
                 array_shift($arguments);
                 list($params, $matches) = $this->filterArguments($arguments);
                 $request->setParams($params);
@@ -264,7 +280,16 @@ class Katya {
                 return; 
             }
         }
-        // Default exception for routes not found
+
+        // Check for default controller. Match any request
+        if($this->default_controller) {
+            isset($services) 
+                ? call_user_func($this->default_controller, $request, new Response, $services) 
+                : call_user_func($this->default_controller, $request, new Response);
+            return;
+        }
+
+        // Exception for routes not found
         throw new RouteNotFoundException(sprintf('The request URI "%s" don\'t match any route.', $request_uri));
     }
 
@@ -308,10 +333,7 @@ class Katya {
             }
         }
 
-        return [
-            $params,
-            $matches
-        ];
+        return [$params, $matches];
     }
 
     /**

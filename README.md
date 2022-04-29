@@ -117,6 +117,28 @@ $katya->post('/', function(Request $request, Response $response) {
 });
 ```
 
+### Default controller
+
+El método `Katya::default` permite crear directamente un controlador que se ejecutará por *default* si no se encuentra una ruta solicitada. Si no se define un controlador default y no se encuentra alguna ruta, el router lanzará una excepción `RouteNotFoundException` que debe ser atrapada con un `try-catch`. El controlador recibe los mismos parámetros `Request`, `Response` y `Services` (Ver [Services](#services)).
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use rguezque\{
+    Katya,
+	Request,
+	Response
+};
+
+$katya = new Katya;
+
+$katya->default(function(Request $request, Response $response) {
+    // Do something
+});
+
+$katya->run(Request::fromglobals());
+```
+
 ## Routes group
 
 Para crear grupos de rutas bajo un mismo prefijo se utiliza `Katya::group`; recibe 2 argumentos, el prefijo de ruta y una función anónima que recibe un objeto `Group` con el cual se definen las rutas del grupo.
@@ -206,15 +228,15 @@ Métodos de la clase `Response`.
 - `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista).
 - `redirect(string $uri)`: Devuelve el `Response` como una redirección.
 
-## Services
+## <a name="services">Services</a>
 
 La clase `Services` sirve para registrar servicios que se utilizarán en todo el proyecto. Con el método `Services::register` agregamos un servicio, este recibe 2 parámetros, un nombre y una función anónima. Para quitar un servicio `Services::unregister` recibe el nombre del servicio (o servicios, separados por coma) a eliminar.
 
 Para asignarlos al router se envía el objeto `Services` a través del método `Katya::useServices`, a partir de aquí, cada controlador recibirá como tercer argumento la instancia de `Services`. Un servicio es invocado como si fuera un método más de la clase o bien como si fuera un atributo en contexto de objeto. 
 
-Opcionalmente se puede seleccionar que servicios específicamente serán utilizados en determinada ruta o grupo de rutas con `Route::use` el cual recibe los nombres de los servicios registrados previamente, separados por comas.
+Opcionalmente se puede seleccionar que servicios específicamente serán utilizados en determinada ruta o grupo de rutas con `Route::use` el cual recibe los nombres de los servicios registrados previamente, separados por comas. **Nota**: Esto no aplica para el controlador default, el cual recibirá todos los servicios registrados.
 
-Para verificar si un servicio existe se usa `Services::has` y se envía como argumento el nombre del servicio y `Services::keys` devuelve un array con los nombres de todos los servicios disponibles.
+Para verificar si un servicio existe se usa `Services::has` (se envía como argumento el nombre del servicio) y `Services::keys` devuelve un array con los nombres de todos los servicios disponibles.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
