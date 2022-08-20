@@ -1,4 +1,6 @@
-# Katya: A lightweight PHP router
+# Katya
+
+A lightweight PHP router
 
 ## Configuration
 
@@ -112,7 +114,7 @@ $katya->post('/', function(Request $request, Response $response) {
         'name' => 'John',
         'lastname' => 'Doe'
     ];
-    
+
     $response->json($data);
 });
 ```
@@ -126,8 +128,8 @@ require __DIR__.'/vendor/autoload.php';
 
 use rguezque\{
     Katya,
-	Request,
-	Response
+    Request,
+    Response
 };
 
 $katya = new Katya;
@@ -143,18 +145,18 @@ $katya->run(Request::fromglobals());
 
 Para crear grupos de rutas bajo un mismo prefijo se utiliza `Katya::group`; recibe 2 argumentos, el prefijo de ruta y una función anónima que recibe un objeto `Group` con el cual se definen las rutas del grupo.
 
-````php
+```php
 // Se generan las rutas "/foo/bar" y "/foo/baz"
 $katya->group('/foo', function(Group $group) {
     $group->get('/bar', function(Request $request, Response $response) {
         $response->send(' Hello foobar');
     });
-    
+
     $group->get('/baz', function(Request $request, Response $response) {
         $response->render('welcome.php')
     });
 });
-````
+```
 
 ## Wildcards
 
@@ -261,6 +263,14 @@ $router->get('/', function(Request $request, Response $response, Services $servi
 })->use('pi'); // Solamente recibirá el servicio 'pi'
 ```
 
+## Variables
+
+Define y recupera variables globales con el método `Katya::hasVar()`. Recibe dos parámetros del cual uno es opcional, y de acuerdo a esto será para asignar una variable o recuperarla.
+
+Si se envía un nombre de variable y como segundo parámetro un valor, se asignara y guardará; si solo se envía el nombre, intentará devolver la variable con dicho nombre y si no existe devolverá `null`.
+
+Para verificar si una variable existe se utiliza el método `Katya::has()` que devolvera `true` si la variable exite o `false` en caso contrario.
+
 ## Hook
 
 El *hook* `Route::before` ejecuta una acción previa al controlador de una ruta. Si el *hook* devuelve un valor este puede recuperarse en el controlador en el método `Request::getParams()` con la clave `@data`.
@@ -301,3 +311,4 @@ $router->group('/admin', function(Group $group) {
         $response->redirect('/login');
     }
 });
+```

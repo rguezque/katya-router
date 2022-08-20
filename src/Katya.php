@@ -8,6 +8,7 @@
 namespace rguezque;
 
 use Closure;
+use rguezque\Exceptions\FileNotFoundException;
 use rguezque\Exceptions\RouteNotFoundException;
 use rguezque\Exceptions\UnsupportedRequestMethodException;
 use UnexpectedValueException;
@@ -21,6 +22,8 @@ use UnexpectedValueException;
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method void run(array $server, bool $json_strategy = false) Start the router
+ * @method void var(string $name, $value = null) Set or return a variable by name
+ * @method mixed setVar(string $name, $value) Set a variable
  */
 class Katya {
 
@@ -86,6 +89,13 @@ class Katya {
      * @var Closure
      */
     private $default_controller;
+
+    /**
+     * Variables collection
+     * 
+     * @var array
+     */
+    private $vars = [];
 
     /**
      * Configure the router options
@@ -182,6 +192,46 @@ class Katya {
         $this->groups[] = $new_group;
 
         return $new_group;
+    }
+
+    /**
+     * Set a variable
+     * 
+     * @param string $name Variable name
+     * @param mixed $value Variable value
+     * @return void
+     */
+    private function setVar(string $name, $value): void {
+        $this->vars[$name] = $value;
+    }
+
+    /**
+     * Set or return a variable by name
+     * 
+     * @param string $name Variable name
+     * @param mixed $value Variable name (optional)
+     * @return mixed
+     */
+    public function var(string $name, $value = null) {
+        $name = strtolower(trim($name));
+
+        if(null !== $value) {
+            $this->setVar($name, $value);
+            return;
+        }
+
+        return $this->vars[$name] ?? null;
+    }
+
+    /**
+     * Return true if a variable exists, otherwise false
+     * 
+     * @param string $name variable name
+     * @return bool
+     */
+    public function hasVar(string $name): bool {
+        $name = strtolower(trim($name));
+        return array_key_exists($name, $this->vars);
     }
 
     /**
