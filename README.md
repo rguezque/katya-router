@@ -56,7 +56,7 @@ Desde la terminal, ubícate dentro del directorio del proyecto y ejecuta:
 composer dump-autoload -o
 ```
 
-## <a name="routing">Routing</a>
+## Routing
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -190,9 +190,9 @@ $katya->get('/', function(Request $request, Response $response) {
 });
 ```
 
-**Nota**: `Response::render`, buscará las plantillas en el directorio definido al crear la instancia del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla. Ver [Routing](#routing).
+**Nota**: `Response::render`, buscará las plantillas en el directorio definido al inicio en el array de opciones del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla. Ver [Routing](#routing).
 
-## <a name="request">Request</a>
+## Request
 
 Métodos de la clase `Request`.
 
@@ -204,7 +204,7 @@ Métodos de la clase `Request`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
 - `getParams()`: Devuelve el array de parámetros nombrados de una ruta solicitada.
 - `getParam(string $name, $default = null)`: Devuelve un parámetro nombrado de una ruta solicitada.
-- `getMatches()`: Devuelve un array de coincidencias de expresiones regulares.
+- `getMatches()`: Devuelve un array con coincidencias de expresiones regulares definidas en una ruta.
 - `setQuery(array $query)`: Asigna valores a `$_GET`.
 - `setBody(array $body)`: Asigna valores a `$_POST`.
 - `setServer(array $server)`: Asigna valores a `$_SERVER`.
@@ -216,7 +216,7 @@ Métodos de la clase `Request`.
 - `setMatches(arrat $matches)`: Agrega valores al array de coincidencias de expresiones regulares.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
-## <a name="response">Response</a>
+## Response
 
 Métodos de la clase `Response`.
 
@@ -225,12 +225,12 @@ Métodos de la clase `Response`.
 - `header(string $name, string $content)`: Agrega un encabezado al `Response`.
 - `headers(array $headers)`: Agrega múltiples encabezados al `Response`.
 - `write($content)`: Agrega contenido al cuerpo del `Response`.
-- `send($data)`: Devuelve el `Response`.
+- `send($data)`: Envía el `Response`.
 - `json($data, bool $encode = true)`: Devuelve el `Response` con contenido en formato JSON
 - `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista).
 - `redirect(string $uri)`: Devuelve el `Response` como una redirección.
 
-## <a name="services">Services</a>
+## Services
 
 La clase `Services` sirve para registrar servicios que se utilizarán en todo el proyecto. Con el método `Services::register` agregamos un servicio, este recibe 2 parámetros, un nombre y una función anónima. Para quitar un servicio `Services::unregister` recibe el nombre del servicio (o servicios, separados por coma) a eliminar.
 
@@ -265,11 +265,31 @@ $router->get('/', function(Request $request, Response $response, Services $servi
 
 ## Variables
 
-Define y recupera variables globales con el método `Katya::hasVar()`. Recibe dos parámetros del cual uno es opcional, y de acuerdo a esto será para asignar una variable o recuperarla.
+Define una variable global dentro de la aplicación con `Katya::setVar`, recibe como parámetros el nombre de la variable y el valor a asignar.
 
-Si se envía un nombre de variable y como segundo parámetro un valor, se asignara y guardará; si solo se envía el nombre, intentará devolver la variable con dicho nombre y si no existe devolverá `null`.
+```php
+$router->setVar('pi', 3.141592654);
+```
 
-Para verificar si una variable existe se utiliza el método `Katya::has()` que devolvera `true` si la variable exite o `false` en caso contrario.
+Recupera una variable con el método `Katya::getVar`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
+
+```php
+$router->getVar('pi'); // Devuelve la variable pi (si no existe devuelve null)
+$router->getvar('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
+```
+
+Para verificar si una variable existe se utiliza el método `Katya::hasVar()` que devolvera `true` si la variable exite o `false` en caso contrario.
+
+### Shortcut
+
+Define y recupera variables con el método `Katya::var()`. Recibe dos parámetros del cual uno es opcional, y de acuerdo a esto será para asignar una variable o recuperarla.
+
+```php
+$router->var('pi', 3.141592654); // Asigna la variable 'pi'
+$router->var('pi'); // Retorna el valor de la variable pi (si no existe devuelve null)
+```
+
+Si se envía un nombre de variable y como segundo parámetro un valor, se asignara y guardará; si solo se envía el nombre, intentará devolver la variable con dicho nombre.
 
 ## Hook
 

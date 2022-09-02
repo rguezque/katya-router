@@ -22,8 +22,9 @@ use UnexpectedValueException;
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method void run(array $server, bool $json_strategy = false) Start the router
- * @method void var(string $name, $value = null) Set or return a variable by name
- * @method mixed setVar(string $name, $value) Set a variable
+ * @method void setVar(string $name, $value) Set a variable
+ * @method mixed getVar(string $name, $default = null) return a variable by name
+ * @method void|mixed var(string $name, $value = null) Set or return a variable by name
  */
 class Katya {
 
@@ -81,9 +82,9 @@ class Katya {
      * 
      * @var string
      */
-    public static $viewspath;
+    private $viewspath;
 
-    /**
+    /** 
      * Default controller to exec
      * 
      * @var Closure
@@ -104,7 +105,7 @@ class Katya {
      */
     public function __construct(array $options = []) {
         $this->basepath = isset($options['basepath']) ? pathformat($options['basepath']) : '';
-        self::$viewspath = isset($options['viewspath']) ? trim($options['viewspath'], '/\\ ').'/' : '';
+        $this->viewspath = isset($options['viewspath']) ? trim($options['viewspath'], '/\\ ').'/' : '';
     }
 
     /**
@@ -201,8 +202,21 @@ class Katya {
      * @param mixed $value Variable value
      * @return void
      */
-    private function setVar(string $name, $value): void {
+    public function setVar(string $name, $value): void {
+        $name = strtolower(trim($name));
         $this->vars[$name] = $value;
+    }
+
+    /**
+     * Return a variable by name
+     * 
+     * @param string $name Variable name
+     * @param mixed $default Optional default value to return
+     * @return mixed
+     */
+    public function getVar(string $name, $default = null) {
+        $name = strtolower(trim($name));
+        return $this->vars[$name] ?? $default;
     }
 
     /**
@@ -213,14 +227,12 @@ class Katya {
      * @return mixed
      */
     public function var(string $name, $value = null) {
-        $name = strtolower(trim($name));
-
         if(null !== $value) {
             $this->setVar($name, $value);
             return;
         }
 
-        return $this->vars[$name] ?? null;
+        return $this->getVar($name);
     }
 
     /**
@@ -307,6 +319,8 @@ class Katya {
                 }
 
                 $response = new Response;
+                $response->viewspath = $this->viewspath;
+
 
                 // Exec the middleware
                 if($route->hasHookBefore()) {

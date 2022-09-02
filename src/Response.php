@@ -46,6 +46,13 @@ class Response {
     private $headers = [];
 
     /**
+     * Default directory for search templates rendered in response
+     * 
+     * @var string
+     */
+    public $viewspath;
+
+    /**
      * Create a response
      * 
      * @param string $content Response content
@@ -177,8 +184,8 @@ class Response {
     public function render(string $template, array $arguments = []): void {
         $template = trim($template, '/\\');
 
-        if(isset(Katya::$viewspath) && '' !== Katya::$viewspath) {
-            $template = Katya::$viewspath.$template;
+        if(isset($this->viewspath) && '' !== $this->viewspath) {
+            $template = $this->viewspath.$template;
         }
 
         if(!file_exists($template)) {
