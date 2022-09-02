@@ -8,10 +8,10 @@
 namespace rguezque;
 
 use Closure;
-use rguezque\Exceptions\FileNotFoundException;
-use rguezque\Exceptions\RouteNotFoundException;
-use rguezque\Exceptions\UnsupportedRequestMethodException;
-use UnexpectedValueException;
+use rguezque\Exceptions\{
+    RouteNotFoundException,
+    UnsupportedRequestMethodException
+};
 
 /**
  * Router
@@ -21,7 +21,7 @@ use UnexpectedValueException;
  * @method Route post(string $path, Closure $closure) Shortcut to add route with POST method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
- * @method void run(array $server, bool $json_strategy = false) Start the router
+ * @method void run(Request $request) Start the router
  * @method void setVar(string $name, $value) Set a variable
  * @method mixed getVar(string $name, $default = null) return a variable by name
  * @method void|mixed var(string $name, $value = null) Set or return a variable by name
