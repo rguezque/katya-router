@@ -142,7 +142,7 @@ class Route {
      * 
      * @return string[]
      */
-    public function getUses(): array {
+    public function getRouteServices(): array {
         return $this->onlyuse;
     }
 

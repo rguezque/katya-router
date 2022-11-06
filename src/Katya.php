@@ -161,7 +161,7 @@ class Katya {
         $verb = strtoupper(trim($verb));
         $path = pathformat($path);
 
-        if(!in_array($verb, self::SUPPORTED_VERBS)) {
+        if(!in_array($verb, Katya::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
         }
 
@@ -290,7 +290,7 @@ class Katya {
         $request_uri = $this->filterRequestUri($server['REQUEST_URI']);
         $request_method = $server['REQUEST_METHOD'];
 
-        if(!in_array($request_method, self::SUPPORTED_VERBS)) {
+        if(!in_array($request_method, Katya::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t supported by router.', $request_method));
         }
 
@@ -314,8 +314,8 @@ class Katya {
                 $services = $this->services;
 
                 // Filter the services for route
-                if([] !== $route->getUses() && isset($services)) {
-                    $services = $this->filterServices($route->getUses());
+                if([] !== $route->getRouteServices() && isset($services)) {
+                    $services = $this->filterServices($route->getRouteServices());
                 }
 
                 $response = new Response;

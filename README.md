@@ -6,7 +6,7 @@ A lightweight PHP router
 
 Para servidor **Apache**, en el directorio del proyecto crea y edita un archivo `.htaccess` con lo siguiente:
 
-```
+```htaccess
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -42,7 +42,7 @@ server {
 
 Para prueba desde el servidor *inbuilt* de PHP, dentro del directorio del proyecto ejecuta en la terminal:
 
-```
+```bash
 php -S localhost:80
 ```
 
@@ -52,7 +52,7 @@ Y abre en el navegador web la dirección `http://localhost:80`
 
 Desde la terminal, ubícate dentro del directorio del proyecto y ejecuta:
 
-```
+```bash
 composer dump-autoload -o
 ```
 
@@ -121,7 +121,7 @@ $katya->post('/', function(Request $request, Response $response) {
 
 ### Default controller
 
-El método `Katya::default` permite crear directamente un controlador que se ejecutará por *default* si no se encuentra una ruta solicitada. Si no se define un controlador default y no se encuentra alguna ruta, el router lanzará una excepción `RouteNotFoundException` que debe ser atrapada con un `try-catch`. El controlador recibe los mismos parámetros `Request`, `Response` y `Services` (Ver [Services](#services)).
+El método `Katya::default` permite crear directamente un controlador que se ejecutará por *default* si no se encuentra una ruta solicitada. Si no se define un controlador default y no se encuentra alguna ruta, el router lanzará una excepción `RouteNotFoundException` que debe ser atrapada con un `try-catch`. El controlador recibe los mismos parámetros `Request`, `Response` y `Services` según sea el caso (Ver [Services](#services)).
 
 ```php
 require __DIR__.'/vendor/autoload.php';
