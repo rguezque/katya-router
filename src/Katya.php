@@ -320,7 +320,9 @@ class Katya {
                 }
 
                 $response = new Response;
-                $response->viewspath = $this->viewspath;
+                if($this->viewspath) {
+                    $response->viewspath = rtrim($this->viewspath, '/\\').'/';
+                }
 
 
                 // Exec the middleware
