@@ -119,6 +119,28 @@ $katya->post('/', function(Request $request, Response $response) {
 });
 ```
 
+### Controllers
+
+Los controladores pueden ser: una función anónima, un método estático o un método de una clase instanciada. 
+
+```php
+// Usando una función anónima
+$katya->get('/user', function(Request $request, Response $response) {
+    //...
+});
+
+// Usando un método estático
+$katya->get('/user', ['App\Controller\Greeting', 'showProfile']);
+// o bien
+use App\Controller\User;
+$katya->get('/user', [User::class, 'showProfile']);
+$katya->get('/user/permissions', [User::class, 'showPermissions']);
+
+// Usando un método de un objeto
+$user = new App\Controller\User();
+$katya->get('/user', [$user, 'showProfile']);
+```
+
 ### Default controller
 
 El método `Katya::default` permite crear directamente un controlador que se ejecutará por *default* si no se encuentra una ruta solicitada. Si no se define un controlador default y no se encuentra alguna ruta, el router lanzará una excepción `RouteNotFoundException` que debe ser atrapada con un `try-catch`. El controlador recibe los mismos parámetros `Request`, `Response` y `Services` según sea el caso (Ver [Services](#services)).
@@ -212,7 +234,7 @@ Métodos de la clase `Request`.
 - `setFiles(array $files)`: Asigna valores a `$_FILES`.
 - `setParams(array $params)`: Asigna valores al array de parámetros nombrados.
 - `setParam(string $name, $value)`: Agrega un valor al array de parámetros nombrados.
-- `unsetParam(string $name)`: Remove a named param.
+- `unsetParam(string $name)`: Elimina un parámetro por nombre.
 - `setMatches(arrat $matches)`: Agrega valores al array de coincidencias de expresiones regulares.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
