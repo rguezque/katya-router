@@ -9,7 +9,9 @@
 namespace rguezque;
 
 use Closure;
+use InvalidArgumentException;
 use rguezque\Exceptions\{
+    BadNameException,
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
@@ -125,11 +127,11 @@ class Katya {
      * Shorcut to add route with GET method
      * 
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function get(string $path, Closure $closure): Route {
+    public function get(string $path, $closure): Route {
         $route = $this->route('GET', $path, $closure);
 
         return $route;
@@ -139,11 +141,11 @@ class Katya {
      * Shorcut to add route with POST method
      * 
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function post(string $path, Closure $closure): Route {
+    public function post(string $path, $closure): Route {
         $route = $this->route('POST', $path, $closure);
 
         return $route;
@@ -154,11 +156,16 @@ class Katya {
      * 
      * @param string $verb The allowed route http method
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
+     * @return InvalidArgumentException When the controller isn't a function or 
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function route(string $verb, string $path, Closure $closure): Route {
+    public function route(string $verb, string $path, $closure): Route {
+        if(!$closure instanceof Closure && !is_array($closure)) {
+            throw new InvalidArgumentException(sprintf('The closure must be a function or array with controller definition, catched %s', gettype($closure)));
+        }
+
         $verb = strtoupper(trim($verb));
         $path = pathformat($path);
 

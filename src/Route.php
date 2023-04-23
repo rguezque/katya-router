@@ -40,7 +40,7 @@ class Route {
     /**
      * Route controller
      * 
-     * @var Closure
+     * @var Closure|array
      */
     private $closure;
 
@@ -65,7 +65,7 @@ class Route {
      * @param string $path Route path
      * @param closure $closure Route controller
      */
-    public function __construct(string $verb, string $path, Closure $closure) {
+    public function __construct(string $verb, string $path, $closure) {
         $this->verb = $verb;
         $this->path = $path;
         $this->closure = $closure;
@@ -92,9 +92,9 @@ class Route {
     /**
      * Return the controller
      * 
-     * @return Closure
+     * @return Closure|array
      */
-    public function getController(): Closure {
+    public function getController() {
         return $this->closure;
     }
 
