@@ -76,6 +76,7 @@ class Group {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
     public function route(string $verb, string $path, $closure): Route {
@@ -100,6 +101,7 @@ class Group {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
     public function get(string $path, $closure): Route {
@@ -124,6 +126,7 @@ class Group {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
     public function post(string $path, $closure): Route {

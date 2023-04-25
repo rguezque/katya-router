@@ -129,6 +129,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function get(string $path, $closure): Route {
@@ -143,6 +144,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function post(string $path, $closure): Route {
@@ -158,7 +160,7 @@ class Katya {
      * @param string $path The route path
      * @param Closure|array $closure The route controller
      * @return Route
-     * @return InvalidArgumentException When the controller isn't a function or 
+     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function route(string $verb, string $path, $closure): Route {
