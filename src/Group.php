@@ -74,11 +74,11 @@ class Group {
      * 
      * @param string $verb The allowed route http method
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function route(string $verb, string $path, Closure $closure): Route {
+    public function route(string $verb, string $path, $closure): Route {
         $route = $this->router->route($verb, $this->prefix.$path, $closure);
         
         // Set the hook
@@ -98,11 +98,11 @@ class Group {
      * Shortcut to add route with GET method
      * 
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function get(string $path, Closure $closure): Route {
+    public function get(string $path, $closure): Route {
         $route = $this->router->get($this->prefix.$path, $closure);
 
         // Set the hook
@@ -122,11 +122,11 @@ class Group {
      * Shortcut to add route with POST method
      * 
      * @param string $path The route path
-     * @param Closure $closure The route controller
+     * @param Closure|array $closure The route controller
      * @return Route
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function post(string $path, Closure $closure): Route {
+    public function post(string $path, $closure): Route {
         $route = $this->router->post($this->prefix.$path, $closure);
 
         // Set the hook

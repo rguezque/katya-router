@@ -15,7 +15,7 @@ use Closure;
  * 
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
- * @method Closure getController() Return controller
+ * @method Closure|array getController() Return controller
  * @method Route before(Closure $closure) Add a hook to exec before the route controller
  * @method Closure getHookBefore() Return the hook
  * @method bool hasHookBefore() Return true if the route has a hook
