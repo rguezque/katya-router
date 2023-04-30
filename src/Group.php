@@ -13,9 +13,9 @@ use Closure;
 /**
  * Routes group
  * 
- * @method Route route(string $verb, string $path, Closure $closure) Route definition
- * @method Route get(string $path, Closure $closure) Shortcut to add route with GET method
- * @method Route post(string $path, Closure $closure) Shortcut to add route with POST method
+ * @method Route route(string $verb, string $path, callable $closure) Route definition
+ * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
+ * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
  * @method Group before(Closure $closure) Add a hook to exec before each route into the group
  * @method Group use(string ...$names) Specify the services to use in this routes group
  */
@@ -36,7 +36,7 @@ class Group {
     private $prefix;
 
     /**
-     * Closure with routes definition
+     * Closure with routes group definition
      * 
      * @var Closure
      */
@@ -74,13 +74,12 @@ class Group {
      * 
      * @param string $verb The allowed route http method
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function route(string $verb, string $path, $closure): Route {
-        $route = $this->router->route($verb, $this->prefix.$path, $closure);
+    public function route(string $verb, string $path, callable $controller): Route {
+        $route = $this->router->route($verb, $this->prefix.$path, $controller);
         
         // Set the hook
         if(null !== $this->before) {
@@ -99,13 +98,12 @@ class Group {
      * Shortcut to add route with GET method
      * 
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function get(string $path, $closure): Route {
-        $route = $this->router->get($this->prefix.$path, $closure);
+    public function get(string $path, callable $controller): Route {
+        $route = $this->router->get($this->prefix.$path, $controller);
 
         // Set the hook
         if(null !== $this->before) {
@@ -124,13 +122,12 @@ class Group {
      * Shortcut to add route with POST method
      * 
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http method isn't allowed
      */
-    public function post(string $path, $closure): Route {
-        $route = $this->router->post($this->prefix.$path, $closure);
+    public function post(string $path, callable $controller): Route {
+        $route = $this->router->post($this->prefix.$path, $controller);
 
         // Set the hook
         if(null !== $this->before) {

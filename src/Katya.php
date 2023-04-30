@@ -19,9 +19,9 @@ use rguezque\Exceptions\{
 /**
  * Router
  * 
- * @method Route route(string $verb, string $path, Closure $closure) Route definition
- * @method Route get(string $path, Closure $closure) Shortcut to add route with GET method
- * @method Route post(string $path, Closure $closure) Shortcut to add route with POST method
+ * @method Route route(string $verb, string $path, callable $closure) Route definition
+ * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
+ * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method void run(Request $request) Start the router
@@ -127,13 +127,12 @@ class Katya {
      * Shorcut to add route with GET method
      * 
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function get(string $path, $closure): Route {
-        $route = $this->route('GET', $path, $closure);
+    public function get(string $path, callable $controller): Route {
+        $route = $this->route('GET', $path, $controller);
 
         return $route;
     }
@@ -142,13 +141,12 @@ class Katya {
      * Shorcut to add route with POST method
      * 
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function post(string $path, $closure): Route {
-        $route = $this->route('POST', $path, $closure);
+    public function post(string $path, callable $controller): Route {
+        $route = $this->route('POST', $path, $controller);
 
         return $route;
     }
@@ -158,16 +156,11 @@ class Katya {
      * 
      * @param string $verb The allowed route http method
      * @param string $path The route path
-     * @param Closure|array $closure The route controller
+     * @param callable $controller The route controller
      * @return Route
-     * @throws InvalidArgumentException When the controller isn't a function or array
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
-    public function route(string $verb, string $path, $closure): Route {
-        if(!$closure instanceof Closure && !is_array($closure)) {
-            throw new InvalidArgumentException(sprintf('The closure must be a function or array with controller definition, catched %s', gettype($closure)));
-        }
-
+    public function route(string $verb, string $path, callable $controller): Route {
         $verb = strtoupper(trim($verb));
         $path = pathformat($path);
 
@@ -175,7 +168,7 @@ class Katya {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
         }
 
-        $new_route = new Route($verb, $path, $closure);
+        $new_route = new Route($verb, $path, $controller);
         $this->routes[$verb][] = $new_route;
 
         return $new_route;
@@ -184,11 +177,11 @@ class Katya {
     /**
      * Default controller to exec if don't match any route. Match any request method
      * 
-     * @param closure $closure
+     * @param callable $controller
      * @return void
      */
-    public function default(Closure $closure): void {
-        $this->default_controller = $closure;
+    public function default(callable $controller): void {
+        $this->default_controller = $controller;
     }
 
     /**
@@ -357,7 +350,7 @@ class Katya {
             }
         }
 
-        // Check for default controller. Match any request
+        // Check for default controller. Match any route request
         if($this->default_controller) {
             isset($services) 
                 ? call_user_func($this->default_controller, $request, new Response, $services) 

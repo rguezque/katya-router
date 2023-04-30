@@ -121,7 +121,7 @@ $katya->post('/', function(Request $request, Response $response) {
 
 ### Controllers
 
-Los controladores pueden ser: una función anónima, un método estático o un método de una clase instanciada. 
+Los controladores pueden ser: una función anónima, un método estático o un método de un objeto. 
 
 ```php
 // Usando una función anónima

@@ -15,7 +15,7 @@ use Closure;
  * 
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
- * @method Closure|array getController() Return controller
+ * @method callable getController() Return controller
  * @method Route before(Closure $closure) Add a hook to exec before the route controller
  * @method Closure getHookBefore() Return the hook
  * @method bool hasHookBefore() Return true if the route has a hook
@@ -40,9 +40,9 @@ class Route {
     /**
      * Route controller
      * 
-     * @var Closure|array
+     * @var callable
      */
-    private $closure;
+    private $controller;
 
     /**
      * Hook before the controller
@@ -63,12 +63,12 @@ class Route {
      * 
      * @param string $verb Route http method
      * @param string $path Route path
-     * @param closure $closure Route controller
+     * @param callable $controller Route controller
      */
-    public function __construct(string $verb, string $path, $closure) {
+    public function __construct(string $verb, string $path, callable $controller) {
         $this->verb = $verb;
         $this->path = $path;
-        $this->closure = $closure;
+        $this->controller = $controller;
     }
 
     /**
@@ -92,10 +92,10 @@ class Route {
     /**
      * Return the controller
      * 
-     * @return Closure|array
+     * @return callable
      */
-    public function getController() {
-        return $this->closure;
+    public function getController(): callable {
+        return $this->controller;
     }
 
     /**
