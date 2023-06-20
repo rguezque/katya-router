@@ -101,7 +101,7 @@ $katya = new Katya([
 
 ### Shortcuts
 
-Los atajos `Katya::get` y `Katya::post` sirven respectivamente para agregar rutas de tipo `GET` y `POST`al router.
+Los atajos `Katya::get` y `Katya::post` sirven respectivamente para agregar rutas de tipo `GET` y `POST`al router. El atajo `Katya::any` empareja con cualquier método http; sin embargo, las rutas `get` y `post` tienen preferencia sobre la rutas `any` en caso de que hayan rutas repetidas con diferente métodos de petición.
 
 ```php
 $katya = new Katya;
@@ -116,6 +116,10 @@ $katya->post('/', function(Request $request, Response $response) {
     ];
 
     $response->json($data);
+});
+
+$katya->any('/hello', function(Request $request, Response $response) {
+    $response->send('Hello world!');
 });
 ```
 

@@ -9,9 +9,7 @@
 namespace rguezque;
 
 use Closure;
-use InvalidArgumentException;
 use rguezque\Exceptions\{
-    BadNameException,
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
@@ -36,7 +34,7 @@ class Katya {
      * 
      * @var string[]
      */
-    private const SUPPORTED_VERBS = ['GET', 'POST'];
+    private const SUPPORTED_VERBS = ['GET', 'POST', 'ANY'];
 
     /**
      * GET constant
@@ -121,6 +119,20 @@ class Katya {
         $this->services = $services;
 
         return $this;
+    }
+
+    /**
+     * Shorcut to add route that match any method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function any(string $path, callable $controller): Route {
+        $route = $this->route('ANY', $path, $controller);
+
+        return $route;
     }
 
     /**
@@ -304,6 +316,9 @@ class Katya {
 
         // Select the routes collection according to the http request method
         $routes = $this->routes[$request_method] ?? [];
+        // Merge routes that match with any method
+        $any = $this->routes['ANY'] ?? [];
+        $routes = [...$routes, ...$any];
 
         foreach($routes as $route) {
             $full_path = $this->basepath.$route->getPath();
