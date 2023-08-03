@@ -20,12 +20,15 @@ use rguezque\Exceptions\{
  * @method Route route(string $verb, string $path, callable $closure) Route definition
  * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
  * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
+ * @method Route put(string $path, callable $closure) Shortcut to add route with PUT method
+ * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
+ * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
+ * @method Route any(string $path, callable $closure) Shortcut to add route with any method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method void run(Request $request) Start the router
  * @method void setVar(string $name, $value) Set a variable
  * @method mixed getVar(string $name, $default = null) return a variable by name
- * @method void|mixed var(string $name, $value = null) Set or return a variable by name
  */
 class Katya {
 
@@ -34,7 +37,7 @@ class Katya {
      * 
      * @var string[]
      */
-    private const SUPPORTED_VERBS = ['GET', 'POST', 'ANY'];
+    private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
     /**
      * GET constant
@@ -49,6 +52,27 @@ class Katya {
      * @var string
      */
     const POST = 'POST';
+
+    /**
+     * PUT constant
+     * 
+     * @var string
+     */
+    const PUT = 'PUT';
+
+    /**
+     * PATCH constant
+     * 
+     * @var string
+     */
+    const PATCH = 'PATCH';
+
+    /**
+     * DELETE constant
+     * 
+     * @var string
+     */
+    const DELETE = 'DELETE';
 
     /**
      * Routes collection
@@ -122,7 +146,7 @@ class Katya {
     }
 
     /**
-     * Shorcut to add route that match any method
+     * Shortcut to add route that match any method
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -136,7 +160,7 @@ class Katya {
     }
 
     /**
-     * Shorcut to add route with GET method
+     * Shortcut to add route with GET method
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -150,7 +174,7 @@ class Katya {
     }
 
     /**
-     * Shorcut to add route with POST method
+     * Shortcut to add route with POST method
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -159,6 +183,48 @@ class Katya {
      */
     public function post(string $path, callable $controller): Route {
         $route = $this->route('POST', $path, $controller);
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with PUT method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function put(string $path, callable $controller): Route {
+        $route = $this->route('PUT', $path, $controller);
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with PATCH method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function patch(string $path, callable $controller): Route {
+        $route = $this->route('PATCH', $path, $controller);
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with DELETE method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function delete(string $path, callable $controller): Route {
+        $route = $this->route('DELETE', $path, $controller);
 
         return $route;
     }
@@ -232,22 +298,6 @@ class Katya {
     public function getVar(string $name, $default = null) {
         $name = strtolower(trim($name));
         return $this->vars[$name] ?? $default;
-    }
-
-    /**
-     * Set or return a variable by name
-     * 
-     * @param string $name Variable name
-     * @param mixed $value Variable name (optional)
-     * @return mixed
-     */
-    public function var(string $name, $value = null) {
-        if(null !== $value) {
-            $this->setVar($name, $value);
-            return;
-        }
-
-        return $this->getVar($name);
     }
 
     /**

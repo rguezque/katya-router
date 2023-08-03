@@ -16,6 +16,9 @@ use Closure;
  * @method Route route(string $verb, string $path, callable $closure) Route definition
  * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
  * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
+ * @method Route put(string $path, callable $closure) Shortcut to add route with PUT method
+ * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
+ * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
  * @method Group before(Closure $closure) Add a hook to exec before each route into the group
  * @method Group use(string ...$names) Specify the services to use in this routes group
  */
@@ -152,6 +155,78 @@ class Group {
      */
     public function post(string $path, callable $controller): Route {
         $route = $this->router->post($this->prefix.$path, $controller);
+
+        // Set the hook
+        if(null !== $this->before) {
+            $route->before($this->before);
+        }
+
+        // Set the specific services to use
+        if([] !== $this->onlyuse) {
+            $route->use(...$this->onlyuse);
+        }
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with PUT method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     */
+    public function put(string $path, callable $controller): Route {
+        $route = $this->router->put($this->prefix.$path, $controller);
+
+        // Set the hook
+        if(null !== $this->before) {
+            $route->before($this->before);
+        }
+
+        // Set the specific services to use
+        if([] !== $this->onlyuse) {
+            $route->use(...$this->onlyuse);
+        }
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with PATCH method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     */
+    public function patch(string $path, callable $controller): Route {
+        $route = $this->router->patch($this->prefix.$path, $controller);
+
+        // Set the hook
+        if(null !== $this->before) {
+            $route->before($this->before);
+        }
+
+        // Set the specific services to use
+        if([] !== $this->onlyuse) {
+            $route->use(...$this->onlyuse);
+        }
+
+        return $route;
+    }
+
+    /**
+     * Shortcut to add route with DELETE method
+     * 
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     */
+    public function delete(string $path, callable $controller): Route {
+        $route = $this->router->delete($this->prefix.$path, $controller);
 
         // Set the hook
         if(null !== $this->before) {

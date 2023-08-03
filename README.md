@@ -2,6 +2,23 @@
 
 A lightweight PHP router
 
+**Tabla de contenidos**
+
+- [Configuration]("configuration")
+  - [Autoloader](#autoloader)
+- [Routing](routing)
+  - [Shortcuts](#shortcuts)
+  - [Controllers](#controllers)
+  - [Default controller](#default-controller)
+- [Routes group](#routes-group)
+- [Wildcards](#wildcards)
+- [Render](#render)
+- [Request](#request)
+- [Response](#response)
+- [Services](#services)
+- [Variables](#variables)
+- [Hook](#hook)
+
 ## Configuration
 
 Para servidor **Apache**, en el directorio del proyecto crea y edita un archivo `.htaccess` con lo siguiente:
@@ -86,7 +103,7 @@ try {
 } 
 ```
 
-Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET` y `POST`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben 2 argumentos, un objeto `Request`  (Ver [Request](#request)) y un `Response` (Ver [Response](#response)). El primero contiene los métodos necesarios para manejar una petición y el segundo contiene métodos que permiten devolver una respuesta.
+Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben 2 argumentos, un objeto `Request`  (Ver [Request](#request)) y un `Response` (Ver [Response](#response)). El primero contiene los métodos necesarios para manejar una petición y el segundo contiene métodos que permiten devolver una respuesta.
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto  `Request`.
 
@@ -101,7 +118,7 @@ $katya = new Katya([
 
 ### Shortcuts
 
-Los atajos `Katya::get` y `Katya::post` sirven respectivamente para agregar rutas de tipo `GET` y `POST`al router. El atajo `Katya::any` empareja con cualquier método http; sin embargo, las rutas `get` y `post` tienen preferencia sobre la rutas `any` en caso de que hayan rutas repetidas con diferente métodos de petición.
+Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::delete` sirven respectivamente para agregar rutas de tipo `GET`, `POST`, `PUT`, `PATCH` y `DELETE` al router. El atajo `Katya::any` empareja con cualquier método HTTP; sin embargo, las rutas con los métodos antes mencionados tienen preferencia sobre la rutas `any` en caso de que hayan rutas repetidas con diferente métodos de petición.
 
 ```php
 $katya = new Katya;
@@ -305,17 +322,6 @@ $router->getvar('pi', 3.14) // Devuelve la variable pi (si no existe devuelve po
 ```
 
 Para verificar si una variable existe se utiliza el método `Katya::hasVar()` que devolvera `true` si la variable exite o `false` en caso contrario.
-
-### Shortcut
-
-Define y recupera variables con el método `Katya::var()`. Recibe dos parámetros del cual uno es opcional, y de acuerdo a esto será para asignar una variable o recuperarla.
-
-```php
-$router->var('pi', 3.141592654); // Asigna la variable 'pi'
-$router->var('pi'); // Retorna el valor de la variable pi (si no existe devuelve null)
-```
-
-Si se envía un nombre de variable y como segundo parámetro un valor, se asignara y guardará; si solo se envía el nombre, intentará devolver la variable con dicho nombre.
 
 ## Hook
 
