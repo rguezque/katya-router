@@ -24,8 +24,10 @@ use rguezque\Exceptions\{
  * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
  * @method Route any(string $path, callable $closure) Shortcut to add route with any method
- * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
+ * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
+ * @method Katya cors(array $allowed_origins) Enable Cross-Origin Resources Sharing
+ * @method Katya useServices(Services $services) Set services to use into controllers
  * @method void run(Request $request) Start the router
  * @method void setVar(string $name, $value) Set a variable
  * @method mixed getVar(string $name, $default = null) return a variable by name
@@ -131,6 +133,28 @@ class Katya {
     public function __construct(array $options = []) {
         $this->basepath = isset($options['basepath']) ? pathformat($options['basepath']) : '';
         $this->viewspath = isset($options['viewspath']) ? trim($options['viewspath'], '/\\ ').'/' : '';
+    }
+
+    /**
+     * Enable Cross-Origin Resources Sharing
+     * 
+     * @param string[] Array with allowed origins (allow regex). Ej: '(http(s)://)?(www\.)?localhost:3000'
+     * @return Katya
+     */
+    public function cors(array $allowed_origins): Katya {
+        if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] != '') {
+            foreach ($allowed_origins as $allowed_origin) {
+                if (preg_match('#' . $allowed_origin . '#', $_SERVER['HTTP_ORIGIN'])) {
+                    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+                    header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
+                    header('Access-Control-Max-Age: 1000');
+                    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+                    break;
+                }
+            }
+        }
+
+        return $this;
     }
 
     /**
