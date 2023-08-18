@@ -14,6 +14,7 @@ namespace rguezque;
  * @method Request fromGlobals() Create a Request object from default global params
  * @method array getQuery() Return the $_GET params array
  * @method array getBody() Return the $_POST params array
+ * @method string|array getPhpInputStream() Return a read-only stream that allows reading data from the requested body
  * @method array getServer() Return the $_SERVER params array
  * @method array getCookies() Return the $_COOKIE params array
  * @method array getFiles() Return the $_FILES params array
@@ -32,6 +33,20 @@ namespace rguezque;
  * @method string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
+
+    /**
+     * Value for parsed php input stream
+     * 
+     * @var int
+     */
+    const PARSED_STR = 1;
+
+    /**
+     * Value for apply json decode to php input stream
+     * 
+     * @var int
+     */
+    const JSON_DECODED = 2;
 
     /**
      * $_GET params
@@ -144,6 +159,28 @@ class Request {
      */
     public function getBody(): array {
         return $this->body;
+    }
+
+    /**
+     * Return a read-only stream that allows reading data from the requested body
+     * 
+     * @param int $option Determinate format to return the stream
+     * @return string|array 
+     */
+    public function getPhpInputStream(int $option = 0) {
+        $phpinputstream = file_get_contents('php://input');
+
+        switch($option) {
+            case Request::PARSED_STR:
+                parse_str($phpinputstream, $result);
+                $phpinputstream = $result;
+                break;
+            case Request::JSON_DECODED: 
+                $phpinputstream = json_decode($phpinputstream, true);
+                break;
+        }
+
+        return $phpinputstream;
     }
 
     /**
