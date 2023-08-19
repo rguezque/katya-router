@@ -125,6 +125,8 @@ class Katya {
      */
     private $vars = [];
 
+    private $origins = [];
+
     /**
      * Configure the router options
      * 
@@ -136,23 +138,13 @@ class Katya {
     }
 
     /**
-     * Enable Cross-Origin Resources Sharing
+     * Set the allowed cross-origins resources sharing
      * 
      * @param string[] Array with allowed origins (allow regex). Ej: '(http(s)://)?(www\.)?localhost:3000'
      * @return Katya
      */
     public function cors(array $allowed_origins): Katya {
-        if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] != '') {
-            foreach ($allowed_origins as $allowed_origin) {
-                if (preg_match('#' . $allowed_origin . '#', $_SERVER['HTTP_ORIGIN'])) {
-                    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
-                    header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
-                    header('Access-Control-Max-Age: 1000');
-                    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-                    break;
-                }
-            }
-        }
+        $this->origins = $allowed_origins;
 
         return $this;
     }
@@ -347,9 +339,32 @@ class Katya {
         static $invoke = false;
 
         if(!$invoke) {
+            $this->processCors($request);
             $this->processGroups();
             $this->handleRequest($request);
             $invoke = true;
+        }
+    }
+
+    /**
+     * Enable Cross-Origin Resources Sharing
+     * 
+     * @param Request $request Request object
+     * @return void
+     */
+    private function processCors($request): void {
+        $server = $request->getServer();
+
+        if (isset($server['HTTP_ORIGIN']) && $server['HTTP_ORIGIN'] != '') {
+            foreach ($this->origins as $allowed_origin) {
+                if (preg_match('#' . $allowed_origin . '#', $server['HTTP_ORIGIN'])) {
+                    header('Access-Control-Allow-Origin: ' . $server['HTTP_ORIGIN']);
+                    header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
+                    header('Access-Control-Max-Age: 1000');
+                    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+                    break;
+                }
+            }
         }
     }
 
