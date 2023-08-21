@@ -355,10 +355,10 @@ class Katya {
     private function processCors($request): void {
         $server = $request->getServer();
 
-        if (isset($server['HTTP_ORIGIN']) && $server['HTTP_ORIGIN'] != '') {
+        if ($server->has('HTTP_ORIGIN') && $server->get('HTTP_ORIGIN') != '') {
             foreach ($this->origins as $allowed_origin) {
-                if (preg_match('#' . $allowed_origin . '#', $server['HTTP_ORIGIN'])) {
-                    header('Access-Control-Allow-Origin: ' . $server['HTTP_ORIGIN']);
+                if (preg_match('#' . $allowed_origin . '#', $server->get('HTTP_ORIGIN'))) {
+                    header('Access-Control-Allow-Origin: ' . $server->get('HTTP_ORIGIN'));
                     header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
                     header('Access-Control-Max-Age: 1000');
                     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
@@ -391,8 +391,8 @@ class Katya {
      */
     private function handleRequest(Request $request): void {
         $server = $request->getServer();
-        $request_uri = $this->filterRequestUri($server['REQUEST_URI']);
-        $request_method = $server['REQUEST_METHOD'];
+        $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
+        $request_method = $server->get('REQUEST_METHOD');
 
         if(!in_array($request_method, Katya::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t supported by router.', $request_method));

@@ -12,13 +12,13 @@ namespace rguezque;
  * Represent a request
  * 
  * @method Request fromGlobals() Create a Request object from default global params
- * @method array getQuery() Return the $_GET params array
- * @method array getBody() Return the $_POST params array
- * @method string|array getPhpInputStream() Return a read-only stream that allows reading data from the requested body
- * @method array getServer() Return the $_SERVER params array
- * @method array getCookies() Return the $_COOKIE params array
- * @method array getFiles() Return the $_FILES params array
- * @method array getParams() Return named params array from routing
+ * @method Parameters getQuery() Return the $_GET params array
+ * @method Parameters getBody() Return the $_POST params array
+ * @method string|Parameters getPhpInputStream() Return a read-only stream that allows reading data from the requested body
+ * @method Parameters getServer() Return the $_SERVER params array
+ * @method Parameters getCookies() Return the $_COOKIE params array
+ * @method Parameters getFiles() Return the $_FILES params array
+ * @method Parameters getParams() Return named params array from routing
  * @method mixed getParam(string $name, $default = null) Return a named param from routing
  * @method array getMatches() Return regex matches array
  * @method void setQuery(array $query) Set values for $_GET array
@@ -146,26 +146,26 @@ class Request {
     /**
      * Return the $_GET params array
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getQuery(): array {
-        return $this->query;
+    public function getQuery(): Parameters {
+        return new Parameters($this->query);
     }
 
     /**
      * Return the $_POST params array
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getBody(): array {
-        return $this->body;
+    public function getBody(): Parameters {
+        return new Parameters($this->body);
     }
 
     /**
      * Return a read-only stream that allows reading data from the requested body
      * 
      * @param int $option Determinate format to return the stream
-     * @return string|array 
+     * @return string|Parameters 
      */
     public function getPhpInputStream(int $option = 0) {
         $phpinputstream = file_get_contents('php://input');
@@ -173,10 +173,10 @@ class Request {
         switch($option) {
             case Request::PARSED_STR:
                 parse_str($phpinputstream, $result);
-                $phpinputstream = $result;
+                $phpinputstream = new Parameters($result);
                 break;
             case Request::JSON_DECODED: 
-                $phpinputstream = json_decode($phpinputstream, true);
+                $phpinputstream = new Parameters(json_decode($phpinputstream, true));
                 break;
         }
 
@@ -186,37 +186,37 @@ class Request {
     /**
      * Return the $_SERVER params array
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getServer(): array {
-        return $this->server;
+    public function getServer(): Parameters {
+        return new Parameters($this->server);
     }
 
     /**
      * Return the $_COOKIE params array
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getCookies(): array {
-        return $this->cookies;
+    public function getCookies(): Parameters {
+        return new Parameters($this->cookies);
     }
 
     /**
      * Return the $_FILES params array
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getFiles(): array {
-        return $this->files;
+    public function getFiles(): Parameters {
+        return new Parameters($this->files);
     }
 
     /**
      * Return named params array from route
      * 
-     * @return array
+     * @return Parameters
      */
-    public function getParams(): array {
-        return $this->params;
+    public function getParams(): Parameters {
+        return new Parameters($this->params);
     }
 
     /**
@@ -335,7 +335,7 @@ class Request {
      * @param array $params Params to construct query
      * @return string
      */
-    public function buildQuery(string $uri, array $params): string {
+    public static function buildQuery(string $uri, array $params): string {
         return rtrim($uri, '/\\').'/?'.http_build_query($params);
     }
 
