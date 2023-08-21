@@ -26,7 +26,7 @@ use rguezque\Exceptions\{
  * @method Route any(string $path, callable $closure) Shortcut to add route with any method
  * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
- * @method Katya cors(array $allowed_origins) Enable Cross-Origin Resources Sharing
+ * @method Katya cors(array $allowed_origins) Set the allowed cross-origins resources sharing
  * @method Katya useServices(Services $services) Set services to use into controllers
  * @method void run(Request $request) Start the router
  * @method void setVar(string $name, $value) Set a variable
@@ -359,7 +359,7 @@ class Katya {
             foreach ($this->origins as $allowed_origin) {
                 if (preg_match('#' . $allowed_origin . '#', $server->get('HTTP_ORIGIN'))) {
                     header('Access-Control-Allow-Origin: ' . $server->get('HTTP_ORIGIN'));
-                    header('Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS');
+                    header('Access-Control-Allow-Methods: ' . implode(', ', Katya::SUPPORTED_VERBS));
                     header('Access-Control-Max-Age: 1000');
                     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
                     break;
