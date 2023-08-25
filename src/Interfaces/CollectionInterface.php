@@ -10,10 +10,8 @@ namespace rguezque\Interfaces;
  * @method bool has(string $key) Return true if a variable exists
  * @method bool valid(string $key) Return true if a variable exists and is not empty or null
  * @method int count() Return the count of variables
- * @method string gettype(string $key) Return the type of a variable
- * @method array keys() Retrieve all the variables array keys
  */
-interface Collection {
+interface CollectionInterface {
 
     /**
      * Retrieve a variable by name
@@ -53,21 +51,6 @@ interface Collection {
 	 * @return int
 	 */
     public function count(): int;
-
-    /**
-     * Return the type of a variable
-     * 
-     * @param string $key Variable name
-     * @return string
-     */
-    public function gettype(string $key): string;
-
-    /**
-     * Retrieve all the variables array keys
-     * 
-     * @return string[]
-     */
-    public function keys(): array;
 
 }
 

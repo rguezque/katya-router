@@ -8,8 +8,8 @@
 
 namespace rguezque;
 
-use rguezque\Interfaces\Collection;
 use JsonSerializable;
+use rguezque\Interfaces\CollectionInterface;
 
 /**
  * Contain a parameters array.
@@ -22,7 +22,7 @@ use JsonSerializable;
  * @method string gettype(string $key) Return the type of a parameter
  * @method array keys() Retrieve all the parameters array keys
  */
-class Parameters implements Collection, JsonSerializable {
+class Parameters implements CollectionInterface, JsonSerializable {
 
     /**
      * Parameters array
