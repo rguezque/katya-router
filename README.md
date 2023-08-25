@@ -242,7 +242,8 @@ Métodos de la clase `Request`.
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
 - `getBody()`: Devuelve el array de parámetros `$_POST`.
-- `getServer()`: Devuelve el array de parámetros `$_SERVER`.
+- `getPhpInputStream(int $option = 0)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se invoca `getPhpInputStream(JSON_DECODE)`; si es un *string*,  `getPhpInputStream(PARSED_STR)`
+-  `getServer()`: Devuelve el array de parámetros `$_SERVER`.
 - `getCookies()`: Devuelve el array de parámetros `$_COOKIE`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
 - `getParams()`: Devuelve el array de parámetros nombrados de una ruta solicitada.
@@ -272,6 +273,22 @@ Métodos de la clase `Response`.
 - `json($data, bool $encode = true)`: Devuelve el `Response` con contenido en formato JSON
 - `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista).
 - `redirect(string $uri)`: Devuelve el `Response` como una redirección.
+
+## Session
+
+La clase `Session` sirve para la creación de sesiones y la administración de variables de sesión que son almacenadas en un nombre de espacio dentro de `$_SESSION`. Se inicializa o selecciona una colección de variables de sesión asignando un nombre con `new Session('nombre_de_sesion')` o bien directamente con el alias `Session::select('nombre_de_sesion')`. Los métodos disponibles son:
+
+- `start()`: Inicia la sesión.
+- `started()`: Devuelve `true` si la sesión está activa.
+- `set(string $key, $value)`: Crea o sobrescribe una variable de sesion.
+- `get(string $key, $default = null)`: Devuelve una variable de sesión, si no existe devuelve el valor default que se asigne en el segundo parámetro.
+- `getNamespace()`: Devuelve el nombre del actual nombre de espacio de las variables de sesión.
+- `all()`: Devuelve un array con todas las variables de sesión del actual _namespace_.
+- `has(string $key)`: Devuelve `true` si existe una variable de sesión.
+- `valid(string $key)`: Devuelve `true` si una variable de sesión no es `null` y no está vacía.
+- `remove(string $key)`: Elimina una variable de sesión.
+- `clear()`: Elimina todas las variables de sesión.
+- `destroy()`; Destruye la sesión actual junto con las cookies y variables de sesión.
 
 ## Services
 
@@ -334,7 +351,7 @@ Tanto las rutas como los grupos de rutas pueden tener un *hook*. Si se define en
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use rguezque\{Group, Katya, Request, Response};
+use rguezque\{Group, Katya, Request, Response, Session};
 
 $router = new Katya;
 
@@ -342,12 +359,12 @@ $router->get('/', function(Request $request, Response $response) {
     $username = $request->getParam('@data');
     $response->clear()->send(sprintf('The actual user is: %s'), $username);
 })->before(function(Request $request, Response $response) {
-    session_start();
-    if(!isset($_SESSION['logged'])) {
+    $session = Session::select('mi_sesion');
+    if(!$session->has('logged')) {
         $response->redirect('/login');
     }
 
-    return $_SESSION['username'];
+    return $session->get('username');
 });
 
 $router->group('/admin', function(Group $group) {
@@ -358,8 +375,8 @@ $router->group('/admin', function(Group $group) {
         // Do something
     });
 })->before(function(Request $request, Response $response) {
-    session_start();
-    if(!isset($_SESSION['logged']) || !isset($_SESSION['logged_as_admin'])) {
+	$session = Session::select('mi_sesion');
+    if(!$session->has('logged') || !$session->has('logged_as_admin')) {
         $response->redirect('/login');
     }
 });
