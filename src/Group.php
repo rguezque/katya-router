@@ -20,7 +20,7 @@ use Closure;
  * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
  * @method Group before(Closure $closure) Add a hook to exec before each route into the group
- * @method Group use(string ...$names) Specify the services to use in this routes group
+ * @method Group useServices(string ...$names) Specify the services to use in this routes group
  */
 class Group {
 
@@ -91,7 +91,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -115,7 +115,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -139,7 +139,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -163,7 +163,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -187,7 +187,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -211,7 +211,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -235,7 +235,7 @@ class Group {
 
         // Set the specific services to use
         if([] !== $this->onlyuse) {
-            $route->use(...$this->onlyuse);
+            $route->useServices(...$this->onlyuse);
         }
 
         return $route;
@@ -258,7 +258,7 @@ class Group {
      * @param string ...$names Service names separated by comma
      * @return Group
      */
-    public function use(string ...$names): Group {
+    public function useServices(string ...$names): Group {
         $this->onlyuse = $names;
         return $this;
     }

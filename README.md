@@ -6,15 +6,15 @@ A lightweight PHP router
 
 - [Configuration]("configuration")
   - [Autoloader](#autoloader)
-- [Routing](routing)
+- [Routing](#routing)
   - [Shortcuts](#shortcuts)
   - [Controllers](#controllers)
-  - [Default controller](#default-controller)
 - [Routes group](#routes-group)
 - [Wildcards](#wildcards)
 - [Render](#render)
 - [Request](#request)
 - [Response](#response)
+- [Session](#session)
 - [Services](#services)
 - [Variables](#variables)
 - [Hook](#hook)
@@ -162,28 +162,6 @@ $user = new App\Controller\User();
 $katya->get('/user', [$user, 'showProfile']);
 ```
 
-### Default controller
-
-El método `Katya::default` permite crear directamente un controlador que se ejecutará por *default* si no se encuentra una ruta solicitada. Si no se define un controlador default y no se encuentra alguna ruta, el router lanzará una excepción `RouteNotFoundException` que debe ser atrapada con un `try-catch`. El controlador recibe los mismos parámetros `Request`, `Response` y `Services` según sea el caso (Ver [Services](#services)).
-
-```php
-require __DIR__.'/vendor/autoload.php';
-
-use rguezque\{
-    Katya,
-    Request,
-    Response
-};
-
-$katya = new Katya;
-
-$katya->default(function(Request $request, Response $response) {
-    // Do something
-});
-
-$katya->run(Request::fromglobals());
-```
-
 ## Routes group
 
 Para crear grupos de rutas bajo un mismo prefijo se utiliza `Katya::group`; recibe 2 argumentos, el prefijo de ruta y una función anónima que recibe un objeto `Group` con el cual se definen las rutas del grupo.
@@ -294,11 +272,11 @@ La clase `Session` sirve para la creación de sesiones y la administración de v
 
 La clase `Services` sirve para registrar servicios que se utilizarán en todo el proyecto. Con el método `Services::register` agregamos un servicio, este recibe 2 parámetros, un nombre y una función anónima. Para quitar un servicio `Services::unregister` recibe el nombre del servicio (o servicios, separados por coma) a eliminar.
 
-Para asignarlos al router se envía el objeto `Services` a través del método `Katya::useServices`, a partir de aquí, cada controlador recibirá como tercer argumento la instancia de `Services`. Un servicio es invocado como si fuera un método más de la clase o bien como si fuera un atributo en contexto de objeto. 
+Para asignarlos al router se envía el objeto `Services` a través del método `Katya::setServices`, a partir de aquí, cada controlador recibirá como tercer argumento la instancia de `Services`. Un servicio es invocado como si fuera un método más de la clase o bien como si fuera un atributo en contexto de objeto. 
 
-Opcionalmente se puede seleccionar que servicios específicamente serán utilizados en determinada ruta o grupo de rutas con `Route::use` el cual recibe los nombres de los servicios registrados previamente, separados por comas. **Nota**: Esto no aplica para el controlador default, el cual recibirá todos los servicios registrados.
+Opcionalmente se puede seleccionar que servicios específicamente serán utilizados en determinada ruta o grupo de rutas con `Route::useServices` el cual recibe los nombres de los servicios registrados previamente, separados por comas.
 
-Para verificar si un servicio existe se usa `Services::has` (se envía como argumento el nombre del servicio) y `Services::keys` devuelve un array con los nombres de todos los servicios disponibles.
+Para verificar si un servicio existe se usa `Services::has` (se envía como argumento el nombre del servicio) y `Services::names` devuelve un array con los nombres de todos los servicios disponibles.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -315,34 +293,60 @@ $services->register('is_pair', function(int $number) {
     return $number % 2 == 0;
 });
 
-$router->useServices($services);
+$router->setServices($services);
 
 $router->get('/', function(Request $request, Response $response, Services $service) {
     $pi = $service->pi(); // o bien en contexto de objeto: $service->pi
     $response->clear()->send($pi);
-})->use('pi'); // Solamente recibirá el servicio 'pi'
+})->useServices('pi'); // Solamente recibirá el servicio 'pi'
 ```
 
 ## Variables
 
-Define una variable global dentro de la aplicación con `Katya::setVar`, recibe como parámetros el nombre de la variable y el valor a asignar.
+Asigna variables globales dentro de la aplicación con `Katya::setVariables` que recibe como parámetro un objeto `Variables`.
 
 ```php
-$router->setVar('pi', 3.141592654);
+require __DIR__.'/vendor/autoload.php';
+
+use rguezque\{Katya, Request, Response, Variables};
+
+$router = new Katya;
+$vars = new Variables;
+
+$vars->setVar('pi', 3.141592654);
+$router->setVariables($vars);
+
+$router->get('/', function(Request $request, Response $response, Variables $vars) {
+    $response->send($vars->getVar('pi'));
+});
 ```
 
-Recupera una variable con el método `Katya::getVar`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
+Con `Variables::setVar` se crea una variable, recibe como parámetros el nombre de la variable y su valor.
 
 ```php
-$router->getVar('pi'); // Devuelve la variable pi (si no existe devuelve null)
-$router->getvar('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
+$vars->setVar('pi', 3.141592654);
 ```
 
-Para verificar si una variable existe se utiliza el método `Katya::hasVar()` que devolvera `true` si la variable exite o `false` en caso contrario.
+
+
+Recupera una variable con el método `Variables::getVar`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
+
+```php
+$vars->getVar('pi'); // Devuelve la variable pi (si no existe devuelve null)
+$vars->getVar('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
+```
+
+Para verificar si una variable existe se utiliza el método `Variables::hasVar` que devolverá `true` si la variable existe o `false` en caso contrario.
+
+```php
+$vars->hasVar('pi') // Para este ejemplo devolvería TRUE
+```
+
+Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador, solo si se han definido y asignado con `Katya::setVariables`.
 
 ## Hook
 
-El *hook* `Route::before` ejecuta una acción previa al controlador de una ruta. Si el *hook* devuelve un valor este puede recuperarse en el controlador en el método `Request::getParams()` con la clave `@data`.
+El *hook* `Route::before` ejecuta una acción previa al controlador de una ruta. Si el *hook* devuelve un valor este puede recuperarse en el controlador en el método `Request::getParams` con la clave `@data`.
 
 `Route::before` Recibe una función anónima donde se definen las acciones a ejecutar, esta función a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
 
@@ -381,3 +385,21 @@ $router->group('/admin', function(Group $group) {
     }
 });
 ```
+
+## CORS
+
+`Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*.
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use rguezque\{Group, Katya, Request, Response, Session};
+
+$router = new Katya;
+// Ejemplo
+$router->cors([
+	'(http(s)://)?(www\.)?localhost:3000'
+]);
+```
+
+ 

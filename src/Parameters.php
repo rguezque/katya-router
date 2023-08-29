@@ -41,7 +41,7 @@ class Parameters implements CollectionInterface, JsonSerializable {
     }
 
     /**
-     * Retrieve a parameter by name
+     * Return a parameter by name
      * 
      * If the parameter is array, return into a Parameters object
      * 
@@ -50,9 +50,23 @@ class Parameters implements CollectionInterface, JsonSerializable {
      * @return mixed|Parameters
      */
     public function get(string $key, $default = null) {
+        $key = trim($key);
+
         return $this->has($key) 
         ? (is_array($this->bunch[$key]) ? new Parameters($this->bunch[$key]) : $this->bunch[$key]) 
         : $default ;
+    }
+
+    /**
+     * Set or overwrite a parameter by name
+     * 
+     * @param string $key Parameter name
+     * @param mixed $value Parameter value
+     * @param void
+     */
+    public function set(string $key, $value): void {
+        $key = trim($key);
+        $this->bunch[$key] = $value;
     }
 
     /**
@@ -71,6 +85,8 @@ class Parameters implements CollectionInterface, JsonSerializable {
      * @return bool
      */
     public function has(string $key): bool {
+        $key = trim($key);
+        
         return array_key_exists($key, $this->bunch);
     }
 

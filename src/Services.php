@@ -86,20 +86,11 @@ class Services {
     }
 
     /**
-     * Return all services array
+     * Return the names of availables services
      * 
      * @return array
      */
-    public function all(): array {
-        return $this->services;
-    }
-
-    /**
-     * Return key names of availables services
-     * 
-     * @return array
-     */
-    public function keys(): array {
+    public function names(): array {
         return array_keys($this->services);
     }
 

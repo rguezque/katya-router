@@ -13,6 +13,7 @@ use rguezque\Interfaces\CollectionInterface;
 /**
  * Represents a PHP session.
  * 
+ * @method Session select(string $namespace) Select a collection of session vars into a namespace. Alias for new Session('some_session_name')
  * @method void start() Starts once a session
  * @method bool started() Return true if already exists an active session, otherwise false
  * @method void set(string $key, $value) Set or overwrite a session var

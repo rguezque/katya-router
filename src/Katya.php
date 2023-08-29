@@ -24,13 +24,11 @@ use rguezque\Exceptions\{
  * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
  * @method Route any(string $path, callable $closure) Shortcut to add route with any method
- * @method void default(Closure $closure) Default controller to exec if don't match any route. Match any request method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method Katya cors(array $allowed_origins) Set the allowed cross-origins resources sharing
- * @method Katya useServices(Services $services) Set services to use into controllers
+ * @method Katya setServices(Services $services) Set services to use into controllers
+ * @method Katya setVariables(Variables $vars) Set variables to use into controllers
  * @method void run(Request $request) Start the router
- * @method void setVar(string $name, $value) Set a variable
- * @method mixed getVar(string $name, $default = null) return a variable by name
  */
 class Katya {
 
@@ -111,20 +109,18 @@ class Katya {
      */
     private $viewspath;
 
-    /** 
-     * Default controller to exec
-     * 
-     * @var Closure
-     */
-    private $default_controller;
-
     /**
      * Variables collection
      * 
-     * @var array
+     * @var Variables
      */
-    private $vars = [];
+    private $vars = null;
 
+    /**
+     * Allowed domains for requests 
+     * 
+     * @var string[]
+     */
     private $origins = [];
 
     /**
@@ -155,8 +151,20 @@ class Katya {
      * @param Services $services Service object
      * @return Katya
      */
-    public function useServices(Services $services): Katya {
+    public function setServices(Services $services): Katya {
         $this->services = $services;
+
+        return $this;
+    }
+
+    /**
+     * Set variables to use into controllers
+     * 
+     * @param Variables $vars Variables object
+     * @return Katya
+     */
+    public function setVariables(Variables $vars): Katya {
+        $this->vars = $vars;
 
         return $this;
     }
@@ -269,16 +277,6 @@ class Katya {
     }
 
     /**
-     * Default controller to exec if don't match any route. Match any request method
-     * 
-     * @param callable $controller
-     * @return void
-     */
-    public function default(callable $controller): void {
-        $this->default_controller = $controller;
-    }
-
-    /**
      * Routes group definition under a common prefix
      * 
      * @param string $prefix Prefix for routes group
@@ -290,41 +288,6 @@ class Katya {
         $this->groups[] = $new_group;
 
         return $new_group;
-    }
-
-    /**
-     * Set a variable
-     * 
-     * @param string $name Variable name
-     * @param mixed $value Variable value
-     * @return void
-     */
-    public function setVar(string $name, $value): void {
-        $name = strtolower(trim($name));
-        $this->vars[$name] = $value;
-    }
-
-    /**
-     * Return a variable by name
-     * 
-     * @param string $name Variable name
-     * @param mixed $default Optional default value to return
-     * @return mixed
-     */
-    public function getVar(string $name, $default = null) {
-        $name = strtolower(trim($name));
-        return $this->vars[$name] ?? $default;
-    }
-
-    /**
-     * Return true if a variable exists, otherwise false
-     * 
-     * @param string $name variable name
-     * @return bool
-     */
-    public function hasVar(string $name): bool {
-        $name = strtolower(trim($name));
-        return array_key_exists($name, $this->vars);
     }
 
     /**
@@ -391,6 +354,7 @@ class Katya {
      */
     private function handleRequest(Request $request): void {
         $server = $request->getServer();
+        
         $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
         $request_method = $server->get('REQUEST_METHOD');
 
@@ -421,23 +385,33 @@ class Katya {
                 $services = $this->services;
 
                 // Filter the services for route
-                if([] !== $route->getRouteServices() && isset($services)) {
+                if([] !== $route->getRouteServices() && null !== $services) {
                     $services = $this->filterServices($route->getRouteServices());
                 }
 
                 $response = new Response;
+
                 if($this->viewspath) {
                     $response->viewspath = rtrim($this->viewspath, '/\\').'/';
                 }
 
+                $controller_args = [$request, $response];
+
+                // Add services if exists
+                if(null !== $services) {
+                    array_push($controller_args, $services);
+                }
+
+                // Add variables if exists
+                if(null !== $this->vars) {
+                    array_push($controller_args, $this->vars);
+                }
 
                 // Exec the middleware
                 if($route->hasHookBefore()) {
                     $before = $route->getHookBefore();
                     
-                    $data = isset($services) 
-                        ? call_user_func($before, $request, $response, $services)
-                        : call_user_func($before, $request, $response);
+                    $data = call_user_func($before, ...$controller_args);
                     
                     if(null !== $data) {
                         $request->setParam('@data', $data);
@@ -445,21 +419,11 @@ class Katya {
                 }
 
                 // Exec the controller
-                isset($services) 
-                    ? call_user_func($route->getController(), $request, $response, $services) 
-                    : call_user_func($route->getController(), $request, $response);
+                call_user_func($route->getController(), ...$controller_args);
 
                 // Early return to end the routing
-                return; 
+                return;
             }
-        }
-
-        // Check for default controller. Match any route request
-        if($this->default_controller) {
-            isset($services) 
-                ? call_user_func($this->default_controller, $request, new Response, $services) 
-                : call_user_func($this->default_controller, $request, new Response);
-            return;
         }
 
         // Exception for routes not found

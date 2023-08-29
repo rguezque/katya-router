@@ -14,13 +14,22 @@ namespace rguezque\Interfaces;
 interface CollectionInterface {
 
     /**
-     * Retrieve a variable by name
+     * Return a variable by name
      * 
      * @param string $key Variable name
      * @param mixed $default Value to return if the variable isn't found
      * @return mixed
      */
     public function get(string $key, $default = null);
+
+    /**
+     * Set or overwrite a parameter by name
+     * 
+     * @param string $key Parameter name
+     * @param mixed $value Parameter value
+     * @param void
+     */
+    public function set(string $key, $value);
 
     /**
      * Retrieve all variables array

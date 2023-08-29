@@ -133,7 +133,7 @@ class Route {
      * @param string ...$names Service names separated by comma
      * @return Route
      */
-    public function use(string ...$names): Route {
+    public function useServices(string ...$names): Route {
         $this->onlyuse = $names;
         return $this;
     }
