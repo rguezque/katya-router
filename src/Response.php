@@ -8,8 +8,6 @@
 
 namespace rguezque;
 
-use rguezque\Exceptions\FileNotFoundException;
-
 /**
  * Represent a response
  * 
@@ -24,6 +22,8 @@ use rguezque\Exceptions\FileNotFoundException;
  * @method void redirect(string $uri) Response a redirect
  */
 class Response {
+
+    use View;
 
     /**
      * Response content
@@ -45,13 +45,6 @@ class Response {
      * @var array
      */
     private $headers = [];
-
-    /**
-     * Default directory for search templates rendered in response
-     * 
-     * @var string
-     */
-    public $viewspath;
 
     /**
      * Create a response
@@ -172,33 +165,6 @@ class Response {
             }
             header(sprintf('%s: %s', $name, $content), false, $this->status);
         }
-    }
-
-    /**
-     * Response a rendered template
-     * 
-     * @param string $template The template file
-     * @param array $arguments Arguments passed to template
-     * @return void
-     * @throws FileNotFoundException
-     */
-    public function render(string $template, array $arguments = []): void {
-        $template = trim($template, '/\\');
-
-        if(isset($this->viewspath) && '' !== $this->viewspath) {
-            $template = $this->viewspath.$template;
-        }
-
-        if(!file_exists($template)) {
-            throw new FileNotFoundException(sprintf('The template "%s" wasn\'t found.', $template));
-        }
-
-        extract($arguments);
-        ob_start();
-        include $template;
-        $result = ob_get_clean();
-
-        $this->clear()->status(200)->send($result);
     }
 
     /**

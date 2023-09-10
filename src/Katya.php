@@ -129,8 +129,8 @@ class Katya {
      * @param array $options Set basepath and viewspath
      */
     public function __construct(array $options = []) {
-        $this->basepath = isset($options['basepath']) ? pathformat($options['basepath']) : '';
-        $this->viewspath = isset($options['viewspath']) ? trim($options['viewspath'], '/\\ ').'/' : '';
+        $this->basepath = isset($options['basepath']) ? Format::addLeadingSlash($options['basepath']) : '';
+        $this->viewspath = isset($options['viewspath']) ? Format::addTrailingSlash($options['viewspath']) : '';
     }
 
     /**
@@ -264,7 +264,7 @@ class Katya {
      */
     public function route(string $verb, string $path, callable $controller): Route {
         $verb = strtoupper(trim($verb));
-        $path = pathformat($path);
+        $path = Format::addLeadingSlash($path);
 
         if(!in_array($verb, Katya::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
@@ -392,7 +392,7 @@ class Katya {
                 $response = new Response;
 
                 if($this->viewspath) {
-                    $response->viewspath = rtrim($this->viewspath, '/\\').'/';
+                    $response->setViewsPath(rtrim($this->viewspath, '/\\').'/');
                 }
 
                 $controller_args = [$request, $response];
@@ -437,7 +437,7 @@ class Katya {
      * @return string
      */
     private function getPattern(string $path): string {
-        $path = str_replace('/', '\/', pathformat($path));
+        $path = str_replace('/', '\/', Format::addLeadingSlash($path));
         $path = preg_replace('#{(\w+)}#', '(?<$1>\w+)', $path); // Replace wildcards
         
         return '#^'.$path.'$#i';
@@ -486,17 +486,17 @@ class Katya {
         return $new_service;
     }
 
+    /**
+     * Convert a string to valid path format for the router
+     * 
+     * @param string $value String to convert
+     * @return string
+     */
+    private function pathformat(string $value): string {
+        return '/'.trim(trim($value), '/\\');
+    }
 }
 
 
-/**
- * Convert a string to valid path format for the router
- * 
- * @param string $value String to convert
- * @return string
- */
-function pathformat(string $value): string {
-    return '/'.trim(trim($value), '/\\');
-}
 
 ?>
