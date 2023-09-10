@@ -17,7 +17,12 @@ A lightweight PHP router
 - [Session](#session)
 - [Services](#services)
 - [Variables](#variables)
+- [DB Connection](#db-connection)
+  - [Connecting using an URL](#connecting-using-an-url)
+  - [Auto connect](#auto-connect)
+
 - [Hook](#hook)
+- [CORS](#cors)
 
 ## Configuration
 
@@ -343,6 +348,64 @@ $vars->hasVar('pi') // Para este ejemplo devolvería TRUE
 ```
 
 Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador, solo si se han definido y asignado con `Katya::setVariables`.
+
+## DB Connection
+
+La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada dependiendo del parámetro `driver` donde se define si se utilizara por default MySQL con `PDO` o con `mysqli`.
+
+```php
+use rguezque\DbConnection;
+
+$db = DbConnection::getConnection([
+    // 'driver' => 'mysqli',
+    'driver' => 'mysql', // Se usa PDO
+    'host' => 'localhost',
+    'port' => 3306,
+    'user' => 'root',
+    'pass' => 'mypassword',
+    'dbname' => 'mydatabase'
+    'charset' => 'utf8'
+]);
+```
+
+### Connecting using an URL
+
+Otra alternativa es usar una *database URL* como parámetro de conexión, a través del método estático `DbConnection::dsnParser`; este recibe una URL y la procesa para ser enviada a `DbConnection::getConnection` de la siguiente forma:
+
+```php
+use rguezque\DbConnection;
+
+// Con mysqli
+// 'mysqli://root:mypassword@127.0.0.1/mydatabase?charset=utf8'
+// Con PDO
+$connection_params = DbConnection::dsnParser('mysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
+$db = DbConnection::getConnection($connection_params);
+```
+
+### Auto connect
+
+El método estático `DbConnection::autoConnect` realiza una conexión a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. 
+
+```php
+use rguezque\DbConnection;
+
+$db = DbConnection::autoConnect();
+```
+
+El archivo `.env` debería verse mas o menos así:
+
+```
+DB_DRIVER="mysqli"
+DB_NAME="mydatabase"
+DB_HOST="127.0.0.1"
+DB_PORT=3306
+DB_USER="root"
+DB_PASS="mypassword"
+DB_CHARSET="utf8"
+```
+
+**Nota:** Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`.
+
 
 ## Hook
 
