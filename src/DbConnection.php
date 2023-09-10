@@ -120,7 +120,7 @@ class DbConnection {
             'driver' => $dsn['scheme'] ?? 'mysql',
             'host' => $dsn['host'] ?? '127.0.0.1',
             'port' => $dsn['port'] ?? 3306,
-            'dbname' => trim($dsn['path'], '\/'),
+            'dbname' => trim($dsn['path'], '/\\'),
             'charset' => $charset ?? 'utf8',
             'user' => $dsn['user'],
             'pass' => $dsn['pass'] ?? '',
