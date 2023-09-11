@@ -25,7 +25,7 @@ class DbConnection {
     private static $connection = null;
 
     /**
-     * Return a Singleton PDO connection
+     * Return a Singleton MySQL connection
      * 
      * @param array $params connection params
      * @return PDO|mysqli
@@ -38,8 +38,8 @@ class DbConnection {
             $driver = $params['driver'];
 
             switch($driver) {
-                case 'mysql':
-                    $dsn = sprintf('%s:host=%s;port=%d;dbname=%s;charset=%s;', $driver, $params['host'] ?? '127.0.0.1', $params['port'] ?? 3306, $params['dbname'], $params['charset'] ?? 'utf8');
+                case 'pdomysql':
+                    $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s;', $params['host'] ?? '127.0.0.1', $params['port'] ?? 3306, $params['dbname'], $params['charset'] ?? 'utf8');
                     $options = $params['options'] ?? [
                         PDO::ATTR_PERSISTENT => true,
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
@@ -61,12 +61,11 @@ class DbConnection {
                         throw new mysqli_sql_exception(sprintf('Failed to connect to MySQL with mysqli: %s', $mysqli->connect_error));
                     }
 
-                    // Set the desired charset after establishing a connection
                     $mysqli->set_charset($params['charset'] ?? 'utf8');
                     self::$connection = $mysqli;
                     break;
                 default:
-                    throw new InvalidArgumentException('Invalid value for parameter "driver", mandatory to define as "mysql" or "mysqli".');
+                    throw new InvalidArgumentException('Invalid value for parameter "driver", mandatory to define as "pdomysql" or "mysqli".');
             }
         }
 
@@ -79,12 +78,12 @@ class DbConnection {
      * @return PDO
      */
     public function autoConnect(): PDO {
-        if(isset($_ENV['DB_DRIVER']) && !in_array($_ENV['DB_DRIVER'], ['mysql', 'mysqli'])) {
-            throw new InvalidArgumentException('Invalid value for "scheme" component of database URL, mandatory to define as "mysql" or "mysqli".');
+        if(isset($_ENV['DB_DRIVER']) && !in_array($_ENV['DB_DRIVER'], ['pdomysql', 'mysqli'])) {
+            throw new InvalidArgumentException('Invalid value for "DB_DRIVER" variable, mandatory to define as "pdomysql" or "mysqli".');
         }
 
         $params = [
-            'driver' => $_ENV['DB_DRIVER'] ?? 'mysql',
+            'driver' => $_ENV['DB_DRIVER'] ?? 'pdomysql',
             'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
             'port' => $_ENV['DB_PORT'] ?? 3306,
             'dbname' => $_ENV['DB_NAME'],
@@ -106,8 +105,8 @@ class DbConnection {
     public static function dsnParser(string $url): array {
         $dsn = parse_url($url);
 
-        if(isset($dsn['scheme']) && !in_array($dsn['scheme'], ['mysql', 'mysqli'])) {
-            throw new InvalidArgumentException('Invalid value for "scheme" component of database URL, mandatory to define as "mysql" or "mysqli".');
+        if(isset($dsn['scheme']) && !in_array($dsn['scheme'], ['pdomysql', 'mysqli'])) {
+            throw new InvalidArgumentException('Invalid value for "scheme" component of database URL, mandatory to define as "pdomysql" or "mysqli".');
         }
 
         if(isset($dsn['query'])) {
@@ -117,7 +116,7 @@ class DbConnection {
         }
 
         return [
-            'driver' => $dsn['scheme'] ?? 'mysql',
+            'driver' => $dsn['scheme'] ?? 'pdomysql',
             'host' => $dsn['host'] ?? '127.0.0.1',
             'port' => $dsn['port'] ?? 3306,
             'dbname' => trim($dsn['path'], '/\\'),

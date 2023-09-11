@@ -358,7 +358,7 @@ use rguezque\DbConnection;
 
 $db = DbConnection::getConnection([
     // 'driver' => 'mysqli',
-    'driver' => 'mysql', // Se usa PDO
+    'driver' => 'pdomysql',
     'host' => 'localhost',
     'port' => 3306,
     'user' => 'root',
@@ -378,7 +378,7 @@ use rguezque\DbConnection;
 // Con mysqli
 // 'mysqli://root:mypassword@127.0.0.1/mydatabase?charset=utf8'
 // Con PDO
-$connection_params = DbConnection::dsnParser('mysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
+$connection_params = DbConnection::dsnParser('pdomysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
 $db = DbConnection::getConnection($connection_params);
 ```
 
