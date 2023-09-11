@@ -124,6 +124,13 @@ class Katya {
     private $origins = [];
 
     /**
+     * Allowed CORS http methods
+     * 
+     * @var string[]
+     */
+    private $cors_methods = [];
+
+    /**
      * Configure the router options
      * 
      * @param array $options Set basepath and viewspath
@@ -137,10 +144,12 @@ class Katya {
      * Set the allowed cross-origins resources sharing
      * 
      * @param string[] Array with allowed origins (allow regex). Ej: '(http(s)://)?(www\.)?localhost:3000'
+     * @param string[] Array with allowed http methods for CORS (allow by default: GET, POST, PUT, PATCH and DELETE)
      * @return Katya
      */
-    public function cors(array $allowed_origins): Katya {
+    public function cors(array $allowed_origins, array $allowed_methods = []): Katya {
         $this->origins = $allowed_origins;
+        $this->cors_methods = [] !== $allowed_methods ? array_map('strtoupper', $allowed_methods) : self::SUPPORTED_VERBS;
 
         return $this;
     }
@@ -266,7 +275,7 @@ class Katya {
         $verb = strtoupper(trim($verb));
         $path = Format::addLeadingSlash($path);
 
-        if(!in_array($verb, Katya::SUPPORTED_VERBS)) {
+        if(!in_array($verb, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
         }
 
@@ -322,7 +331,7 @@ class Katya {
             foreach ($this->origins as $allowed_origin) {
                 if (preg_match('#' . $allowed_origin . '#', $server->get('HTTP_ORIGIN'))) {
                     header('Access-Control-Allow-Origin: ' . $server->get('HTTP_ORIGIN'));
-                    header('Access-Control-Allow-Methods: ' . implode(', ', Katya::SUPPORTED_VERBS));
+                    header('Access-Control-Allow-Methods: ' . implode(', ', $this->cors_methods));
                     header('Access-Control-Max-Age: 1000');
                     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
                     break;
@@ -358,7 +367,7 @@ class Katya {
         $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
         $request_method = $server->get('REQUEST_METHOD');
 
-        if(!in_array($request_method, Katya::SUPPORTED_VERBS)) {
+        if(!in_array($request_method, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t supported by router.', $request_method));
         }
 
@@ -486,15 +495,6 @@ class Katya {
         return $new_service;
     }
 
-    /**
-     * Convert a string to valid path format for the router
-     * 
-     * @param string $value String to convert
-     * @return string
-     */
-    private function pathformat(string $value): string {
-        return '/'.trim(trim($value), '/\\');
-    }
 }
 
 

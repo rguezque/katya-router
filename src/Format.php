@@ -14,7 +14,7 @@ class Format {
      * @return string
      */
     public static function addLeadingSlash(string $str): string {
-        return '/'.Format::removeSlashes($str);
+        return '/'.self::removeSlashes($str);
     }
 
     /**
@@ -34,7 +34,7 @@ class Format {
      * @return string
      */
     public static function addTrailingSlash(string $str): string {
-        return Format::removeSlashes($str).'/';
+        return self::removeSlashes($str).'/';
     }
 
     /**

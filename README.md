@@ -451,18 +451,21 @@ $router->group('/admin', function(Group $group) {
 
 ## CORS
 
-`Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*.
+`Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. También se puede especificar los métodos de petición permitidos, enviandolos como segundo argumento en un array.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use rguezque\{Group, Katya, Request, Response, Session};
+use rguezque\Katya;
 
 $router = new Katya;
 // Ejemplo
-$router->cors([
+$router->cors(
+    [
 	'(http(s)://)?(www\.)?localhost:3000'
-]);
+	],
+    ['GET', 'POST'] // En este ejemplo solo se permiten estos métodos
+);
 ```
 
  

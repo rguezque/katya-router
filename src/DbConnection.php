@@ -34,7 +34,7 @@ class DbConnection {
      * @throws InvalidArgumentException
      */
     public static function getConnection(array $params) {
-        if(!DbConnection::$connection) {
+        if(!self::$connection) {
             $driver = $params['driver'];
 
             switch($driver) {
@@ -46,7 +46,7 @@ class DbConnection {
                     ];
         
                     try {
-                        DbConnection::$connection = new PDO($dsn, $params['user'], $params['pass'] ?? '', $options);
+                        self::$connection = new PDO($dsn, $params['user'], $params['pass'] ?? '', $options);
                     } catch(PDOException $e) {
                         throw new PDOException(sprintf('Failed to connect to MySQL with PDO driver: %s', $e->getMessage()));
                     }
@@ -63,14 +63,14 @@ class DbConnection {
 
                     // Set the desired charset after establishing a connection
                     $mysqli->set_charset($params['charset'] ?? 'utf8');
-                    DbConnection::$connection = $mysqli;
+                    self::$connection = $mysqli;
                     break;
                 default:
                     throw new InvalidArgumentException('Invalid value for parameter "driver", mandatory to define as "mysql" or "mysqli".');
             }
         }
 
-        return DbConnection::$connection;
+        return self::$connection;
     }
 
     /**
@@ -93,7 +93,7 @@ class DbConnection {
             'pass' => $_ENV['DB_PASS'] ?? ''
         ];
 
-        return DbConnection::getConnection($params);
+        return self::getConnection($params);
     }
 
     /**
