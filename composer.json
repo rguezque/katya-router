@@ -6,15 +6,17 @@
     "autoload": {
         "psr-4": {
             "rguezque\\": "src/"
-        }
+        },
+        "files": ["src/functions/functions.php"]
     },
     "authors": [
         {
             "name": "Luis Arturo Rodriguez",
-            "email": "rguezque@gmail.com"
+            "email": "rguezque@gmail.com",
+            "homepage": "https://www.github.com/rguezque"
         }
     ],
     "require": {
-        "php": ">=7.2.19"
+        "php": ">=7.4.0"
     }
 }

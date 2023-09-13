@@ -10,6 +10,8 @@ namespace rguezque;
 
 use Closure;
 
+use function rguezque\functions\str_path;
+
 /**
  * Routes group
  * 
@@ -67,7 +69,7 @@ class Group {
      * @param Katya $router Router object
      */
     public function __construct(string $prefix, Closure $closure, Katya $router) {
-        $this->prefix = '/' . trim($prefix, '/\\');
+        $this->prefix = str_path($prefix);
         $this->closure = $closure;
         $this->router = $router;
     }

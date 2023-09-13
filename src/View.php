@@ -4,6 +4,10 @@ namespace rguezque;
 
 use rguezque\Exceptions\FileNotFoundException;
 
+use function rguezque\functions\add_leading_slash;
+use function rguezque\functions\add_trailing_slash;
+use function rguezque\functions\remove_leading_slash;
+
 trait View {
 
     /**
@@ -20,7 +24,7 @@ trait View {
      * @return void
      */
     public function setViewsPath(string $path): void {
-        $this->viewspath = Format::addTrailingSlash($path);
+        $this->viewspath = add_trailing_slash($path);
     }
 
     /**
@@ -32,8 +36,8 @@ trait View {
      * @throws FileNotFoundException
      */
     public function render(string $template, array $arguments = []): void {
-        $template = Format::addLeadingSlash($template);
-
+        $template = remove_leading_slash($template);
+        
         if(isset($this->viewspath) && '' !== $this->viewspath) {
             $template = $this->viewspath.$template;
         }

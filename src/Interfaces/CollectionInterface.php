@@ -6,6 +6,7 @@ namespace rguezque\Interfaces;
  * Interface for variable collection.
  * 
  * @method mixed get(string $key, $default = null) Retrieve a variable by name
+ * @method void set(string $key, $value) Set or overwrite a parameter by name
  * @method array all() Retrieve all variables array
  * @method bool has(string $key) Return true if a variable exists
  * @method bool valid(string $key) Return true if a variable exists and is not empty or null
@@ -27,9 +28,9 @@ interface CollectionInterface {
      * 
      * @param string $key Parameter name
      * @param mixed $value Parameter value
-     * @param void
+     * @return void
      */
-    public function set(string $key, $value);
+    public function set(string $key, $value): void;
 
     /**
      * Retrieve all variables array

@@ -10,9 +10,14 @@ namespace rguezque;
 
 use Closure;
 use rguezque\Exceptions\{
+    BadNameException,
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
+
+use function rguezque\functions\add_trailing_slash;
+use function rguezque\functions\remove_trailing_slash;
+use function rguezque\functions\str_path;
 
 /**
  * Router
@@ -136,8 +141,8 @@ class Katya {
      * @param array $options Set basepath and viewspath
      */
     public function __construct(array $options = []) {
-        $this->basepath = isset($options['basepath']) ? Format::addLeadingSlash($options['basepath']) : '';
-        $this->viewspath = isset($options['viewspath']) ? Format::addTrailingSlash($options['viewspath']) : '';
+        $this->basepath = isset($options['basepath']) ? str_path($options['basepath']) : '';
+        $this->viewspath = isset($options['viewspath']) ? add_trailing_slash($options['viewspath']) : '';
     }
 
     /**
@@ -273,7 +278,7 @@ class Katya {
      */
     public function route(string $verb, string $path, callable $controller): Route {
         $verb = strtoupper(trim($verb));
-        $path = Format::addLeadingSlash($path);
+        $path = str_path($path);
 
         if(!in_array($verb, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
@@ -373,7 +378,7 @@ class Katya {
 
         // Trailing slash no matters
         $request_uri = '/' !== $request_uri 
-        ? rtrim($request_uri, '/\\') 
+        ? remove_trailing_slash($request_uri) 
         : $request_uri;
 
         // Select the routes collection according to the http request method
@@ -399,6 +404,7 @@ class Katya {
                 }
 
                 $response = new Response;
+                $response->clear();
 
                 if($this->viewspath) {
                     $response->setViewsPath(rtrim($this->viewspath, '/\\').'/');
@@ -446,7 +452,7 @@ class Katya {
      * @return string
      */
     private function getPattern(string $path): string {
-        $path = str_replace('/', '\/', Format::addLeadingSlash($path));
+        $path = str_replace('/', '\/', str_path($path));
         $path = preg_replace('#{(\w+)}#', '(?<$1>\w+)', $path); // Replace wildcards
         
         return '#^'.$path.'$#i';
@@ -496,7 +502,5 @@ class Katya {
     }
 
 }
-
-
 
 ?>
