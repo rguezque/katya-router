@@ -9,7 +9,8 @@
 namespace rguezque;
 
 use JsonSerializable;
-use rguezque\Interfaces\CollectionInterface;
+use rguezque\Interfaces\ArgumentsInterface;
+use rguezque\Interfaces\BagInterface;
 
 /**
  * Contain a parameters array.
@@ -22,7 +23,7 @@ use rguezque\Interfaces\CollectionInterface;
  * @method string gettype(string $key) Return the type of a parameter
  * @method array keys() Retrieve all the parameters array keys
  */
-class Parameters implements CollectionInterface, JsonSerializable {
+class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
 
     /**
      * Parameters array
@@ -129,12 +130,22 @@ class Parameters implements CollectionInterface, JsonSerializable {
     }
 
     /**
-     * Print all parameters in readable format if the class is invoked like a string
+     * Remove a parameter by name
      * 
-     * @return string
+     * @param string $key Parameter name
+     * @return void
      */
-    public function __toString(): string {
-        return sprintf('<pre>%s</pre>', print_r($this->bunch, true));
+    public function remove(string $key): void {
+        unset($this->bunch[$key]);
+    }
+
+    /**
+     * Remove all parameters
+     * 
+     * @return void
+     */
+    public function clear(): void {
+        $this->bunch =[];
     }
 
     /**
@@ -144,7 +155,7 @@ class Parameters implements CollectionInterface, JsonSerializable {
      * @return array Returns data which can be serialized by json_encode(), which is a value 
      *               of any type other than a resource.
      */
-    public function jsonSerialize() {
+    public function jsonSerialize(): array {
         return $this->bunch;
     }
 
