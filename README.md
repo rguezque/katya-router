@@ -106,7 +106,7 @@ try {
     (new Response($message, 404))->send();
 } catch(UnsupportedRequestMethodException $e) {
     $message = printf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, 500))->send();
+    (new Response($message, 405))->send();
 } 
 ```
 
