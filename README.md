@@ -102,9 +102,11 @@ $router->route(Katya::GET, '/', function(Request $request, Response $response) {
 try {
     $router->run(Request::fromGlobals());
 } catch(RouteNotFoundException $e) {
-    printf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
+    $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
+    (new Response($message, 404))->send();
 } catch(UnsupportedRequestMethodException $e) {
-    printf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
+    $message = printf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
+    (new Response($message, 500))->send();
 } 
 ```
 
@@ -120,6 +122,8 @@ $katya = new Katya([
     'viewspath' => __DIR__.'/templates/'
 ]);
 ```
+
+**Nota:** El router devuelve dos posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta y `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
 
 ### Shortcuts
 

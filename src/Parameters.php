@@ -22,6 +22,8 @@ use rguezque\Interfaces\BagInterface;
  * @method int count() Return the count of parameters
  * @method string gettype(string $key) Return the type of a parameter
  * @method array keys() Retrieve all the parameters array keys
+ * @method void remove(string $key) Remove a parameter by name
+ * @method void clear() Remove all parameters
  */
 class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
 
