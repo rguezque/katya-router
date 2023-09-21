@@ -141,7 +141,7 @@ class Katya {
      * @param array $options Set basepath and viewspath
      */
     public function __construct(array $options = []) {
-        $this->basepath = isset($options['basepath']) ? str_path($options['basepath']) : '';
+        $this->basepath = isset($options['basepath']) ? str_path($options['basepath']) : str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME']));
         $this->viewspath = isset($options['viewspath']) ? add_trailing_slash($options['viewspath']) : '';
     }
 
