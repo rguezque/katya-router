@@ -247,6 +247,34 @@ Métodos de la clase `Request`.
 - `setMatches(arrat $matches)`: Agrega valores al array de coincidencias de expresiones regulares.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
+## Client Request
+
+La clase `ClientRequest` representa peticiones HTTP desde el lado del cliente.
+
+```php
+use Forge\Route\ClientRequest;
+
+// Si se omite el segundo parámetro se asume que será una petición GET
+$client_request = new ClientRequest('https://jsonplaceholder.typicode.com/posts');
+// Se envía la petición y se almacena la respuesta
+$client_request->send();
+// Se recupera el valor almacenado
+$result = $client_request->toArray();
+```
+
+Métodos disponibles:
+
+- `withRequestMethod(string $method)`: Especifica el tipo de petición que se hará (`GET`, `POST`, `PUT`, `DELETE`).
+- `withHeader(string $key, string $value)`: Agrega un encabezado a la petición.
+- `withHeaders(array $headers)`: Agrega múltiples encabezados a la petición, recibe un array asociativo como parámetro, donde cada clave es un encabezado seguido de su contenido.
+- `withPostFields($data, bool $encode = true)`: Agrega parámetros a la petición mediante un array asociativo de datos.
+- `withBasicAuth(string $username, string $password)`: Agrega un encabezado `Authorization` basado en un nombre de usuario y contraseña simples.
+- `withTokenAuth(string $token)`: Agrega un encabezado `Authorization` basado en JWT.
+- `send()`: Envía la petición y almacena el response.
+- `getContent()`: Se recupera el valor del response.
+- `toArray()`: Se recupera el valor del response en formato JSON.
+- `getInfo()`: Devuelve un `array` asociativo con información sobre la petición enviada. Si se invoca antes de `ClientRequest::send()` devolverá `null`.
+
 ## Response
 
 Métodos de la clase `Response`.
