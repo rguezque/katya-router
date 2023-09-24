@@ -8,6 +8,8 @@
 
 namespace rguezque;
 
+use rguezque\Interfaces\ArgumentsInterface;
+use rguezque\Interfaces\BagInterface;
 use rguezque\Interfaces\CollectionInterface;
 
 /**
@@ -27,7 +29,7 @@ use rguezque\Interfaces\CollectionInterface;
  * @method void clear() Removes all session vars
  * @method bool destroy() Destroy the active session
  */
-class Session implements CollectionInterface {
+class Session implements BagInterface, ArgumentsInterface {
 
     /**
      * Session vars namespace
