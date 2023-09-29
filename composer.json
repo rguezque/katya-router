@@ -18,5 +18,7 @@
     ],
     "require": {
         "php": ">=7.4.0"
-    }
+    },
+    "minimum-stability": "stable",
+    "version": "1.0"
 }
