@@ -13,12 +13,11 @@
         {
             "name": "Luis Arturo Rodriguez",
             "email": "rguezque@gmail.com",
+            "role": "Original Developer",
             "homepage": "https://www.github.com/rguezque"
         }
     ],
     "require": {
         "php": ">=7.4.0"
-    },
-    "minimum-stability": "stable",
-    "version": "1.0"
+    }
 }
