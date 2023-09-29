@@ -10,7 +10,6 @@ namespace rguezque;
 
 use rguezque\Interfaces\ArgumentsInterface;
 use rguezque\Interfaces\BagInterface;
-use rguezque\Interfaces\CollectionInterface;
 
 /**
  * Represents a PHP session.
