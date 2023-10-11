@@ -15,12 +15,12 @@ use function rguezque\functions\str_path;
 /**
  * Routes group
  * 
- * @method Route route(string $verb, string $path, callable $closure) Route definition
- * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
- * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
- * @method Route put(string $path, callable $closure) Shortcut to add route with PUT method
- * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
- * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
+ * @method Route route(string $verb, string $path, callable $controller) Route definition
+ * @method Route get(string $path, callable $controller) Shortcut to add route with GET method
+ * @method Route post(string $path, callable $controller) Shortcut to add route with POST method
+ * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
+ * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
+ * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
  * @method Group before(Closure $closure) Add a hook to exec before each route into the group
  * @method Group useServices(string ...$names) Specify the services to use in this routes group
  */

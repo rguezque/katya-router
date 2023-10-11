@@ -22,13 +22,13 @@ use function rguezque\functions\str_path;
 /**
  * Router
  * 
- * @method Route route(string $verb, string $path, callable $closure) Route definition
- * @method Route get(string $path, callable $closure) Shortcut to add route with GET method
- * @method Route post(string $path, callable $closure) Shortcut to add route with POST method
- * @method Route put(string $path, callable $closure) Shortcut to add route with PUT method
- * @method Route patch(string $path, callable $closure) Shortcut to add route with PATCH method
- * @method Route delete(string $path, callable $closure) Shortcut to add route with DELETE method
- * @method Route any(string $path, callable $closure) Shortcut to add route with any method
+ * @method Route route(string $verb, string $path, callable $controller) Route definition
+ * @method Route get(string $path, callable $controller) Shortcut to add route with GET method
+ * @method Route post(string $path, callable $controller) Shortcut to add route with POST method
+ * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
+ * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
+ * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
+ * @method Route any(string $path, callable $controller) Shortcut to add route with any method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method Katya cors(array $allowed_origins) Set the allowed cross-origins resources sharing
  * @method Katya setServices(Services $services) Set services to use into controllers
