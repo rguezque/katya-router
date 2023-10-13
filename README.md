@@ -443,7 +443,7 @@ DB_CHARSET="utf8"
 
 El *hook* `Route::before` ejecuta una acción previa al controlador de una ruta. Si el *hook* devuelve un valor este puede recuperarse en el controlador en el método `Request::getParams` con la clave `@data`.
 
-`Route::before` Recibe una función anónima donde se definen las acciones a ejecutar, esta función a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
+`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
 
 Tanto las rutas como los grupos de rutas pueden tener un *hook*. Si se define en un grupo, todas las rutas heredarán la misma acción previa, pero si se define un *hook* a una ruta individual esta tendrá preferencia sobre el *hook* del grupo.
 
