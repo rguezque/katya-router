@@ -21,7 +21,7 @@ use function rguezque\functions\str_path;
  * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
  * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
- * @method Group before(Closure $closure) Add a hook to exec before each route into the group
+ * @method Group before(callable $callable) Add a hook to exec before each route into the group
  * @method Group useServices(string ...$names) Specify the services to use in this routes group
  */
 class Group {
@@ -48,9 +48,9 @@ class Group {
     private $closure;
 
     /**
-     * Middleware before the controller
+     * Middleware before the controller execution into the group
      * 
-     * @var Closure
+     * @var callable
      */
     private $before = null;
 
@@ -246,11 +246,11 @@ class Group {
     /**
      * Add a hook to exec before each route into the group
      * 
-     * @param Closure $closure Middleware closure
+     * @param callable $callable Middleware before each controller execution into the group
      * @return Group
      */
-    public function before(Closure $closure): Group {
-        $this->before = $closure;
+    public function before(callable $callable): Group {
+        $this->before = $callable;
         return $this;
     }
 
