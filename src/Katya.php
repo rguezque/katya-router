@@ -288,7 +288,9 @@ class Katya {
         }
 
         $new_route = new Route($verb, $path, $controller);
-        $this->routes[$verb][] = $new_route;
+        // Set the "path" as identifier, avoiding duplicate routes. 
+        // So, a route overwrite another with same route path
+        $this->routes[$verb][$path] = $new_route;
 
         return $new_route;
     }
