@@ -4,7 +4,6 @@ namespace rguezque;
 
 use rguezque\Exceptions\FileNotFoundException;
 
-use function rguezque\functions\add_leading_slash;
 use function rguezque\functions\add_trailing_slash;
 use function rguezque\functions\remove_leading_slash;
 
