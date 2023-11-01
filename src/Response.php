@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -57,6 +57,19 @@ class Response {
         $this->content = $content;
         $this->status = $status;
         $this->headers = $headers;
+    }
+
+    /**
+     * Reset the response to default values
+     * 
+     * @return Response
+     */
+    public function clear(): Response {
+        $this->content = '';
+        $this->status = 200;
+        $this->headers = [];
+
+        return $this;
     }
 
     /**
@@ -139,24 +152,15 @@ class Response {
     }
 
     /**
-     * Reset the response to default values
-     * 
-     * @return Response
-     */
-    public function clear(): Response {
-        $this->content = '';
-        $this->status = 200;
-        $this->headers = [];
-
-        return $this;
-    }
-
-    /**
      * Send the http headers
      * 
      * @return void
      */
     private function sendHeaders(): void {
+        // Send the http status header
+        $http_status = new HttpStatus($this->status);
+        $http_status->sendHttpStatus();
+
         foreach($this->headers as $name => $content) {
             if(is_array($content)) {
                 foreach($content as $key => $value) {
