@@ -30,10 +30,6 @@ Para servidor **Apache**, en el directorio del proyecto crea y edita un archivo 
 
 ```htaccess
 <IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
     RewriteEngine On
 
     # Handle Authorization Header

@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -269,7 +269,7 @@ class Group {
      * Allow exec the class like a function
      */
     public function __invoke() {
-        ($this->closure)($this);
+        call_user_func($this->closure, $this);
     }
 
 }

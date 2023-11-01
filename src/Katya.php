@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -303,7 +303,7 @@ class Katya {
      * @return Group
      */
     public function group(string $prefix, Closure $closure): Group {
-        $new_group = new Group($prefix, $closure, $this);
+        $new_group = new Group(str_path($prefix), $closure, $this);
         $this->groups[] = $new_group;
 
         return $new_group;
@@ -394,7 +394,7 @@ class Katya {
 
         foreach($routes as $route) {
             $full_path = $this->basepath.$route->getPath();
-            
+
             if(preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
                 array_shift($arguments);
                 list($params, $matches) = $this->filterArguments($arguments);
@@ -409,7 +409,6 @@ class Katya {
                 }
 
                 $response = new Response;
-                $response->clear();
 
                 if($this->viewspath) {
                     $response->setViewsPath(rtrim($this->viewspath, '/\\').'/');

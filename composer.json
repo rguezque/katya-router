@@ -1,6 +1,7 @@
 {
     "name": "rguezque/katya-router",
     "description": "A lightweight PHP router.",
+    "keywords": ["router", "routing", "mvc", "microframework", "php"],
     "type": "router",
     "license": "MIT",
     "autoload": {
