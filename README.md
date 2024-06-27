@@ -24,6 +24,14 @@ A lightweight PHP router
 - [Hook](#hook)
 - [CORS](#cors)
 
+## Instalar
+
+Desde la terminal en la raiz del proyecto:
+
+```bash
+composer require rguezque/katya-router
+```
+
 ## Configuration
 
 Para servidor **Apache**, en el directorio del proyecto crea y edita un archivo `.htaccess` con lo siguiente:
@@ -119,7 +127,8 @@ $katya = new Katya([
 ]);
 ```
 
-**Nota:** El router devuelve dos posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta y `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
+>[!NOTE]
+>El router devuelve dos posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta y `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
 
 ### Shortcuts
 
@@ -205,6 +214,9 @@ $katya->get('/hola/(\w+)/(\w+)', function(Request $request, Response $response) 
 });
 ```
 
+>[!IMPORTANT]
+>Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podras recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, utiliza `Request::getMatches` que contiene todos los parámetros en el orden que hayan sido definidos en la ruta.
+
 ## Render
 
 El método `Response::render` sirve para renderizar plantillas. Se envía la ruta del archivo de plantilla y opcionalmente un array asociativo con argumentos a enviarle.
@@ -216,7 +228,8 @@ $katya->get('/', function(Request $request, Response $response) {
 });
 ```
 
-**Nota**: `Response::render`, buscará las plantillas en el directorio definido al inicio en el array de opciones del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla. Ver [Routing](#routing).
+>[!NOTE]
+>El método `Response::render`, buscará las plantillas en el directorio definido al inicio en el array de opciones del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla. Ver [Routing](#routing).
 
 ## Request
 
@@ -360,8 +373,6 @@ Con `Variables::setVar` se crea una variable, recibe como parámetros el nombre 
 $vars->setVar('pi', 3.141592654);
 ```
 
-
-
 Recupera una variable con el método `Variables::getVar`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
 
 ```php
@@ -432,8 +443,8 @@ DB_PASS="mypassword"
 DB_CHARSET="utf8"
 ```
 
-**Nota:** Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`.
-
+>[!NOTE]
+>Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
 
 ## Hook
 
