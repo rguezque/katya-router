@@ -4,6 +4,7 @@
     "keywords": ["router", "routing", "mvc", "microframework", "php"],
     "type": "router",
     "license": "MIT",
+    "homepage": "https://www.github.com/rguezque/katya-router",
     "autoload": {
         "psr-4": {
             "rguezque\\": "src/"
@@ -19,6 +20,6 @@
         }
     ],
     "require": {
-        "php": ">=7.4.0"
+        "php": ">=8.1.9"
     }
 }

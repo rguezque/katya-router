@@ -4,6 +4,7 @@ A lightweight PHP router
 
 **Tabla de contenidos**
 
+- [Install](#install)
 - [Configuration]("configuration")
   - [Autoloader](#autoloader)
 - [Routing](#routing)
@@ -11,7 +12,11 @@ A lightweight PHP router
   - [Controllers](#controllers)
 - [Routes group](#routes-group)
 - [Wildcards](#wildcards)
-- [Render](#render)
+- [Views](#views)
+  - [Set template](#set-template)
+  - [Adding arguments](#adding-arguments)
+  - [Extending the template](#extending-the-template)
+  - [Render view](#render-view)
 - [Request](#request)
 - [Response](#response)
 - [Session](#session)
@@ -20,13 +25,12 @@ A lightweight PHP router
 - [DB Connection](#db-connection)
   - [Connecting using an URL](#connecting-using-an-url)
   - [Auto connect](#auto-connect)
-
-- [Hook](#hook)
+- [Middleware](#middleware)
 - [CORS](#cors)
 
-## Instalar
+## Install
 
-Desde la terminal en la raiz del proyecto:
+Desde la terminal en la raíz del proyecto:
 
 ```bash
 composer require rguezque/katya-router
@@ -88,6 +92,7 @@ composer dump-autoload -o
 require __DIR__.'/vendor/autoload.php';
 
 use rguezque\{
+    HttpStatus,
     Katya, 
     Request,
     Response
@@ -107,10 +112,10 @@ try {
     $router->run(Request::fromGlobals());
 } catch(RouteNotFoundException $e) {
     $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, 404))->send();
+    (new Response($message, HttpStatus::HTTP_NOT_FOUND))->send();
 } catch(UnsupportedRequestMethodException $e) {
-    $message = printf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, 405))->send();
+    $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
+    (new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED))->send();
 } 
 ```
 
@@ -127,12 +132,12 @@ $katya = new Katya([
 ]);
 ```
 
->[!NOTE]
+>[!TIP]
 >El router devuelve dos posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta y `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
 
 ### Shortcuts
 
-Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::delete` sirven respectivamente para agregar rutas de tipo `GET`, `POST`, `PUT`, `PATCH` y `DELETE` al router. El atajo `Katya::any` empareja con cualquier método HTTP; sin embargo, las rutas con los métodos antes mencionados tienen preferencia sobre la rutas `any` en caso de que hayan rutas repetidas con diferente métodos de petición.
+Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::delete` sirven respectivamente para agregar rutas de tipo `GET`, `POST`, `PUT`, `PATCH` y `DELETE` al router. 
 
 ```php
 $katya = new Katya;
@@ -217,19 +222,113 @@ $katya->get('/hola/(\w+)/(\w+)', function(Request $request, Response $response) 
 >[!IMPORTANT]
 >Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podras recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, utiliza `Request::getMatches` que contiene todos los parámetros en el orden que hayan sido definidos en la ruta.
 
-## Render
+### Views
 
-El método `Response::render` sirve para renderizar plantillas. Se envía la ruta del archivo de plantilla y opcionalmente un array asociativo con argumentos a enviarle.
+Las vistas son el medio por el cual el router devuelve y renderiza un objeto `Response` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas. 
 
 ```php
-$katya = new Katya;
-$katya->get('/', function(Request $request, Response $response) {
-    $response->render(__DIR__.'/templates/homepage.php')
-});
+use rguezque\Forge\Router\View;
+vistas
+$view = new View(
+    __DIR__.'/mis_plantillas', // Directorio donde se alojan los templates
+);
+```
+
+La configuración inicial de `View` puede ser sobrescrita con el método `View::setViewsPath`.
+
+```php
+$view->setPath(__DIR__.'/templates');
 ```
 
 >[!NOTE]
->El método `Response::render`, buscará las plantillas en el directorio definido al inicio en el array de opciones del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla. Ver [Routing](#routing).
+>Si previamente se ha definido el directorio de plantillas en la configuración inicial en el constructor del router no es necesario especificarlo en el constructor de la clase `View`, aunque si se define un directorio aquí, este tendrá prioridad sobre la configuración inicial.
+
+### Set template
+
+El método que permite definir una *plantilla* principal es `View::setTemplate` , este puede recibir uno o dos parámetros; el primer parámetro es el nombre del archivo de *plantilla* y el segundo es un array asociativo con argumentos que se envían a la *plantilla*.
+
+```php
+// app/Http/FooController.php
+function __construct(View $view) {
+    $this->view = $view;
+}
+
+public function homeAction(Request $request, Response $response): Response {
+    $result = $this->view->template('home.php', ['message' => 'Hola mundo!'])->render();
+    return $response->withContent($result);
+}
+```
+
+### Adding arguments
+
+Una forma alternativa de enviar argumentos a una vista es a través de los métodos `View::addArgument` y `View::addArguments`. El primero recibe dos parámetros (nombre y valor) y el segundo un array asociativo. Estos parámetros serán automáticamente incluidos al invocar el método `View::render`, por lo cual deben ser declarados antes de renderizar (Ver [Render](#render)).
+
+```php
+// Se agrega un solo argumento
+$view->addArgument('message', 'Hello weeerld!');
+// Se agregan varios argumentos a la vez
+$view->addArguments([
+    'id' => 1,
+    'name' => 'Banana',
+    'color' => 'yellow'
+]);
+```
+
+### Extending the template
+
+Para extender una plantilla se utiliza el método `View::extendWith`, este método recibe tres parámetros; el nombre de la plantilla que extenderá a la plantilla principal, un alias único con el que se incluirá en la plantilla principal y opcionalmente un *array* de argumentos que se envian a la actual plantilla que está extendiendo a la principal.
+
+```php
+$data = [
+    'home': '/',
+    'about': '/about-us',
+    'contact': '/contact-us'
+];
+// Se guarda el template menu.php con el alias 'menu_lateral' y se le envian parámetros en la variable $data
+$view->template('index.php', ['title' => 'Ejemplo de vistas']);
+$view->extendWith('menu.php', 'menu_lateral', $data);
+$view->render();
+```
+
+Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
+
+```php
+//menu.php
+<nav>
+    <ul>
+        <li><a href="<?= $home ?>">Home</a></li>
+        <li><a href="<?= $about ?>">About</a></li>
+        <li><a href="<?= $contact ?>">Contact</a></li>
+    </ul>
+</nav>
+```
+
+Imprime en pantalla el contenido de menu.php guardado previamente con el alias `'menu_lateral'`.
+
+```php
+// index.php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $title ?></title>
+</head>
+<body>
+    <?php
+        echo $menu_lateral
+    ?>
+</body>
+</html>
+```
+
+### Render view
+
+El método `View::render` se invoca siempre al final y devuelve lo contenido en el actual *buffer* para ser recuperado en una variable y enviado en un `Response`.
+
+>[!NOTE]
+>Un atajo para renderizar plantillas de manera simple es a través del método `Response::render` (Ver [Response](#response))
 
 ## Request
 
@@ -238,7 +337,7 @@ Métodos de la clase `Request`.
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
 - `getBody()`: Devuelve el array de parámetros `$_POST`.
-- `getPhpInputStream(int $option = 0)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se invoca `getPhpInputStream(JSON_DECODE)`; si es un *string*,  `getPhpInputStream(PARSED_STR)`
+- `getPhpInputStream(int $option = 0)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento de tipo entero (`JSON_DECODE = 2`) y se invoca `getPhpInputStream(Request::JSON_DECODE)`; si es un *string* (`PARSED_STR = 1`) se invoca `getPhpInputStream(Request::PARSED_STR)`
 -  `getServer()`: Devuelve el array de parámetros `$_SERVER`.
 - `getCookies()`: Devuelve el array de parámetros `$_COOKIE`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
@@ -295,7 +394,7 @@ Métodos de la clase `Response`.
 - `write($content)`: Agrega contenido al cuerpo del `Response`.
 - `send($data)`: Envía el `Response`.
 - `json($data, bool $encode = true)`: Devuelve el `Response` con contenido en formato JSON
-- `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista).
+- `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista). Buscará las plantillas en el directorio definido en las configuraciones iniciales en el constructor del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla.
 - `redirect(string $uri)`: Devuelve el `Response` como una redirección.
 
 ## Session
@@ -386,7 +485,8 @@ Para verificar si una variable existe se utiliza el método `Variables::hasVar` 
 $vars->hasVar('pi') // Para este ejemplo devolvería TRUE
 ```
 
-Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador, solo si se han definido y asignado con `Katya::setVariables`.
+>[!NOTE]
+>Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador, solo si se han definido y asignado con `Katya::setVariables`.
 
 ## DB Connection
 
@@ -446,13 +546,13 @@ DB_CHARSET="utf8"
 >[!NOTE]
 >Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
 
-## Hook
+## Middleware
 
-El *hook* `Route::before` ejecuta una acción previa al controlador de una ruta. Si el *hook* devuelve un valor este puede recuperarse en el controlador en el método `Request::getParams` con la clave `@data`.
+El *middleware* `Route::before` ejecuta una acción previa al controlador de una ruta. 
 
-`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
+`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@middleware_data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
 
-Tanto las rutas como los grupos de rutas pueden tener un *hook*. Si se define en un grupo, todas las rutas heredarán la misma acción previa, pero si se define un *hook* a una ruta individual esta tendrá preferencia sobre el *hook* del grupo.
+Tanto las rutas como los grupos de rutas pueden tener un *middleware*. Si se define en un grupo, todas las rutas heredarán la misma acción previa, pero si se define a una ruta individual esta tendrá preferencia sobre el *middleware* del grupo.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -490,7 +590,7 @@ $router->group('/admin', function(Group $group) {
 
 ## CORS
 
-`Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. También se puede especificar los métodos de petición permitidos, enviandolos como segundo argumento en un array.
+El método `Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. Así mismo se puede especificar los métodos de petición permitidos, enviándolos como segundo argumento en un array.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -507,4 +607,24 @@ $router->cors(
 );
 ```
 
- 
+ También se puede especificar toda la configuración de CORS desde el constructor del router:
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use rguezque\Katya;
+
+$router = new Katya([
+    'cors' => [
+        'origins' => [
+            '(http(s)://)?(www\.)?fakesite.com'
+        ],
+        'methods' => ['GET', 'POST']
+    ]
+]);
+```
+
+> [!NOTE]
+>
+> Si se define la configuración de CORS desde el constructor, está de más volver a configurarlo con `Katya::cors` pues ya no tendrá efecto. 
+

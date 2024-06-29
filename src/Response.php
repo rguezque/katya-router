@@ -22,9 +22,6 @@ namespace rguezque;
  * @method void redirect(string $uri) Response a redirect
  */
 class Response {
-
-    use View;
-
     /**
      * Response content
      * 
@@ -169,6 +166,23 @@ class Response {
             }
             header(sprintf('%s: %s', $name, $content), false, $this->status);
         }
+    }
+
+    /**
+     * Response a rendered template
+     * 
+     * @param string $template The template file to render as a view
+     * @param array $arguments The array with arguments to send to the view
+     * @return void
+     */
+    public function render(string $template, array $arguments = []): void {
+        $view = new View();
+        $view->setTemplate($template);
+        if([] !== $arguments) {
+            $view->addArguments($arguments);
+        }
+
+        $this->send($view->render());
     }
 
     /**

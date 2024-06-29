@@ -10,7 +10,6 @@ namespace rguezque;
 
 use Closure;
 use rguezque\Exceptions\{
-    BadNameException,
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
@@ -28,7 +27,6 @@ use function rguezque\functions\str_path;
  * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
  * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
- * @method Route any(string $path, callable $controller) Shortcut to add route with any method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
  * @method Katya cors(array $allowed_origins) Set the allowed cross-origins resources sharing
  * @method Katya setServices(Services $services) Set services to use into controllers
@@ -108,13 +106,6 @@ class Katya {
     private $basepath;
 
     /**
-     * Default directory for search views templates
-     * 
-     * @var string
-     */
-    private $viewspath;
-
-    /**
      * Variables collection
      * 
      * @var Variables
@@ -138,14 +129,29 @@ class Katya {
     /**
      * Configure the router options
      * 
-     * @param array $options Set basepath and viewspath
+     * @param array $options Set basepath, viewspath and cors
      */
     public function __construct(array $options = []) {
+        // Default router basepath
         $this->basepath = isset($options['basepath']) 
             ? str_path($options['basepath']) 
             : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'])), '/\\');
         
-        $this->viewspath = isset($options['viewspath']) ? add_trailing_slash($options['viewspath']) : '';
+        // Default directory for search views templates
+        $viewspath = isset($options['viewspath']) && is_string($options['viewspath']) 
+            ? add_trailing_slash(trim($options['viewspath'])) 
+            : '';
+        Globals::set('viewspath', add_trailing_slash(trim($viewspath)));
+
+        // CORS configuration
+        $cors_data = $options['cors'];
+        if(isset($cors_data) && !empty($cors_data)) {
+            $cors_origins = $cors_data['origins'];
+            if(isset($cors_origins)) {
+                $cors_methods = $cors_data['methods'];
+                isset($cors_methods) ? $this->cors($cors_origins, $cors_methods) : $this->cors($cors_origins);
+            }
+        }
     }
 
     /**
@@ -156,8 +162,15 @@ class Katya {
      * @return Katya
      */
     public function cors(array $allowed_origins, array $allowed_methods = []): Katya {
-        $this->origins = $allowed_origins;
-        $this->cors_methods = [] !== $allowed_methods ? array_map('strtoupper', $allowed_methods) : self::SUPPORTED_VERBS;
+        // Flag to identify thah has been configured cors, and guarantees that it is executed only once
+        static $already_configured = false;
+
+        // If already has been configured from router constructor, keep this step
+        if(!$already_configured) {
+            $this->origins = $allowed_origins;
+            $this->cors_methods = [] !== $allowed_methods ? array_map('strtoupper', $allowed_methods) : self::SUPPORTED_VERBS;
+            $already_configured = true;
+        }
 
         return $this;
     }
@@ -184,20 +197,6 @@ class Katya {
         $this->vars = $vars;
 
         return $this;
-    }
-
-    /**
-     * Shortcut to add route that match any method
-     * 
-     * @param string $path The route path
-     * @param callable $controller The route controller
-     * @return Route
-     * @throws UnsupportedRequestMethodException When the http request method isn't supported
-     */
-    public function any(string $path, callable $controller): Route {
-        $route = $this->route('ANY', $path, $controller);
-
-        return $route;
     }
 
     /**
@@ -388,9 +387,6 @@ class Katya {
 
         // Select the routes collection according to the http request method
         $routes = $this->routes[$request_method] ?? [];
-        // Merge routes that match with any method
-        $any = $this->routes['ANY'] ?? [];
-        $routes = [...$routes, ...$any];
 
         foreach($routes as $route) {
             $full_path = $this->basepath.$route->getPath();
@@ -410,9 +406,9 @@ class Katya {
 
                 $response = new Response;
 
-                if($this->viewspath) {
-                    $response->setViewsPath(rtrim($this->viewspath, '/\\').'/');
-                }
+                /* if($this->viewspath) {
+                    $response->setViewsPath(add_trailing_slash($this->viewspath));
+                } */
 
                 $controller_args = [$request, $response];
 
@@ -433,7 +429,7 @@ class Katya {
                     $data = call_user_func($before, ...$controller_args);
                     
                     if(null !== $data) {
-                        $request->setParam('@data', $data);
+                        $request->setParam('@middleware_data', $data);
                     }
                 }
 

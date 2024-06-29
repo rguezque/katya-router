@@ -21,7 +21,7 @@ use rguezque\Exceptions\NotFoundException;
  * @method Services unregister(string ...$alias) Unregister one or multiple services by name
  * @method bool has(string $key) Return true if a service exists
  * @method array all() Return all the services array
- * @method array keys() Return key names of availables services
+ * @method array names() Return the key names of availables services
  * @method int count() Return the count of services
  */
 class Services {
