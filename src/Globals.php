@@ -8,9 +8,6 @@
 
 namespace rguezque;
 
-use rguezque\Interfaces\ArgumentsInterface;
-use rguezque\Interfaces\BagInterface;
-
 /**
  * Represent $GLOBALS router parameters
  * 
@@ -69,7 +66,7 @@ class Globals {
      * 
      * @param string $key Parameter name
      * @param mixed $default Value to return if the parameter isn't found
-     * @return mixed
+     * @return mixed|Parameters
      */
     public static function get(string $key, $default = null) {
         return self::has($key) 
