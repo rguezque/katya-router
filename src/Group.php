@@ -100,30 +100,6 @@ class Group {
     }
 
     /**
-     * Shortcut to add route that match any method
-     * 
-     * @param string $path The route path
-     * @param callable $controller The route controller
-     * @return Route
-     * @throws UnsupportedRequestMethodException When the http method isn't allowed
-     */
-    public function any(string $path, callable $controller): Route {
-        $route = $this->router->any($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
-    }
-
-    /**
      * Shortcut to add route with GET method
      * 
      * @param string $path The route path

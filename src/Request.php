@@ -311,7 +311,7 @@ class Request {
     /**
      * Remove a named param
      * 
-     * @param string $name Param name
+     * @param string $name Param namea
      * @return void
      */
     public function unsetParam(string $name): void {
@@ -336,7 +336,7 @@ class Request {
      * @return string
      */
     public static function buildQuery(string $uri, array $params): string {
-        return rtrim($uri, '/\\').'/?'.http_build_query($params);
+        return trim($uri).'?'.http_build_query($params);
     }
 
 }
