@@ -16,7 +16,7 @@ namespace rguezque;
  * @method ClientRequest withHeaders(array $headers) Add multiple headers to the request
  * @method ClientRequest withBasicAuth(string $username, string $password) Add an Authorization header for basic authorization
  * @method ClientRequest withTokenAuth(string $token) Add an Authorization header for JWT authorization
- * @method ClientRequest withPostFields($data, bool $encode = true) Add posts fields to send to request
+ * @method ClientRequest withPostFields(array $data, bool $encode = false) Add posts fields to send to request
  * @method string|bool send() Send the client request
  * @method mixed getContent() Return the result of http client request
  * @method array toArray() Return the result of http client request decoded from json to an associative array
@@ -83,9 +83,9 @@ class ClientRequest {
     /**
      * Data to send
      * 
-     * @var string
+     * @var string|array
      */
-    private $data_string = '';
+    private $data_string;
 
     /**
      * Info request
@@ -187,27 +187,42 @@ class ClientRequest {
     /**
      * Add post fields to send to request
      * 
-     * @var array|string $data Data to send
-     * @var bool $encode Specifies if data must be encoded to JSON
+     * @param array $data Data to send
+     * @param bool $encode Specifies if data must be encoded to JSON
      * @return ClientRequest
      */
-    public function withPostFields($data, bool $encode = true): ClientRequest {
+    public function withPostFields(array $data, bool $encode = false): ClientRequest {
         $this->data_string = $encode ? json_encode($data) : $data;
+        
+        if($encode) {
+            $this->withHeaders([
+                'Content-Type' => 'application/json;charset=utf-8',
+                'Accept' => 'application/json',
+                'Content-Length' => strlen($this->data_string)
+            ]);
+        }
+
         return $this;
     }
 
     /**
      * Send the client request
      * 
-     * @return string|bool
+     * @return void
      */
-    public function send() {
+    public function send(): void {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $this->uri);
 
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $this->method); 
         curl_setopt($curl, CURLOPT_FAILONERROR, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $this->data_string);
+
+        if(ClientRequest::GET !== $this->method) {
+            $post_data = is_string($this->data_string) ? $this->data_string : http_build_query($this->data_string);
+            curl_setopt($curl, CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+        }
+
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $this->getHeaders());
 

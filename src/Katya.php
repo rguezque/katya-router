@@ -144,8 +144,8 @@ class Katya {
         Globals::set('viewspath', add_trailing_slash(trim($viewspath)));
 
         // CORS configuration
-        $cors_data = $options['cors'];
-        if(isset($cors_data) && !empty($cors_data)) {
+        if(isset($options['cors']) && !empty($options['cors'])) {
+            $cors_data = $options['cors'];
             $cors_origins = $cors_data['origins'];
             if(isset($cors_origins)) {
                 $cors_methods = $cors_data['methods'];
