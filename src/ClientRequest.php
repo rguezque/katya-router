@@ -8,6 +8,8 @@
 
 namespace rguezque;
 
+use rguezque\Exceptions\CurlException;
+
 /**
  * Represents an HTTP client-side request.
  * 
@@ -209,6 +211,7 @@ class ClientRequest {
      * Send the client request
      * 
      * @return void
+     * @throws CurlException
      */
     public function send(): void {
         $curl = curl_init();
@@ -226,12 +229,17 @@ class ClientRequest {
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $this->getHeaders());
 
-        $result = curl_exec($curl);
+        $response = curl_exec($curl);
         
         $this->info_request = curl_getinfo($curl);
+        $curl_error = curl_error($curl);
         curl_close($curl);
+
+        if($curl_error) {
+            throw new CurlException(sprintf('cURL error: %s', $curl_error));
+        }
         
-        $this->result = $result;
+        $this->result = $response;
     }
 
     /**

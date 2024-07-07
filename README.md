@@ -18,6 +18,7 @@ A lightweight PHP router
   - [Extending the template](#extending-the-template)
   - [Render view](#render-view)
 - [Request](#request)
+- [Client Request](#client-request)
 - [Response](#response)
 - [Session](#session)
 - [Services](#services)
@@ -375,10 +376,10 @@ Métodos disponibles:
 - `withRequestMethod(string $method)`: Especifica el tipo de petición que se hará (`GET`, `POST`, `PUT`, `DELETE`).
 - `withHeader(string $key, string $value)`: Agrega un encabezado a la petición.
 - `withHeaders(array $headers)`: Agrega múltiples encabezados a la petición, recibe un array asociativo como parámetro, donde cada clave es un encabezado seguido de su contenido.
-- `withPostFields($data, bool $encode = true)`: Agrega parámetros a la petición mediante un array asociativo de datos.
+- `withPostFields($data, bool $encode = false)`: Agrega argumentos a la petición mediante un array asociativo de datos. el segundo parámetro define si se deben codificar a formato JSON.
 - `withBasicAuth(string $username, string $password)`: Agrega un encabezado `Authorization` basado en un nombre de usuario y contraseña simples.
 - `withTokenAuth(string $token)`: Agrega un encabezado `Authorization` basado en JWT.
-- `send()`: Envía la petición y almacena el response.
+- `send()`: Envía la petición y almacena el response. En caso de error arrojará un `CurlException`.
 - `getContent()`: Se recupera el valor del response.
 - `toArray()`: Se recupera el valor del response en formato JSON.
 - `getInfo()`: Devuelve un `array` asociativo con información sobre la petición enviada. Si se invoca antes de `ClientRequest::send()` devolverá `null`.
