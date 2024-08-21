@@ -154,10 +154,6 @@ $katya->post('/', function(Request $request, Response $response) {
 
     $response->json($data);
 });
-
-$katya->any('/hello', function(Request $request, Response $response) {
-    $response->send('Hello world!');
-});
 ```
 
 ### Controllers
@@ -201,12 +197,12 @@ $katya->group('/foo', function(Group $group) {
 
 ## Wildcards
 
-Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve un array asociativo donde cada clave se corresponde con el mismo nombre de los *wildcards*.
+Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los *wildcards*.
 
 ```php
 $katya->get('/hola/{nombre}', function(Request $request, Response $response) {
     $params = $request->getParams();
-    $response->send(sprintf('Hola %s', $params['nombre']));
+    $response->send(sprintf('Hola %s', $params->get('nombre')));
 });
 ```
 
@@ -228,8 +224,8 @@ $katya->get('/hola/(\w+)/(\w+)', function(Request $request, Response $response) 
 Las vistas son el medio por el cual el router devuelve y renderiza un objeto `Response` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas. 
 
 ```php
-use rguezque\Forge\Router\View;
-vistas
+use rguezque\View;
+
 $view = new View(
     __DIR__.'/mis_plantillas', // Directorio donde se alojan los templates
 );
@@ -627,5 +623,5 @@ $router = new Katya([
 
 > [!NOTE]
 >
-> Si se define la configuración de CORS desde el constructor, está de más volver a configurarlo con `Katya::cors` pues ya no tendrá efecto. 
+> Si se define la configuración de CORS desde el constructor, no es necesario volver a configurarlo con `Katya::cors` pues no tendrá efecto este último.
 
