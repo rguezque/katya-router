@@ -587,41 +587,27 @@ $router->group('/admin', function(Group $group) {
 
 ## CORS
 
-El método `Katya::cors` permite definir un *array* de dominios externos a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. Así mismo se puede especificar los métodos de petición permitidos, enviándolos como segundo argumento en un array.
+El método `Katya::setCors` permite definir una configuración de dominios externos (origenes) a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. 
+
+Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, los métodos de petición permitidos para cada *origen* y encabezados http aceptados.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
 
 use rguezque\Katya;
+use rguezque\CorsConfig;
 
 $router = new Katya;
+
 // Ejemplo
-$router->cors(
-    [
-	'(http(s)://)?(www\.)?localhost:3000'
-	],
-    ['GET', 'POST'] // En este ejemplo solo se permiten estos métodos
+$cors = new CorsConfig;
+$cors->addOrigin(
+    '(http(s)://)?(www\.)?localhost:3000', // origen
+    ['GET', 'POST'], // métodos de petición aceptados
+    ['X-Requested-With'] // headers aceptados
 );
+
+$router->setCors($cors);
 ```
 
- También se puede especificar toda la configuración de CORS desde el constructor del router:
-
-```php
-require __DIR__.'/vendor/autoload.php';
-
-use rguezque\Katya;
-
-$router = new Katya([
-    'cors' => [
-        'origins' => [
-            '(http(s)://)?(www\.)?fakesite.com'
-        ],
-        'methods' => ['GET', 'POST']
-    ]
-]);
-```
-
-> [!NOTE]
->
-> Si se define la configuración de CORS desde el constructor, no es necesario volver a configurarlo con `Katya::cors` pues no tendrá efecto este último.
-
+Los métodos y encabezados http son opcionales, por default los métodos aceptados son `GET` y `POST`, y los encabezados permitidos son `Content-Type`. `Accept`, y `Authorization`.

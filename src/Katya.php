@@ -113,18 +113,11 @@ class Katya {
     private $vars = null;
 
     /**
-     * Allowed domains for requests 
+     * CORS configuration
      * 
-     * @var string[]
+     * @var CorsConfig
      */
-    private $origins = [];
-
-    /**
-     * Allowed CORS http methods
-     * 
-     * @var string[]
-     */
-    private $cors_methods = [];
+    private $cors_config;
 
     /**
      * Configure the router options
@@ -142,35 +135,16 @@ class Katya {
             ? add_trailing_slash(trim($options['viewspath'])) 
             : '';
         Globals::set('viewspath', add_trailing_slash(trim($viewspath)));
-
-        // CORS configuration
-        if(isset($options['cors']) && !empty($options['cors'])) {
-            $cors_data = $options['cors'];
-            $cors_origins = $cors_data['origins'];
-            if(isset($cors_origins)) {
-                $cors_methods = $cors_data['methods'];
-                isset($cors_methods) ? $this->cors($cors_origins, $cors_methods) : $this->cors($cors_origins);
-            }
-        }
     }
 
     /**
-     * Set the allowed cross-origins resources sharing
+     * Set the CORS configuration
      * 
-     * @param string[] Array with allowed origins (allow regex). Ej: '(http(s)://)?(www\.)?localhost:3000'
-     * @param string[] Array with allowed http methods for CORS (allow by default: GET, POST, PUT, PATCH and DELETE)
+     * @param CorsConfig $cors_config An object with the CORS definitions
      * @return Katya
      */
-    public function cors(array $allowed_origins, array $allowed_methods = []): Katya {
-        // Flag to identify thah has been configured cors, and guarantees that it is executed only once
-        static $already_configured = false;
-
-        // If already has been configured from router constructor, keep this step
-        if(!$already_configured) {
-            $this->origins = $allowed_origins;
-            $this->cors_methods = [] !== $allowed_methods ? array_map('strtoupper', $allowed_methods) : self::SUPPORTED_VERBS;
-            $already_configured = true;
-        }
+    public function setCors(CorsConfig $cors_config): Katya {
+        $this->cors_config = $cors_config;
 
         return $this;
     }
@@ -320,32 +294,10 @@ class Katya {
         static $invoke = false;
 
         if(!$invoke) {
-            $this->processCors($request);
+            call_user_func($this->cors_config, $request);
             $this->processGroups();
             $this->handleRequest($request);
             $invoke = true;
-        }
-    }
-
-    /**
-     * Enable Cross-Origin Resources Sharing
-     * 
-     * @param Request $request Request object
-     * @return void
-     */
-    private function processCors($request): void {
-        $server = $request->getServer();
-
-        if ($server->has('HTTP_ORIGIN') && $server->get('HTTP_ORIGIN') != '') {
-            foreach ($this->origins as $allowed_origin) {
-                if (preg_match('#' . $allowed_origin . '#', $server->get('HTTP_ORIGIN'))) {
-                    header('Access-Control-Allow-Origin: ' . $server->get('HTTP_ORIGIN'));
-                    header('Access-Control-Allow-Methods: ' . implode(', ', $this->cors_methods));
-                    header('Access-Control-Max-Age: 1000');
-                    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-                    break;
-                }
-            }
         }
     }
 
