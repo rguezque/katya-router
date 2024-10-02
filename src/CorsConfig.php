@@ -64,6 +64,7 @@ class CorsConfig {
                     header("Access-Control-Allow-Origin: " . $server->get('HTTP_ORIGIN'));
                     header("Access-Control-Allow-Methods: " . implode(', ', $config['methods']));
                     header("Access-Control-Allow-Headers: " . implode(', ', $config['headers']));
+                    header('Access-Control-Max-Age: 60'); //Maximum number of seconds the results can be cached
                 }
             }
         }
