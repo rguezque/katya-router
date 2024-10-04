@@ -294,10 +294,22 @@ class Katya {
         static $invoke = false;
 
         if(!$invoke) {
-            call_user_func($this->cors_config, $request);
+            $this->resolveCors($request);
             $this->processGroups();
             $this->handleRequest($request);
             $invoke = true;
+        }
+    }
+
+    /**
+     * Resolve the CORS configuration
+     * 
+     * @param Request $request Request object with informatión about the request origin
+     * @return void
+     */
+    public function resolveCors(Request $request): void {
+        if(null !== $this->cors_config) {
+            call_user_func($this->cors_config, $request);
         }
     }
 
