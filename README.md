@@ -357,14 +357,13 @@ Métodos de la clase `Request`.
 La clase `ClientRequest` representa peticiones HTTP desde el lado del cliente.
 
 ```php
-use Forge\Route\ClientRequest;
+use rguezque\ClientRequest;
 
 // Si se omite el segundo parámetro se asume que será una petición GET
 $client_request = new ClientRequest('https://jsonplaceholder.typicode.com/posts');
-// Se envía la petición y se almacena la respuesta
-$client_request->send();
-// Se recupera el valor almacenado
-$result = $client_request->toArray();
+// Se envía la petición y se recibe la respuesta
+$response = $client_request->send();
+print_r($response);
 ```
 
 Métodos disponibles:
@@ -373,12 +372,9 @@ Métodos disponibles:
 - `withHeader(string $key, string $value)`: Agrega un encabezado a la petición.
 - `withHeaders(array $headers)`: Agrega múltiples encabezados a la petición, recibe un array asociativo como parámetro, donde cada clave es un encabezado seguido de su contenido.
 - `withPostFields($data, bool $encode = false)`: Agrega argumentos a la petición mediante un array asociativo de datos. el segundo parámetro define si se deben codificar a formato JSON.
-- `withBasicAuth(string $username, string $password)`: Agrega un encabezado `Authorization` basado en un nombre de usuario y contraseña simples.
-- `withTokenAuth(string $token)`: Agrega un encabezado `Authorization` basado en JWT.
-- `send()`: Envía la petición y almacena el response. En caso de error arrojará un `CurlException`.
-- `getContent()`: Se recupera el valor del response.
-- `toArray()`: Se recupera el valor del response en formato JSON.
-- `getInfo()`: Devuelve un `array` asociativo con información sobre la petición enviada. Si se invoca antes de `ClientRequest::send()` devolverá `null`.
+- `withBasicAuth(string $username, string $password)`: Agrega un encabezado `Authorization` basado en un nombre de usuario y contraseña simples, los cuales son concatenados con dos puntos (:) y codificados usando Base64 (Ver [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617)).
+- `withTokenAuth(string $token)`: Agrega un encabezado `Authorization` basado en JWT (Ver [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750)).
+- `send()`: Envía la petición y devuelve el response en un array con las claves `status` y `response`. En caso de error arrojará un `CurlException`.
 
 ## Response
 
@@ -610,4 +606,4 @@ $cors->addOrigin(
 $router->setCors($cors);
 ```
 
-Los métodos y encabezados http son opcionales, por default los métodos aceptados son `GET` y `POST`, y los encabezados permitidos son `Content-Type`. `Accept`, y `Authorization`.
+Los métodos y encabezados http son opcionales; por default para todos los origenes los métodos aceptados son `GET`, `POST`, y los encabezados (headers) permitidos son `Content-Type`. `Accept`, y `Authorization`.

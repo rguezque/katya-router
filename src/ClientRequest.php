@@ -18,11 +18,8 @@ use rguezque\Exceptions\CurlException;
  * @method ClientRequest withHeaders(array $headers) Add multiple headers to the request
  * @method ClientRequest withBasicAuth(string $username, string $password) Add an Authorization header for basic authorization
  * @method ClientRequest withTokenAuth(string $token) Add an Authorization header for JWT authorization
- * @method ClientRequest withPostFields(array $data, bool $encode = false) Add posts fields to send to request
- * @method string|bool send() Send the client request
- * @method mixed getContent() Return the result of http client request
- * @method array toArray() Return the result of http client request decoded from json to an associative array
- * @method array getInfo() Retrieves info about the responsed request
+ * @method ClientRequest withPostFields($data, bool $encode = true) Add posts fields to send to request
+ * @method array send() Send the client request and return the result into an array with keys "status" and "response".
  */
 class ClientRequest {
 
@@ -62,11 +59,11 @@ class ClientRequest {
     public const DELETE = 'DELETE';
 
     /**
-     * URI to request
+     * URL to request
      * 
      * @var string
      */
-    private $uri;
+    private $url;
 
     /**
      * Default request method
@@ -87,21 +84,7 @@ class ClientRequest {
      * 
      * @var string|array
      */
-    private $data_string;
-
-    /**
-     * Info request
-     * 
-     * @var array
-     */
-    private $info_request = [];
-
-    /**
-     * Resutt of client request
-     * 
-     * @var mixed
-     */
-    private $result;
+    private $body = null;
 
     /**
      * Prepare the request
@@ -109,8 +92,8 @@ class ClientRequest {
      * @var string $uri URI to send the request
      * @var string $method Default HTTP request method
      */
-    public function __construct(string $uri, string $method = ClientRequest::GET) {
-        $this->uri = $uri;
+    public function __construct(string $url, string $method = ClientRequest::GET) {
+        $this->url = $url;
         $this->withRequestMethod($method);
     }
 
@@ -140,7 +123,7 @@ class ClientRequest {
     /**
      * Add multiple headers to the request
      * 
-     * @var string $headers Associative array with headers as key and his content
+     * @var string $headers Associative array with key=>value definition
      * @return ClientRequest
      */
     public function withHeaders(array $headers): ClientRequest {
@@ -150,28 +133,15 @@ class ClientRequest {
     }
 
     /**
-     * Retrieves the headers array
-     * 
-     * @return array
-     */
-    private function getHeaders(): array {
-        $headers = [];
-        foreach($this->headers as $key=>$value) {
-            $headers[] = sprintf('%s: %s', $key, $value);
-        }
-
-        return $headers;
-    }
-
-    /**
-     * Add an Authorization header for basic authorization
+     * Add an Authorization header for basic authorization. The user-id or username 
+     * and password are concatenated with a colon (:) and encoded using Base64.
      * 
      * @var string $username Identity
      * @var string $password Credential
      * @return ClientRequest
      */
     public function withBasicAuth(string $username, string $password): ClientRequest {
-        $this->withHeader('Authorization', sprintf('Basic %s:%s', $username, $password));
+        $this->withHeader('Authorization', sprintf('Basic %s', base64_encode("$username:$password")));
         return $this;
     }
 
@@ -187,86 +157,53 @@ class ClientRequest {
     }
 
     /**
-     * Add post fields to send to request
+     * The full data to POST in a HTTP POST action
      * 
-     * @param array $data Data to send
-     * @param bool $encode Specifies if data must be encoded to JSON
+     * @var array|string $data This parameter can either be passed as a urlencoded string like 'param1=val1&param2=val2&...' or as an array with the field name as key and field data as value. If value is an array, the Content-Type header will be set to multipart/form-data.
      * @return ClientRequest
      */
-    public function withPostFields(array $data, bool $encode = false): ClientRequest {
-        $this->data_string = $encode ? json_encode($data) : $data;
-        
-        if($encode) {
-            $this->withHeaders([
-                'Content-Type' => 'application/json;charset=utf-8',
-                'Accept' => 'application/json',
-                'Content-Length' => strlen($this->data_string)
-            ]);
-        }
-
+    public function withPostFields($data): ClientRequest {
+        $this->body = $data;
         return $this;
     }
 
+
     /**
-     * Send the client request
+     * Send the client request and return the result into an array with keys "status" and "response".
      * 
-     * @return void
+     * @return array
      * @throws CurlException
      */
-    public function send(): void {
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $this->uri);
+    public function send(): array {
+        $ch = curl_init();
 
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $this->method); 
-        curl_setopt($curl, CURLOPT_FAILONERROR, true);
+        curl_setopt($ch, CURLOPT_URL, $this->url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->method);
 
-        if(ClientRequest::GET !== $this->method) {
-            $post_data = is_string($this->data_string) ? $this->data_string : http_build_query($this->data_string);
-            curl_setopt($curl, CURLOPT_POST, true);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+        if ([] !== $this->headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
         }
 
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->getHeaders());
-
-        $response = curl_exec($curl);
-        
-        $this->info_request = curl_getinfo($curl);
-        $curl_error = curl_error($curl);
-        curl_close($curl);
-
-        if($curl_error) {
-            throw new CurlException(sprintf('cURL error: %s', $curl_error));
+        if (null !== $this->body) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $this->body);
         }
-        
-        $this->result = $response;
-    }
 
-    /**
-     * Return the result of http client request
-     * 
-     * @return mixed
-     */
-    public function getContent() {
-        return $this->result;
-    }
+        $response = curl_exec($ch);
+        $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-    /**
-     * Return the result of http client request decoded from json to an associative array
-     * 
-     * @return array
-     */
-    public function toArray(): array {
-        return json_decode($this->result, true) ?? [];
-    }
+        if (curl_errno($ch)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new CurlException("cURL error: $error");
+        }
 
-    /**
-     * Retrieves info about the request
-     * 
-     * @return array
-     */
-    public function getInfo(): array {
-        return $this->info_request;
+        curl_close($ch);
+
+        return [
+            'status' => $status_code,
+            'response' => $response,
+        ];
     }
 
 }
