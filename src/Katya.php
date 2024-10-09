@@ -28,7 +28,7 @@ use function rguezque\functions\str_path;
  * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
- * @method Katya cors(array $allowed_origins) Set the allowed cross-origins resources sharing
+ * @method Katya setCors(CorsConfig $cors_config) Set the CORS configuration
  * @method Katya setServices(Services $services) Set services to use into controllers
  * @method Katya setVariables(Variables $vars) Set variables to use into controllers
  * @method void run(Request $request) Start the router
@@ -117,7 +117,7 @@ class Katya {
      * 
      * @var CorsConfig
      */
-    private $cors_config;
+    private $cors_config = null;
 
     /**
      * Configure the router options
@@ -134,7 +134,8 @@ class Katya {
         $viewspath = isset($options['viewspath']) && is_string($options['viewspath']) 
             ? add_trailing_slash(trim($options['viewspath'])) 
             : '';
-        Globals::set('viewspath', add_trailing_slash(trim($viewspath)));
+            
+        Globals::set('viewspath', $viewspath);
     }
 
     /**
