@@ -71,7 +71,7 @@ class View {
      * @throws FileNotFoundException
      */
 	public function setTemplate(string $file, array $params = []): View {
-        $file = $this->path . trim($file);
+        $file = $this->path . trim($file, '/\\ ');
         
         if (!file_exists($file)) {
             throw new FileNotFoundException(sprintf('Don\'t exists the template file "%s".', $file));
@@ -96,7 +96,7 @@ class View {
      */
     public function render(): string {
         if(!isset($this->view_file)) {
-            throw new MissingArgumentException('The view file wasn\'t not declared.');
+            throw new MissingArgumentException('The view file was not declared.');
         }
 
         return $this->getRender($this->view_file, $this->arguments->all());
@@ -111,7 +111,12 @@ class View {
      * @return View
      */
     public function extendWith(string $file, string $extend_name, array $variables = []): View {
-        $file = $this->path . $file;
+        $file = $this->path . trim($file, '/\\ ');
+
+        if (!file_exists($file)) {
+            throw new FileNotFoundException(sprintf('Don\'t exists the template file "%s".', $file));
+        }
+
         $this->addArgument($extend_name, $this->getRender($file, $variables));
 
         return $this;
@@ -162,13 +167,8 @@ class View {
      * @param string $template Template name
      * @param array $params Template parameters
      * @return string
-     * @throws FileNotFoundException
      */
     private function getRender(string $template, array $params = []): string {
-        if (!file_exists($template)) {
-            throw new FileNotFoundException(sprintf('Don\'t exists the template file "%s".', $template));
-        }
-
         // If there is an invalid variable name (for example an array that is not associative) 
         // it is assigned the prefix 'param_view' followed by the number of its index in the array. 
         // Example: extract([12, 32], EXTR_PREFIX_INVALID, 'param_view') it will generate 
