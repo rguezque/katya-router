@@ -1,6 +1,6 @@
 {
     "name": "rguezque/katya-router",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "description": "A lightweight PHP router.",
     "keywords": ["router", "routing", "mvc", "microframework", "php"],
     "type": "router",
