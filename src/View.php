@@ -16,12 +16,12 @@ use function rguezque\functions\add_trailing_slash;
 /**
  * Render templates.
  * 
- * @method View setViewsPath(string $path) Set the views path
+ * @method View setTemplate(string $file, array $variables = []) Set a view to render
+ * @method View extendWith(string $file, string $extend_name, array $variables = []) Add a view to buffer to extend a main view
+ * @method string render() Returns a fetched view in buffer to render
  * @method View addArgument(string $key, $value) Add a parameter
  * @method View addArguments(array $arguments) Add parameters array
- * @method View setTemplate(string $file, array $variables = []) Set a view to render
- * @method View extendWith(string $file, array $variables = array(), string $extend_name) Add a view to buffer to extend a main view
- * @method string render() Returns a fetched view in buffer to render
+ * @method View setViewsPath(string $path) Set the views path
  */
 class View {
 
@@ -89,20 +89,6 @@ class View {
     }
 
     /**
-     * Return as string a fetched main view in buffer to render
-     * 
-     * @return string
-     * @throws MissingArgumentException
-     */
-    public function render(): string {
-        if(!isset($this->view_file)) {
-            throw new MissingArgumentException('The view file was not declared.');
-        }
-
-        return $this->getRender($this->view_file, $this->arguments->all());
-    }
-
-    /**
      * Add a view to buffer to extend a main view
      * 
      * @param string $file View file name
@@ -121,6 +107,21 @@ class View {
 
         return $this;
     }
+
+    /**
+     * Return as string a fetched main view in buffer to render
+     * 
+     * @return string
+     * @throws MissingArgumentException
+     */
+    public function render(): string {
+        if(!isset($this->view_file)) {
+            throw new MissingArgumentException('The view file was not declared.');
+        }
+
+        return $this->getRender($this->view_file, $this->arguments->all());
+    }
+
 
     /**
      * Add an argument

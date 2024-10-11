@@ -234,7 +234,7 @@ $view = new View(
 La configuración inicial de `View` puede ser sobrescrita con el método `View::setViewsPath`.
 
 ```php
-$view->setPath(__DIR__.'/templates');
+$view->setViewsPath(__DIR__.'/templates');
 ```
 
 >[!NOTE]
@@ -354,7 +354,7 @@ Métodos de la clase `Request`.
 
 ## Client Request
 
-La clase `ClientRequest` representa peticiones HTTP desde el lado del cliente.
+La clase `ClientRequest` representa peticiones HTTP desde el lado del cliente. El constructor recibe dos argumentos: la URL de la paetición y el método de petición. Por default el método asignado para una petición es de tipo `GET`.
 
 ```php
 use rguezque\ClientRequest;
