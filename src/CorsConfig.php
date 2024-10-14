@@ -22,18 +22,31 @@ class CorsConfig {
     private $origins = [];
 
     /**
-     * Allowed request methods
+     * Default allowed request methods
      * 
      * @param string[]
      */
     private $default_methods = ['GET', 'POST'];
 
     /**
-     * Allowed http headers
+     * Default allowed http headers
      * 
      * @param string[]
      */
     private $default_headers = ['Content-Type', 'Accept', 'Authorization'];
+
+    /**
+     * Initialize the cors configuration for allowed origins
+     * 
+     * @param array $cors_origins Origins configuration array
+     */
+    public function __construct(array $cors_origins = []) {
+        if([] !== $cors_origins) {
+            foreach($cors_origins as $origin => $config) {
+                $this->addOrigin($origin, $config['methods'] ?? [], $config['headers'] ?? []);
+            }
+        }
+    }
 
     /**
      * Add an allowed origin

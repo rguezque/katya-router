@@ -595,14 +595,26 @@ use rguezque\CorsConfig;
 
 $router = new Katya;
 
-// Ejemplo
-$cors = new CorsConfig;
+// Ejemplo (desde el constructor)
+$cors = new CorsConfig([
+    'https://fakedomain.net' => [
+        'methods' => ['POST'],
+        'headers' => ['Authorization']
+    ],
+    'https://localhost:8000' => [
+        'methods' => ['GET', 'POST'],
+        'headers' => ['Accept', 'Content-Type']
+    ]
+]);
+
+// Ejemplo (con el método CorsConfig::addOrigin)
 $cors->addOrigin(
     '(http(s)://)?(www\.)?localhost:3000', // origen
     ['GET', 'POST'], // métodos de petición aceptados
     ['X-Requested-With'] // headers aceptados
 );
 
+// Se asigna al router
 $router->setCors($cors);
 ```
 
