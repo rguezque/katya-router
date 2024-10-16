@@ -109,10 +109,10 @@ class Response {
     /**
      * Add content to the response body
      * 
-     * @param mixed $content Content to add
+     * @param string $content Content to add
      * @return Response
      */
-    public function write($content): Response {
+    public function write(string $content): Response {
         $this->content .= $content;
         return $this;
     }
@@ -120,10 +120,10 @@ class Response {
     /**
      * Send response content
      * 
-     * @param mixed $content Content to response
+     * @param string $content Content to response
      * @return void
      */
-    public function send($content = ''): void {
+    public function send(string $content = ''): void {
         if('' !== $content) {
             $this->write($content);
         }
@@ -143,6 +143,7 @@ class Response {
      * @return void
      */
     public function json($data, bool $encode = true): void {
+        $this->content = '';
         $this->header('Content-Type', 'application/json;charset=UTF-8');
         $data = $encode ? json_encode($data, JSON_PRETTY_PRINT) : $data;
         $this->send($data);
