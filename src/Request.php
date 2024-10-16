@@ -11,7 +11,7 @@ namespace rguezque;
 /**
  * Represent a request
  * 
- * @method Request fromGlobals() Create a Request object from default global params
+ * @static Request fromGlobals() Create a Request object from default global params
  * @method Parameters getQuery() Return the $_GET params array
  * @method Parameters getBody() Return the $_POST params array
  * @method string|Parameters getPhpInputStream() Return a read-only stream that allows reading data from the requested body
@@ -21,6 +21,7 @@ namespace rguezque;
  * @method Parameters getParams() Return named params array from routing
  * @method mixed getParam(string $name, $default = null) Return a named param from routing
  * @method array getMatches() Return regex matches array
+ * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
  * @method void setQuery(array $query) Set values for $_GET array
  * @method void setBody(array $body) Set values for $_POST array
  * @method void setServer(array $server) Set values for $_SERVER array
@@ -30,9 +31,16 @@ namespace rguezque;
  * @method void setParam(string $name, $value) Set a value into named params array
  * @method void unsetParam(string $name) Remove a named param
  * @method void setMatches(arrat $matches) Set values for regex matches array
- * @method string buildQuery(string $uri, array $params) Generate URL-encoded query string
+ * @static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
+
+    /**
+     * Value for return raw php input stream data
+     * 
+     * @var int
+     */
+    const RAW_DATA = 0;
 
     /**
      * Value for parsed php input stream
@@ -167,20 +175,22 @@ class Request {
      * @param int $option Determinate format to return the stream
      * @return string|Parameters 
      */
-    public function getPhpInputStream(int $option = 0) {
+    public function getPhpInputStream(int $option = Request::RAW_DATA) {
         $phpinputstream = file_get_contents('php://input');
 
         switch($option) {
             case Request::PARSED_STR:
                 parse_str($phpinputstream, $result);
-                $phpinputstream = new Parameters($result);
+                $result = new Parameters($result);
                 break;
             case Request::JSON_DECODED: 
-                $phpinputstream = new Parameters(json_decode($phpinputstream, true));
+                $result = new Parameters(json_decode($phpinputstream, true));
                 break;
+            default:
+                $result = $phpinputstream;
         }
 
-        return $phpinputstream;
+        return $result;
     }
 
     /**
@@ -235,6 +245,15 @@ class Request {
      */
     public function getMatches(): array {
         return $this->matches;
+    }
+
+    /**
+     * Fetches all HTTP headers from the current request
+     * 
+     * @return Parameters
+     */
+    public function getAllHeaders(): Parameters {
+        return new Parameters(getallheaders());
     }
 
     /**
