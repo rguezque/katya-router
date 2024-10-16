@@ -334,13 +334,14 @@ Métodos de la clase `Request`.
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
 - `getBody()`: Devuelve el array de parámetros `$_POST`.
-- `getPhpInputStream(int $option = 0)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento de tipo entero (`JSON_DECODE = 2`) y se invoca `getPhpInputStream(Request::JSON_DECODE)`; si es un *string* (`PARSED_STR = 1`) se invoca `getPhpInputStream(Request::PARSED_STR)`
+- `getPhpInputStream(int $option = Request::RAW_DATA)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento de tipo entero (`JSON_DECODE = 2`) y se invoca `getPhpInputStream(Request::JSON_DECODE)`; si es un *string* (`PARSED_STR = 1`) se invoca `getPhpInputStream(Request::PARSED_STR)`
 -  `getServer()`: Devuelve el array de parámetros `$_SERVER`.
 - `getCookies()`: Devuelve el array de parámetros `$_COOKIE`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
 - `getParams()`: Devuelve el array de parámetros nombrados de una ruta solicitada.
 - `getParam(string $name, $default = null)`: Devuelve un parámetro nombrado de una ruta solicitada.
 - `getMatches()`: Devuelve un array con coincidencias de expresiones regulares definidas en una ruta.
+- `getAllHeaders()`: Devuelve todos los encabezados HTTP recibidos en la actual petición.
 - `setQuery(array $query)`: Asigna valores a `$_GET`.
 - `setBody(array $body)`: Asigna valores a `$_POST`.
 - `setServer(array $server)`: Asigna valores a `$_SERVER`.
@@ -384,8 +385,8 @@ Métodos de la clase `Response`.
 - `status(int $code)`: Asigna un código númerico de estatus http.
 - `header(string $name, string $content)`: Agrega un encabezado al `Response`.
 - `headers(array $headers)`: Agrega múltiples encabezados al `Response`.
-- `write($content)`: Agrega contenido al cuerpo del `Response`.
-- `send($data)`: Envía el `Response`.
+- `write(string $content)`: Agrega contenido al cuerpo del `Response`.
+- `send(string $content = '')`: Envía el `Response`. Opcionalmente permite mandar contenido del cuerpo del response.
 - `json($data, bool $encode = true)`: Devuelve el `Response` con contenido en formato JSON
 - `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista). Buscará las plantillas en el directorio definido en las configuraciones iniciales en el constructor del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla.
 - `redirect(string $uri)`: Devuelve el `Response` como una redirección.
