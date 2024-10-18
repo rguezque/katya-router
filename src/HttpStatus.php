@@ -158,6 +158,13 @@ class HttpStatus {
     ];
 
     /**
+     * HTTP protocol version
+     * 
+     * @var string
+     */
+    private $version = '1.0';
+
+    /**
      * The setted status code
      * 
      * @var int
@@ -184,7 +191,11 @@ class HttpStatus {
      * @return void
      */
     public function sendHttpStatus(): void {
-        http_response_code($this->status_code);
+        if ('HTTP/1.0' != $_SERVER['SERVER_PROTOCOL']) {
+            $this->version = '1.1';
+        }
+
+        header(sprintf('HTTP/%s %s %s', $this->version, $this->status_code, $this->http_status[$this->status_code]), true, $this->status_code);
     }
 }
 
