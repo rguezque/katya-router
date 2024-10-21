@@ -27,7 +27,7 @@ class Globals {
      * 
      * @var string
      */
-    private const NAMESPACE = '__KATYA_ROUTER_GLOBALS__';
+    private const NAMESPACE = '__KATYA_ROUTER_GLOBALS_VARS__';
 
     /**
      * Set or overwrite a global parameter
