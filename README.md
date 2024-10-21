@@ -393,8 +393,11 @@ Métodos de la clase `Response`.
 
 ## Session
 
-La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un *namespace* privado del router. Se inicializa o selecciona una colección de variables de sesión con `Session::create`. Los métodos disponibles son:
+La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un *namespace* privado del router. Se inicializa o selecciona una colección de variables de sesión con el método estático `Session::create` el cual devuelve un **singleton** de la clase. Los métodos disponibles son:
 
+- `create(string $session_name = Session::NAMESPACE)`: Crea o reanuda una sesión. Se envía como argumento un nombre para la sesión; aunque no es obligatorio es recomendable hacerlo para evitar colisiones de variables con otras aplicaciones. Por default se asigna un nombre definido por el router.
+  >[!TIP]
+  >Utiliza variables de entorno (`.env`) para declarar un nombre de sesión a través de toda la aplicación.
 - `start()`: Inicia o retoma la sesión activa.
 - `started()`: Devuelve `true` si la sesión está activa.
 - `set(string $key, mixed $value)`: Crea o sobrescribe una variable de sesion.
