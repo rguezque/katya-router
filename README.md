@@ -393,19 +393,28 @@ Métodos de la clase `Response`.
 
 ## Session
 
-La clase `Session` sirve para la creación de sesiones y la administración de variables de sesión que son almacenadas en un nombre de espacio dentro de `$_SESSION`. Se inicializa o selecciona una colección de variables de sesión asignando un nombre con `new Session('nombre_de_sesion')` o bien directamente con el alias `Session::select('nombre_de_sesion')`. Los métodos disponibles son:
+La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un *namespace* privado del router. Se inicializa o selecciona una colección de variables de sesión con `Session::create`. Los métodos disponibles son:
 
-- `start()`: Inicia la sesión.
+- `start()`: Inicia o retoma la sesión activa.
 - `started()`: Devuelve `true` si la sesión está activa.
-- `set(string $key, $value)`: Crea o sobrescribe una variable de sesion.
-- `get(string $key, $default = null)`: Devuelve una variable de sesión, si no existe devuelve el valor default que se asigne en el segundo parámetro.
-- `getNamespace()`: Devuelve el nombre del actual nombre de espacio de las variables de sesión.
+- `set(string $key, mixed $value)`: Crea o sobrescribe una variable de sesion.
+- `get(string $key, mixed $default = null)`: Devuelve una variable de sesión, si no existe devuelve el valor default que se asigne en el segundo parámetro.
 - `all()`: Devuelve un array con todas las variables de sesión del actual _namespace_.
 - `has(string $key)`: Devuelve `true` si existe una variable de sesión.
 - `valid(string $key)`: Devuelve `true` si una variable de sesión no es `null` y no está vacía.
 - `remove(string $key)`: Elimina una variable de sesión.
 - `clear()`: Elimina todas las variables de sesión.
 - `destroy()`; Destruye la sesión actual junto con las cookies y variables de sesión.
+
+```php
+$session = Session::create();
+$session->set('nombre', 'Juan');
+$session->set('edad', 30);
+$session->get('nombre);
+```
+
+>[!NOTE]
+>`Session::start` se invoca automáticamente en cada llamado del resto de métodos pero se deja como acceso público.
 
 ## Services
 
