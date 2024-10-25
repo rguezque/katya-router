@@ -50,9 +50,9 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
      * 
      * @param string $key Parameter name
      * @param mixed $default Value to return if the parameter isn't found
-     * @return mixed|Parameters
+     * @return Parameters|mixed
      */
-    public function get(string $key, $default = null) {
+    public function get(string $key, mixed $default = null) {
         $key = trim($key);
 
         return $this->has($key) 
@@ -67,7 +67,7 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
      * @param mixed $value Parameter value
      * @param void
      */
-    public function set(string $key, $value): void {
+    public function set(string $key, mixed $value): void {
         $key = trim($key);
         $this->bunch[$key] = $value;
     }

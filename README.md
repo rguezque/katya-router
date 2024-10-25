@@ -197,27 +197,39 @@ $katya->group('/foo', function(Group $group) {
 
 ## Wildcards
 
-Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los *wildcards*.
+Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve por default un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los *wildcards*. El argumento por default de esté método es `Request::PARAMS_ASSOC` el cual indica que el *array* de parámetros tiene índices nombrados correspondientes a los *wildcards* y no numéricos.
 
 ```php
 $katya->get('/hola/{nombre}', function(Request $request, Response $response) {
-    $params = $request->getParams();
+    $params = $request->getParams(); // Devuelve un objeto Parameter
     $response->send(sprintf('Hola %s', $params->get('nombre')));
 });
 ```
 
-Si los *wildcards* fueron definidos como expresiones regulares, son recuperados con el método `Request::getMatches` el cual devuelve un *array* lineal con los valores de las coincidencias encontradas.
+El objeto `Parameters` tiene los siguientes métodos:
+
+- `get(string $key, mixed $default = null)`: Devuelve un parámetro por nombre o el valor default especificado, si no existe.
+- `set(string $key, mixed $value)`: Agrega o sobrescribe un parámetro.
+- `all()`: Devuelve todo el array de parámetros.
+- `has(string $key)`: Devuelve `true` si un parámetro existe, `false` en caso contrario.
+- `valid(string $key)`: Devuelve `true` si un parámetro existe y si no es `null` y no está vacío; `false` en caso de que no cumpla alguna de las condiciones anteriores.
+- `remove(string $key)`: Elimina un parámetro por nombre.
+- `clear()`: Elimina todos los parámetros.
+- `keys()`: Devuelve un array lineal con los nombres de todos los parámetros.
+- `gettype(string $key)`: Devuelve el tipo de dato de un parámetro.
+
+Si los *wildcards* fueron definidos como expresiones regulares envía el argumento `Request::PARAMS_NUM` el cual devuelve un *array* lineal con los valores de las coincidencias encontradas.
 
 ```php
 $katya->get('/hola/(\w+)/(\w+)', function(Request $request, Response $response) {
-    $params = $request->getMatches();
+    $params = $request->getParams(Request::PARAMS_NUM); // Devuelve un array lineal
     list($nombre, $apellido) = $params;
     $response->send(sprintf('Hola %s %s', $nombre, $apellido));
 });
 ```
 
 >[!IMPORTANT]
->Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podras recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, utiliza `Request::getMatches` que contiene todos los parámetros en el orden que hayan sido definidos en la ruta.
+>Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podrás recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, envía el argumento `Request::PARAMS_BOTH` para recuperar un array con todos los parámetros en el orden que hayan sido definidos en la ruta.
 
 ### Views
 
@@ -329,18 +341,16 @@ El método `View::render` se invoca siempre al final y devuelve lo contenido en 
 
 ## Request
 
-Métodos de la clase `Request`.
+Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `Parameters` con excepción de `Request::getParams` que puede variar.
 
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
 - `getBody()`: Devuelve el array de parámetros `$_POST`.
-- `getPhpInputStream(int $option = Request::RAW_DATA)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento de tipo entero (`JSON_DECODE = 2`) y se invoca `getPhpInputStream(Request::JSON_DECODE)`; si es un *string* (`PARSED_STR = 1`) se invoca `getPhpInputStream(Request::PARSED_STR)`
+- `getPhpInputStream(int $option = Request::RAW_DATA)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento `Request::JSON_DECODE`; si es un *query string* se envía el argumento`Request::PARSED_STR`. En estos últimos dos casos, devolverá un objeto `Parameters`.
 -  `getServer()`: Devuelve el array de parámetros `$_SERVER`.
 - `getCookies()`: Devuelve el array de parámetros `$_COOKIE`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
-- `getParams()`: Devuelve el array de parámetros nombrados de una ruta solicitada.
-- `getParam(string $name, $default = null)`: Devuelve un parámetro nombrado de una ruta solicitada.
-- `getMatches()`: Devuelve un array con coincidencias de expresiones regulares definidas en una ruta.
+- `getParams(Request::PARAMS_ASSOC)`: Devuelve el array de parámetros nombrados de una ruta solicitada. Dependiendo de la definición de los *wildcards* de una ruta, se puede especificar el formato de datos a devolver (Ver [Wildcards](#wildcards)).
 - `getAllHeaders()`: Devuelve todos los encabezados HTTP recibidos en la actual petición.
 - `setQuery(array $query)`: Asigna valores a `$_GET`.
 - `setBody(array $body)`: Asigna valores a `$_POST`.
@@ -348,9 +358,6 @@ Métodos de la clase `Request`.
 - `setCookies(array $cookies)`: Asigna valores a `$_COOKIE`.
 - `setFiles(array $files)`: Asigna valores a `$_FILES`.
 - `setParams(array $params)`: Asigna valores al array de parámetros nombrados.
-- `setParam(string $name, $value)`: Agrega un valor al array de parámetros nombrados.
-- `unsetParam(string $name)`: Elimina un parámetro por nombre.
-- `setMatches(arrat $matches)`: Agrega valores al array de coincidencias de expresiones regulares.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
 ## Client Request
@@ -556,7 +563,7 @@ DB_CHARSET="utf8"
 
 El *middleware* `Route::before` ejecuta una acción previa al controlador de una ruta. 
 
-`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@middleware_data` con `Request::getParam` o en el array devuelto por `Request::getParams`.
+`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@middleware_data` en el objeto devuelto por `Request::getParams`.
 
 Tanto las rutas como los grupos de rutas pueden tener un *middleware*. Si se define en un grupo, todas las rutas heredarán la misma acción previa, pero si se define a una ruta individual esta tendrá preferencia sobre el *middleware* del grupo.
 
@@ -568,7 +575,8 @@ use rguezque\{Group, Katya, Request, Response, Session};
 $router = new Katya;
 
 $router->get('/', function(Request $request, Response $response) {
-    $username = $request->getParam('@data');
+    $data = $request->getParams();
+    $username = $data->get('@middleware_data');
     $response->clear()->send(sprintf('The actual user is: %s'), $username);
 })->before(function(Request $request, Response $response) {
     $session = Session::select('mi_sesion');
