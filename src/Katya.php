@@ -358,9 +358,7 @@ class Katya {
 
             if(preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
                 array_shift($arguments);
-                list($params, $matches) = $this->filterArguments($arguments);
-                $request->setParams($params);
-                $request->setMatches($matches);
+                $request->setParams($arguments);
 
                 $services = $this->services;
 
@@ -370,19 +368,14 @@ class Katya {
                 }
 
                 $response = new Response;
-
-                /* if($this->viewspath) {
-                    $response->setViewsPath(add_trailing_slash($this->viewspath));
-                } */
-
                 $controller_args = [$request, $response];
 
-                // Add services if exists
+                // Add services to route arguments
                 if(null !== $services) {
                     array_push($controller_args, $services);
                 }
 
-                // Add variables if exists
+                // Add variables to route arguments, if exists
                 if(null !== $this->vars) {
                     array_push($controller_args, $this->vars);
                 }
@@ -393,8 +386,9 @@ class Katya {
                     
                     $data = call_user_func($before, ...$controller_args);
                     
+                    // If middleware return a value, is added to route params and these are reassigned
                     if(null !== $data) {
-                        $request->setParam('@middleware_data', $data);
+                        $request->setParams(array_merge($arguments, ['@middleware_data' => $data]));
                     }
                 }
 
@@ -432,25 +426,6 @@ class Katya {
     private function filterRequestUri(string $uri): string {
         $uri = parse_url($uri, PHP_URL_PATH);
         return rawurldecode($uri);
-    }
-
-    /**
-     * Filter an arguments array. Unnamed matches are pushed to a lineal array.
-     * 
-     * @param array $params The array to filter
-     * @return array
-     */
-    private function filterArguments(array $params): array {
-        $matches = [];
-
-        foreach($params as $key => $item) {
-            if(is_int($key)) {
-                unset($params[$key]);
-                $matches[] = $item;
-            }
-        }
-
-        return [$params, $matches];
     }
 
     /**
