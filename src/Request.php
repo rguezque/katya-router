@@ -8,6 +8,8 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
+
 /**
  * Represent a request
  * 
@@ -19,8 +21,6 @@ namespace rguezque;
  * @method Parameters getCookies() Return the $_COOKIE params array
  * @method Parameters getFiles() Return the $_FILES params array
  * @method Parameters getParams() Return named params array from routing
- * @method mixed getParam(string $name, $default = null) Return a named param from routing
- * @method array getMatches() Return regex matches array
  * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
  * @method void setQuery(array $query) Set values for $_GET array
  * @method void setBody(array $body) Set values for $_POST array
@@ -28,33 +28,48 @@ namespace rguezque;
  * @method void setCookies(array $cookies) Set values for $_COOKIE array
  * @method void setFiles(array $files) Set values for $_FILES array
  * @method void setParams(array $params) Set values for named params array
- * @method void setParam(string $name, $value) Set a value into named params array
- * @method void unsetParam(string $name) Remove a named param
- * @method void setMatches(arrat $matches) Set values for regex matches array
  * @static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
+    /**
+     * Route parameters are returned into the array having the fieldname as the array index and encapsulated into a Parameter object.
+     * 
+     * @var int
+     */
+    const PARAMS_ASSOC = 1;
+    
+    /**
+     * Route parameters are returned into the array having an enumerated index.
+     */
+    const PARAMS_NUM = 2;
+    
+    /**
+     * Route parameters are returned into the array having both a numerical index and the fieldname as the associative index and encapsulated into a Parameter object.
+     * 
+     * @var int
+     */
+    const PARAMS_BOTH = 3;
 
     /**
      * Value for return raw php input stream data
      * 
      * @var int
      */
-    const RAW_DATA = 0;
+    const RAW_DATA = 4;
 
     /**
      * Value for parsed php input stream
      * 
      * @var int
      */
-    const PARSED_STR = 1;
+    const PARSED_STR = 5;
 
     /**
      * Value for apply json decode to php input stream
      * 
      * @var int
      */
-    const JSON_DECODED = 2;
+    const JSON_DECODED = 6;
 
     /**
      * $_GET params
@@ -173,9 +188,10 @@ class Request {
      * Return a read-only stream that allows reading data from the requested body
      * 
      * @param int $option Determinate format to return the stream
-     * @return string|Parameters 
+     * @return Parameters|string 
+     * @throws InvalidArgumentException When the option is not valid
      */
-    public function getPhpInputStream(int $option = Request::RAW_DATA) {
+    public function getPhpInputStream(int $option = Request::RAW_DATA): Parameters|string {
         $phpinputstream = file_get_contents('php://input');
 
         switch($option) {
@@ -186,8 +202,11 @@ class Request {
             case Request::JSON_DECODED: 
                 $result = new Parameters(json_decode($phpinputstream, true));
                 break;
-            default:
+            case Request::RAW_DATA:
                 $result = $phpinputstream;
+                break;
+            default:
+                throw new InvalidArgumentException(sprintf('Invalid option: %s. Use Request::PARSED_STR, request::JSON_DECODED or Request::RAW_DATA', $option));
         }
 
         return $result;
@@ -221,30 +240,47 @@ class Request {
     }
 
     /**
-     * Return named params array from route
+     * Return route params
      * 
-     * @return Parameters
+     * @param int $type Specifies params array type: PARAMS_ASSOC (default), PARAMS_NUM or PARAMS_BOTH
+     * @return Parameters|array
+     * @throws InvalidArgumentException When the argument is not a valid array type to return
      */
-    public function getParams(): Parameters {
-        return new Parameters($this->params);
+    public function getParams(int $type = Request::PARAMS_ASSOC): Parameters|array {
+        $result = [];
+        switch($type) {
+            case Request::PARAMS_ASSOC:
+                foreach($this->params as $key => $value) {
+                    if(!is_numeric($key)) {
+                        $result[$key] = $value;
+                    }
+                }
+                return new Parameters($result);
+                break;
+            case Request::PARAMS_NUM:
+                foreach($this->params as $key => $value) {
+                    if(is_numeric($key) && is_int($key)) {
+                        $result[] = $value;
+                    }
+                }
+                return array_values($result);
+                break;
+            case Request::PARAMS_BOTH:
+                return $this->params;
+                break;
+            default:
+                throw new InvalidArgumentException('Invalid array type.  Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.');
+        }
     }
 
     /**
      * Return a named param from route
      * 
      * @return mixed
+     * @deprecated Since v1.2.6
      */
     public function getParam(string $name, $default = null) {
         return $this->params[$name] ?? $default;
-    }
-
-    /**
-     * Return regex matches array
-     * 
-     * @return array
-     */
-    public function getMatches(): array {
-        return $this->matches;
     }
 
     /**
@@ -314,37 +350,6 @@ class Request {
      */
     public function setParams(array $params): void {
         $this->params = $params;
-    }
-
-    /**
-     * Set a value into named params array
-     * 
-     * @param string $name Param name
-     * @param mixed $value Param value 
-     * @return void
-     */
-    public function setParam(string $name, $value): void {
-        $this->params[$name] = $value;
-    }
-
-    /**
-     * Remove a named param
-     * 
-     * @param string $name Param namea
-     * @return void
-     */
-    public function unsetParam(string $name): void {
-        unset($this->params[$name]);
-    }
-
-    /**
-     * Set values for regex matches array
-     * 
-     * @param array $matches Array values 
-     * @return void
-     */
-    public function setMatches(array $matches): void {
-        $this->matches = $matches;
     }
 
     /**
