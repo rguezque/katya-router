@@ -14,7 +14,7 @@ use rguezque\Interfaces\BagInterface;
 /**
  * Represents a PHP session.
  * 
- * @method Session create(string $session_name = Session::NAMESPACE)) Create or select a collection of session vars into the default router-session-vars-namespace
+ * @method Session create(string $session_name = Session::NAMESPACE) Create or select a collection of session vars into the default router-session-vars-namespace
  * @method void start() Starts or resume a session
  * @method bool started() Return true if already exists an active session, otherwise false
  * @method void set(string $key, mixed $value) Set or overwrite a session var
