@@ -33,7 +33,7 @@ class CorsConfig {
      * 
      * @param string[]
      */
-    private $default_headers = ['Content-Type', 'Accept', 'Authorization'];
+    private $default_headers = ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'];
 
     /**
      * Initialize the cors configuration for allowed origins
@@ -77,9 +77,15 @@ class CorsConfig {
                     header("Access-Control-Allow-Origin: " . $server->get('HTTP_ORIGIN'));
                     header("Access-Control-Allow-Methods: " . implode(', ', $config['methods']));
                     header("Access-Control-Allow-Headers: " . implode(', ', $config['headers']));
-                    header('Access-Control-Max-Age: 60'); //Maximum number of seconds the results can be cached
+                    header('Access-Control-Max-Age: 3600'); //Maximum number of seconds the results can be cached
                 }
             }
+        }
+
+        // Handle preflight request
+        if($server->has('REQUEST_METHOD') && 'OPTIONS' === $server->get('REQUEST_METHOD')) {
+            http_response_code(HttpStatus::HTTP_NO_CONTENT);
+            exit(0);
         }
     }
 }
