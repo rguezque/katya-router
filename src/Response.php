@@ -193,10 +193,6 @@ class Response {
      * @return void
      */
     public function redirect(string $uri): void {
-        if(!strpos($uri, 'http://') && !strpos($uri, 'https://') && !strpos($uri, 'www.')) {
-            $uri = '/'.trim($uri, '/\\');
-        }
-
         $this->header('location', $uri)->status(302)->send();
     }
 
