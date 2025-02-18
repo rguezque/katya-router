@@ -20,9 +20,9 @@ class Variables {
     /**
      * Variables collection
      * 
-     * @param Parameters
+     * @var Parameters
      */
-    private $vars;
+    private Parameters $vars;
 
     public function __construct(array $variables = []) {
         $this->vars = new Parameters($variables);

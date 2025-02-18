@@ -82,42 +82,42 @@ class Katya {
      * 
      * @var Route[]
      */
-    private $routes = [];
+    private array $routes = [];
 
     /**
      * Route groups collection
      * 
      * @var array
      */
-    private $groups = [];
+    private array $groups = [];
 
     /**
      * Services collection
      * 
      * @var Services
      */
-    private $services = null;
+    private ?Services $services = null;
 
     /**
      * Basepath if the router lives into subdirectory
      * 
      * @var string
      */
-    private $basepath;
+    private string $basepath;
 
     /**
      * Variables collection
      * 
      * @var Variables
      */
-    private $vars = null;
+    private Variables $vars;
 
     /**
      * CORS configuration
      * 
      * @var CorsConfig
      */
-    private $cors_config = null;
+    private ?CorsConfig $cors_config = null;
 
     /**
      * Configure the router options
@@ -310,7 +310,7 @@ class Katya {
      */
     public function resolveCors(Request $request): void {
         if(null !== $this->cors_config) {
-            call_user_func($this->cors_config, $request);
+            call_user_func($this->cors_config, $request, new Response);
         }
     }
 

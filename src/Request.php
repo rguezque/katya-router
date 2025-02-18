@@ -76,49 +76,42 @@ class Request {
      * 
      * @var array
      */
-    private $query;
+    private array $query;
 
     /**
      * $_POST params
      * 
      * @var array
      */
-    private $body;
+    private array $body;
 
     /**
      * $_SERVER params
      * 
      * @var array
      */
-    private $server;
+    private array $server;
 
     /**
      * $_COOKIE params
      * 
      * @var array
      */
-    private $cookies;
+    private array $cookies;
 
     /**
      * $_FILES params
      * 
      * @var array
      */
-    private $files;
+    private array $files;
 
     /**
      * Named params
      * 
      * @var array
      */
-    private $params;
-
-    /**
-     * Regular expressions matches
-     * 
-     * @var array
-     */
-    private $matches;
+    private array $params;
 
     /**
      * Create Request
@@ -129,7 +122,6 @@ class Request {
      * @param array $cookies $_COOKIE params
      * @param array $files $_FILES params
      * @param array $params Route params
-     * @param array $matches Route regex matches
      */
     public function __construct(
         array $query, 
@@ -137,8 +129,7 @@ class Request {
         array $server, 
         array $cookies, 
         array $files, 
-        array $params, 
-        array $matches
+        array $params
     ) {
         $this->query = $query;
         $this->body = $body;
@@ -146,7 +137,6 @@ class Request {
         $this->cookies = $cookies;
         $this->files = $files;
         $this->params = $params;
-        $this->matches = $matches;
     }
 
     /**
@@ -269,7 +259,7 @@ class Request {
                 return $this->params;
                 break;
             default:
-                throw new InvalidArgumentException('Invalid array type.  Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.');
+                throw new InvalidArgumentException('Invalid argument type: '.$type.'.  Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.');
         }
     }
 

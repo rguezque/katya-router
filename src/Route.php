@@ -28,35 +28,35 @@ class Route {
      * 
      * @var string
      */
-    private $verb;
+    private string $verb;
 
     /**
      * Route path
      * 
      * @var string
      */
-    private $path;
+    private string $path;
 
     /**
      * Route controller
      * 
-     * @var callable
+     * @var mixed
      */
-    private $controller;
+    private mixed $controller;
 
     /**
      * Hook before the controller
      * 
      * @var Closure
      */
-    private $before = null;
+    private ?Closure $before = null;
 
     /**
      * List of lot of services to use for this route
      * 
      * @var string[]
      */
-    private $onlyuse = [];
+    private array $onlyuse = [];
  
     /**
      * Create route

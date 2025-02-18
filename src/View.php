@@ -30,21 +30,21 @@ class View {
      * 
      * @var string
      */
-    private $path = '';
+    private string $path = '';
 
     /**
      * Views arguments
      * 
-     * @var Arguments
+     * @var Parameters
      */
-    private $arguments;
+    private Parameters $arguments;
 
     /**
      * Template file
      * 
      * @var string
      */
-    private $view_file;
+    private string $view_file;
 
     /**
      * Views constructor

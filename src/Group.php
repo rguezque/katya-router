@@ -31,35 +31,35 @@ class Group {
      * 
      * @var Katya
      */
-    private $router;
+    private Katya $router;
 
     /**
      * Prefix for route group
      * 
      * @var string
      */
-    private $prefix;
+    private string $prefix;
 
     /**
      * Closure with routes group definition
      * 
      * @var Closure
      */
-    private $closure;
+    private Closure $closure;
 
     /**
      * Middleware before the controller execution into the group
      * 
      * @var callable
      */
-    private $before = null;
+    private $before;
 
     /**
      * List of lot of services to use for this routes group
      * 
      * @var string[]
      */
-    private $onlyuse = [];
+    private array $onlyuse = [];
 
     /**
      * Create route group

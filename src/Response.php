@@ -25,23 +25,23 @@ class Response {
     /**
      * Response content
      * 
-     * @var mixed
+     * @var string
      */
-    private $content = '';
+    private string $content = '';
 
     /**
      * Response status
      * 
      * @var int
      */
-    private $status = 200;
+    private int $status = 200;
 
     /**
      * Response headers
      * 
      * @var array
      */
-    private $headers = [];
+    private array $headers = [];
 
     /**
      * Create a response
@@ -165,7 +165,8 @@ class Response {
                     header(sprintf('%s: %s', $key, $value), false, $this->status);
                 }
             }
-            header(sprintf('%s: %s', $name, $content), false, $this->status);
+
+            header(sprintf('%s: %s', $name, $content), true, $this->status);
         }
     }
 

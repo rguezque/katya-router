@@ -31,7 +31,7 @@ class Services {
      * 
      * @var array
      */
-    private $services = [];
+    private array $services = [];
 
     /**
      * Register services

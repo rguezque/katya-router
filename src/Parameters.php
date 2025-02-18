@@ -32,7 +32,7 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
      * 
      * @var array
      */
-    protected $bunch;
+    protected array $bunch;
 
     /**
      * Receive a parameters array

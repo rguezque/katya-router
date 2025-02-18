@@ -38,15 +38,17 @@ class Session implements BagInterface, ArgumentsInterface {
 
     /**
      * Custom session vars namespace
+     * 
+     * @var string
      */
-    private $namespace = '';
+    private string $namespace = '';
 
     /**
      * Store instance of Session
      * 
      * @var Session
      */
-    private static $instance;
+    private static ?Session $instance = null;
 
     /**
      * Initialize a session
