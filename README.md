@@ -18,7 +18,6 @@ A lightweight PHP router
   - [Extending the template](#extending-the-template)
   - [Render view](#render-view)
 - [Request](#request)
-- [Client Request](#client-request)
 - [Response](#response)
 - [Session](#session)
 - [Services](#services)
@@ -28,6 +27,7 @@ A lightweight PHP router
   - [Auto connect](#auto-connect)
 - [Middleware](#middleware)
 - [CORS](#cors)
+- [Environment Management](#environment-management)
 
 ## Install
 
@@ -360,30 +360,6 @@ Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `P
 - `setParams(array $params)`: Asigna valores al array de parámetros nombrados.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
-## Client Request
-
-La clase `ClientRequest` representa peticiones HTTP desde el lado del cliente. El constructor recibe dos argumentos: la URL de la paetición y el método de petición. Por default el método asignado para una petición es de tipo `GET`.
-
-```php
-use rguezque\ClientRequest;
-
-// Si se omite el segundo parámetro se asume que será una petición GET
-$client_request = new ClientRequest('https://jsonplaceholder.typicode.com/posts');
-// Se envía la petición y se recibe la respuesta
-$response = $client_request->send();
-print_r($response);
-```
-
-Métodos disponibles:
-
-- `withRequestMethod(string $method)`: Especifica el tipo de petición que se hará (`GET`, `POST`, `PUT`, `DELETE`).
-- `withHeader(string $key, string $value)`: Agrega un encabezado a la petición.
-- `withHeaders(array $headers)`: Agrega múltiples encabezados a la petición, recibe un array asociativo como parámetro, donde cada clave es un encabezado seguido de su contenido.
-- `withPostFields($data, bool $encode = false)`: Agrega argumentos a la petición mediante un array asociativo de datos. el segundo parámetro define si se deben codificar a formato JSON.
-- `withBasicAuth(string $username, string $password)`: Agrega un encabezado `Authorization` basado en un nombre de usuario y contraseña simples, los cuales son concatenados con dos puntos (:) y codificados usando Base64 (Ver [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617)).
-- `withTokenAuth(string $token)`: Agrega un encabezado `Authorization` basado en JWT (Ver [RFC 6750](https://datatracker.ietf.org/doc/html/rfc6750)).
-- `send()`: Envía la petición y devuelve el response en un array con las claves `status` y `response`. En caso de error arrojará un `CurlException`.
-
 ## Response
 
 Métodos de la clase `Response`.
@@ -604,9 +580,7 @@ $router->group('/admin', function(Group $group) {
 
 ## CORS
 
-El método `Katya::setCors` permite definir una configuración de dominios externos (origenes) a los que se les permite hacer peticiones de recursos restringidos, mejor conocido como **CORS** *(Cross-Origin Resource Sharing)*. 
-
-Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, los métodos de petición permitidos para cada *origen* y encabezados http aceptados.
+*(Cross-Origin Resource Sharing)*. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, los métodos de petición permitidos para cada *origen* así como los encabezados http aceptados, el tiempo en segundos para la *cache* de las *preflight requests* y soporte para credenciales de acceso.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -615,28 +589,64 @@ use rguezque\Katya;
 use rguezque\CorsConfig;
 
 $router = new Katya;
+$cors = new CorsConfig();
 
-// Ejemplo (desde el constructor)
-$cors = new CorsConfig([
-    'https://fakedomain.net' => [
-        'methods' => ['POST'],
-        'headers' => ['Authorization']
-    ],
-    'https://localhost:8000' => [
-        'methods' => ['GET', 'POST'],
-        'headers' => ['Accept', 'Content-Type']
+$corsConfig->addOrigin(
+    'https://example.com', 
+    ['GET', 'POST'], 
+    [
+        'allowed_headers' => ['Content-Type', 'Authorization'],
+        'supports_credentials' => true
     ]
-]);
-
-// Ejemplo (con el método CorsConfig::addOrigin)
-$cors->addOrigin(
-    '(http(s)://)?(www\.)?localhost:3000', // origen
-    ['GET', 'POST'], // métodos de petición aceptados
-    ['X-Requested-With'] // headers aceptados
 );
 
+$corsConfig->addOrigin(
+    '(http(s)://)?(www\.)?localhost:4500', // También soporta regex
+    ['GET', 'POST', 'DELETE'], 
+    [
+        'allowed_headers' => ['Content-Type'],
+        'max_age' => 3600 // 1 hora
+    ]
+);
+```
+
+Los métodos y configuración http son opcionales; por default para todos los origenes todos los métodos son aceptados y la configuración default es la siguiente:
+
+```php
+[
+    'allowed_headers' => ['Content-Type', 'Authorization'],
+    'max_age' => 86400, // 24 horas
+    'supports_credentials' => false
+]
+```
+
+Asigna la configuración de CORS con el método `Katya::setCors` y automaticamente se ejecutará al correr el router:
+
+```php
 // Se asigna al router
 $router->setCors($cors);
 ```
 
-Los métodos y encabezados http son opcionales; por default para todos los origenes los métodos aceptados son `GET`, `POST`, y los encabezados (headers) permitidos son `Content-Type`. `Accept`, y `Authorization`.
+## Environment Management
+
+El ambiente de desarrollo se carga automaticamente desde la variable  `APP_ENV` del archivo `.env`; en caso de no ser definida se tomará por default el modo `production`. El valor posible solo puede ser `development` o `production`.
+
+```php
+// Registra el manejo de errores y excepciones
+Environment::register();
+
+// O manualmente
+Environment::register('development');
+```
+
+Especifica el directorio (obligatorio) donde se guardará el registro de errores. Todos los errores que ocurran en ambos ambientes de desarrollo se volcarán en un archivo `php_errors.log`.
+
+```php
+// Por ejemplo
+Environment::setLogPath(__DIR__.'/path/to/custom/logs');
+```
+
+Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de registro de errores.
+
+>[!NOTE]
+>La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.

@@ -8,86 +8,193 @@
 
 namespace rguezque;
 
-/**
- * Configure and enable CORS (Cross-Origin Resources Sharing)
- * 
- * @method CorsConfig addOrigin(string $origin, array $methods = [], array $headers = []) Add an allowed origin
- */
 class CorsConfig {
     /**
-     * Allowed origins
-     * 
-     * @param string[]
+     * Configuration for different origins and their allowed methods
+     * @var array
      */
-    private $origins = [];
+    private array $origins = [];
 
     /**
-     * Default allowed request methods
-     * 
-     * @param string[]
+     * Global default configuration
+     * @var array
      */
-    private $default_methods = ['GET', 'POST'];
+    private array $default_config = [
+        'allowed_headers' => ['Content-Type', 'Authorization'],
+        'max_age' => 86400, // 24 hours
+        'supports_credentials' => false
+    ];
 
     /**
-     * Default allowed http headers
+     * Add an origin with specific configuration
      * 
-     * @param string[]
+     * @param string $origin Origin URL
+     * @param array $methods Allowed HTTP methods for this origin
+     * @param array $config Additional CORS configuration for this origin
+     * @return Cors
      */
-    private $default_headers = ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'];
-
-    /**
-     * Initialize the cors configuration for allowed origins
-     * 
-     * @param array $cors_origins Origins configuration array
-     */
-    public function __construct(array $cors_origins = []) {
-        if([] !== $cors_origins) {
-            foreach($cors_origins as $origin => $config) {
-                $this->addOrigin($origin, $config['methods'] ?? [], $config['headers'] ?? []);
-            }
-        }
-    }
-
-    /**
-     * Add an allowed origin
-     * 
-     * @param string $origin Allowed domain url
-     * @param array $methods Allowed request methods from allowed domain
-     * @param array $headers Allowed http headers from allowed domain
-     * @return CorConfig
-     */
-    public function addOrigin(string $origin, array $methods = [], array $headers = []): CorsConfig {
+    public function addOrigin(string $origin, array $methods = ['*'], array $config = []): CorsConfig {
         $this->origins[$origin] = [
-            'methods' => [] !== $methods ? $methods : $this->default_methods,
-            'headers' => [] !== $headers ? $headers : $this->default_headers
+            'methods' => $methods,
+            'config' => array_merge($this->default_config, $config)
         ];
-
         return $this;
     }
 
     /**
-     * Apply the cors configuration when the class is called like a function
+     * Set global default configuration
+     * 
+     * @param array $config Default CORS configuration
+     * @return Cors
      */
-    public function __invoke(Request $request) {
-        $server = $request->getServer();
+    public function setDefaultConfig(array $config): CorsConfig {
+        $this->default_config = array_merge($this->default_config, $config);
+        return $this;
+    }
 
-        if($server->valid('HTTP_ORIGIN')) {
-            foreach ($this->origins as $origin => $config) {
-                if (preg_match('#' . $origin . '#', $server->get('HTTP_ORIGIN'))) {
-                    header("Access-Control-Allow-Origin: " . $server->get('HTTP_ORIGIN'));
-                    header("Access-Control-Allow-Methods: " . implode(', ', $config['methods']));
-                    header("Access-Control-Allow-Headers: " . implode(', ', $config['headers']));
-                    header('Access-Control-Max-Age: 3600'); //Maximum number of seconds the results can be cached
-                }
+    /**
+     * Handle CORS headers for a request
+     * 
+     * @param Request $request Incoming request
+     * @param Response $response Response object to modify
+     * @return bool Whether to continue processing the request
+     */
+    public function __invoke(Request $request, Response $response): bool {
+        $server = $request->getServer();
+        $origin = $server->get('HTTP_ORIGIN');
+        $request_method = $server->get('REQUEST_METHOD');
+
+        // No origin, skip CORS handling
+        if (!$origin) {
+            return true;
+        }
+
+        // Find matching origin configuration
+        $origin_config = $this->findOriginConfig($origin);
+        
+        // No matching origin found, allow request to continue
+        if (!$origin_config) {
+            return true;
+        }
+
+        // Apply CORS headers for the matching origin
+        $response->header('Access-Control-Allow-Origin', $origin);
+
+        // Credentials support
+        if ($origin_config['config']['supports_credentials']) {
+            $response->header('Access-Control-Allow-Credentials', 'true');
+        }
+
+        // Handle preflight requests (OPTIONS method)
+        if ($request_method === 'OPTIONS') {
+            return $this->handlePreflightRequest($request, $response, $origin_config);
+        }
+        
+        $response->send();
+
+        // Validate request method for non-preflight requests
+        return $this->validateRequestMethod($origin_config, $request_method);
+    }
+
+    /**
+     * Find configuration for a specific origin
+     * 
+     * @param string $origin Origin URL
+     * @return array|null Origin configuration or null if not found
+     */
+    private function findOriginConfig(string $origin): ?array {
+        foreach ($this->origins as $origin_pattern => $config) {
+            if (preg_match('#' . $origin_pattern . '#', $origin)) {
+                return $config;
+            }
+        }
+        // Exact match
+        /* if (isset($this->origins[$origin])) {
+            return $this->origins[$origin];
+        } */
+
+        // Wildcard match
+        foreach ($this->origins as $config_origin => $config) {
+            if ($config_origin === '*') {
+                return $config;
             }
         }
 
-        // Handle preflight request
-        if($server->has('REQUEST_METHOD') && 'OPTIONS' === $server->get('REQUEST_METHOD')) {
-            http_response_code(HttpStatus::HTTP_NO_CONTENT);
-            exit(0);
+        return null;
+    }
+
+    /**
+     * Handle preflight request
+     * 
+     * @param Request $request Incoming request
+     * @param Response $response Response object
+     * @param array $origin_config Origin configuration
+     * @return bool Whether to continue processing
+     */
+    private function handlePreflightRequest(Request $request, Response $response, array $origin_config): bool {
+        $requested_method = $request->getAllHeaders()->get('Access-Control-Request-Method');
+        
+        // Validate requested method
+        if (!$this->isMethodAllowed($origin_config, $requested_method)) {
+            return false;
         }
+
+        // Add allowed methods
+        $response->header(
+            'Access-Control-Allow-Methods', 
+            implode(', ', $this->getAllowedMethods($origin_config))
+        );
+
+        // Add allowed headers
+        $response->header(
+            'Access-Control-Allow-Headers', 
+            implode(', ', $origin_config['config']['allowed_headers'])
+        );
+
+        // Add max age for preflight caching
+        $response->header(
+            'Access-Control-Max-Age', 
+            (string)$origin_config['config']['max_age']
+        );
+
+        // Respond immediately for preflight
+        $response->status(HttpStatus::HTTP_NO_CONTENT)->send();
+        
+        return true;
+    }
+
+    /**
+     * Check if a method is allowed for a specific origin
+     * 
+     * @param array $origin_config Origin configuration
+     * @param string $method HTTP method to check
+     * @return bool Whether the method is allowed
+     */
+    private function isMethodAllowed(array $origin_config, string $method): bool {
+        return in_array('*', $origin_config['methods'], true) || 
+               in_array(strtoupper($method), $origin_config['methods'], true);
+    }
+
+    /**
+     * Get all allowed methods for an origin
+     * 
+     * @param array $origin_config Origin configuration
+     * @return array Allowed HTTP methods
+     */
+    private function getAllowedMethods(array $origin_config): array {
+        return $origin_config['methods'][0] === '*' 
+            ? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] 
+            : $origin_config['methods'];
+    }
+
+    /**
+     * Validate request method for a non-preflight request
+     * 
+     * @param array $origin_config Origin configuration
+     * @param string $request_method HTTP method of the request
+     * @return bool Whether the request method is allowed
+     */
+    private function validateRequestMethod(array $origin_config, string $request_method): bool {
+        return $this->isMethodAllowed($origin_config, $request_method);
     }
 }
-
-?>
