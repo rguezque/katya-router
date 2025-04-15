@@ -138,11 +138,11 @@ class Response {
     /**
      * Send json content
      * 
-     * @param mixed $data Response data
+     * @param array|string $data Response data
      * @param bool $encode If true, the data in encode to json
      * @return void
      */
-    public function json($data, bool $encode = true): void {
+    public function json(array|string $data, bool $encode = true): void {
         $this->content = '';
         $this->header('Content-Type', 'application/json;charset=UTF-8');
         $data = $encode ? json_encode($data, JSON_PRETTY_PRINT) : $data;
@@ -184,7 +184,7 @@ class Response {
             $view->addArguments($arguments);
         }
 
-        $this->send($view->render());
+        $this->clear()->header('Content-Type', 'text/html;charset=UTF-8')->send($view->render());
     }
 
     /**

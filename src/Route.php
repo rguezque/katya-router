@@ -40,9 +40,9 @@ class Route {
     /**
      * Route controller
      * 
-     * @var mixed
+     * @var Closure|array|string
      */
-    private mixed $controller;
+    private Closure|array|string $controller;
 
     /**
      * Hook before the controller

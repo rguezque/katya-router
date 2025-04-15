@@ -9,12 +9,16 @@
 namespace rguezque\Exceptions;
 
 use Exception;
+use rguezque\HttpStatus;
+use Throwable;
 
 /**
  * Throws an exception when exists a duplicate symbol declaration
  */
 class DuplicityException extends Exception {
-
+    public function __construct(string $message, int $code = HttpStatus::HTTP_INTERNAL_SERVER_ERROR, ?Throwable $previous = null) {
+        parent::__construct($message, $code, $previous);
+    }
 }
 
 ?>

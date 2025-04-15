@@ -19,8 +19,25 @@ use Throwable;
  * @static string getMode() Get the current environment mode
  */
 class Environment {
+    /**
+     * Environment mode ("development" or "production")
+     * 
+     * @var string
+     */
     private static string $mode = '';
+
+    /**
+     * Log path for error logging
+     * 
+     * @var string
+     */
     private static string $log_path = '';
+    
+    /**
+     * Display errors
+     * 
+     * @var bool
+     */
     private static bool $display_errors = true;
 
     /**

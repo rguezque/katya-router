@@ -67,9 +67,12 @@ function namespace_format(string $namespace): string {
  * @param string $needle Prefix to search
  * @return bool
  */
-function str_starts_with(string $haystack, string $needle): bool {
-    return $needle === substr($haystack, 0, strlen($needle));
+if(!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool {
+        return $needle === substr($haystack, 0, strlen($needle));
+    }
 }
+
 
 /**
  * Return true if a string has a specific suffix
@@ -78,8 +81,10 @@ function str_starts_with(string $haystack, string $needle): bool {
  * @param string $needle Suffix to search
  * @return bool
  */
-function str_ends_with(string $haystack, string $needle): bool {
-    return $needle === substr($haystack, -strlen($needle));
+if(!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool {
+        return $needle === substr($haystack, -strlen($needle));
+    }
 }
 
 /**
@@ -120,7 +125,7 @@ function str_path(string $path): string {
  */
 function is_assoc_array($value): bool {
     if(!is_array($value)) return false;
-    if (array() === $value) return false;
+    if ([] === $value) return false;
     
     return array_keys($value) !== range(0, count($value) - 1);
 }
@@ -158,8 +163,10 @@ function unsetcookie(string $name): bool {
  * @param string $strtwo Second string
  * @return bool
  */
-function equals(string $strone, string $strtwo): bool {
-    return strcmp($strone, $strtwo) === 0;
+if(!function_exists('equals')) {
+    function equals(string $strone, string $strtwo): bool {
+        return strcmp($strone, $strtwo) === 0;
+    }
 }
 
 /**
