@@ -103,14 +103,14 @@ class Katya {
      * 
      * @var string
      */
-    private string $basepath;
+    private string $basepath = '';
 
     /**
      * Variables collection
      * 
      * @var Variables
      */
-    private Variables $vars;
+    private ?Variables $vars = null;
 
     /**
      * CORS configuration
