@@ -34,7 +34,7 @@ class Response {
      * 
      * @var int
      */
-    private int $status = 200;
+    private int $status = HttpStatus::HTTP_OK;
 
     /**
      * Response headers
@@ -50,7 +50,7 @@ class Response {
      * @param int $status Response status
      * @param array $headers Headers array
      */
-    public function __construct(string $content = '', int $status = 200, array $headers = []) {
+    public function __construct(string $content = '', int $status = HttpStatus::HTTP_OK, array $headers = []) {
         $this->content = $content;
         $this->status = $status;
         $this->headers = $headers;
@@ -63,7 +63,7 @@ class Response {
      */
     public function clear(): Response {
         $this->content = '';
-        $this->status = 200;
+        $this->status = HttpStatus::HTTP_OK;
         $this->headers = [];
 
         return $this;
@@ -128,6 +128,10 @@ class Response {
             $this->write($content);
         }
 
+        // Send the http status header
+        http_response_code($this->status);
+
+        // Send http headers
         if(!headers_sent()) {
             $this->sendHeaders();
         }
@@ -155,10 +159,6 @@ class Response {
      * @return void
      */
     private function sendHeaders(): void {
-        // Send the http status header
-        $http_status = new HttpStatus($this->status);
-        $http_status->sendHttpStatus();
-
         foreach($this->headers as $name => $content) {
             if(is_array($content)) {
                 foreach($content as $key => $value) {
@@ -194,7 +194,9 @@ class Response {
      * @return void
      */
     public function redirect(string $uri): void {
-        $this->header('location', $uri)->status(302)->send();
+        $this->header('location', $uri)
+        ->status(HttpStatus::HTTP_MOVED_PERMANENTLY)
+        ->send();
     }
 
 }

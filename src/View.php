@@ -57,7 +57,7 @@ class View {
 
         if('' !== trim($templates_dir)) {
             $this->path = add_trailing_slash(trim($templates_dir));
-        } else if(Globals::valid('viewspath')) {
+        } else if(Globals::has('viewspath') && Globals::valid('viewspath')) {
             $this->path = Globals::get('viewspath');
         }
     }
