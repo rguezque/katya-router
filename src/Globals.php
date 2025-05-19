@@ -116,9 +116,10 @@ class Globals {
      * Return all globals router parameters as json data
      * 
      * @return string
+     * @throws JsonException
      */
-    public static function jsonSerialize() {
-        return json_encode($GLOBALS[Globals::NAMESPACE], JSON_PRETTY_PRINT);
+    public static function jsonSerialize(): string {
+        return json_encode($GLOBALS[Globals::NAMESPACE], JSON_THROW_ON_ERROR);
     }
     
 }

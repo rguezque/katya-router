@@ -13,12 +13,12 @@ A lightweight PHP router
 - [Routes group](#routes-group)
 - [Wildcards](#wildcards)
 - [Views](#views)
-  - [Set template](#set-template)
-  - [Adding arguments](#adding-arguments)
-  - [Extending the template](#extending-the-template)
-  - [Render view](#render-view)
 - [Request](#request)
 - [Response](#response)
+  - [HttpHeaders](#httpheaders)
+  - [Stream](#stream)
+
+- [SapiEmitter](#sapiemitter)
 - [Session](#session)
 - [Services](#services)
 - [Variables](#variables)
@@ -105,8 +105,8 @@ use rguezque\Exceptions\{
 
 $router = new Katya;
 
-$router->route(Katya::GET, '/', function(Request $request, Response $response) {
-    $response->send('hola mundo!');
+$router->route(Katya::GET, '/', function(Request $request) {
+    return new Response('hola mundo!');
 });
 
 try {
@@ -120,21 +120,18 @@ try {
 } 
 ```
 
-Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben 2 argumentos, un objeto `Request`  (Ver [Request](#request)) y un `Response` (Ver [Response](#response)). El primero contiene los métodos necesarios para manejar una petición y el segundo contiene métodos que permiten devolver una respuesta.
+Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request`  (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)). `Request` primero contiene los métodos necesarios para manejar una petición.
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto  `Request`.
 
 Si el router se aloja en un subdirectorio, este se puede especificar en el *array* de opciones al crear la instancia del router. Así mismo, se puede definir el directorio default donde se buscarán los archivos al renderizar una plantilla.
 
 ```php
-$katya = new Katya([
-    'basepath' => '/nombre_directorio_base',
-    'viewspath' => __DIR__.'/templates/'
-]);
+$katya = new Katya('/nombre_directorio_base');
 ```
 
 >[!TIP]
->El router devuelve dos posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta y `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
+>El router devuelve tres posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta, `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router o un `UnexpectedValueException` cuando el controlador no devuelve un tipo `Response`. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
 
 ### Shortcuts
 
@@ -142,17 +139,17 @@ Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::d
 
 ```php
 $katya = new Katya;
-$katya->get('/', function(Request $request, Response $response) {
-    $response->send('Hello')
+$katya->get('/', function(Request $request) {
+    return new Response('Hello')
 });
 
-$katya->post('/', function(Request $request, Response $response) {
+$katya->post('/', function(Request $request) {
     $data = [
         'name' => 'John',
         'lastname' => 'Doe'
     ];
 
-    $response->json($data);
+    return new JsonResponse($data);
 });
 ```
 
@@ -162,7 +159,7 @@ Los controladores pueden ser: una función anónima, un método estático o un m
 
 ```php
 // Usando una función anónima
-$katya->get('/user', function(Request $request, Response $response) {
+$katya->get('/user', function(Request $request) {
     //...
 });
 
@@ -185,12 +182,14 @@ Para crear grupos de rutas bajo un mismo prefijo se utiliza `Katya::group`; reci
 ```php
 // Se generan las rutas "/foo/bar" y "/foo/baz"
 $katya->group('/foo', function(Group $group) {
-    $group->get('/bar', function(Request $request, Response $response) {
-        $response->send(' Hello foobar');
+    $group->get('/bar', function(Request $request) {
+        return new Response(' Hello foobar');
     });
 
-    $group->get('/baz', function(Request $request, Response $response) {
-        $response->render('welcome.php')
+    $group->get('/baz', function(Request $request, Services $service) {
+        // Registrado previamente como un servicio
+        $template = $services->view->fetch('welcome') 
+        return new HtmlResponse($template);
     });
 });
 ```
@@ -200,9 +199,9 @@ $katya->group('/foo', function(Group $group) {
 Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve por default un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los *wildcards*. El argumento por default de esté método es `Request::PARAMS_ASSOC` el cual indica que el *array* de parámetros tiene índices nombrados correspondientes a los *wildcards* y no numéricos.
 
 ```php
-$katya->get('/hola/{nombre}', function(Request $request, Response $response) {
+$katya->get('/hola/{nombre}', function(Request $request) {
     $params = $request->getParams(); // Devuelve un objeto Parameter
-    $response->send(sprintf('Hola %s', $params->get('nombre')));
+    return new Response(sprintf('Hola %s', $params->get('nombre')));
 });
 ```
 
@@ -221,82 +220,53 @@ El objeto `Parameters` tiene los siguientes métodos:
 Si los *wildcards* fueron definidos como expresiones regulares envía el argumento `Request::PARAMS_NUM` el cual devuelve un *array* lineal con los valores de las coincidencias encontradas.
 
 ```php
-$katya->get('/hola/(\w+)/(\w+)', function(Request $request, Response $response) {
+$katya->get('/hola/(\w+)/(\w+)', function(Request $request) {
     $params = $request->getParams(Request::PARAMS_NUM); // Devuelve un array lineal
     list($nombre, $apellido) = $params;
-    $response->send(sprintf('Hola %s %s', $nombre, $apellido));
+    return new Response(sprintf('Hola %s %s', $nombre, $apellido));
 });
 ```
 
 >[!IMPORTANT]
 >Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podrás recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, envía el argumento `Request::PARAMS_BOTH` para recuperar un array con todos los parámetros en el orden que hayan sido definidos en la ruta.
 
-### Views
+## Views
 
-Las vistas son el medio por el cual el router devuelve y renderiza un objeto `Response` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas. 
+Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas y el directorio caché en una instancia de la clase `ViewEngine`. 
 
 ```php
 use rguezque\View;
 
-$view = new View(
-    __DIR__.'/mis_plantillas', // Directorio donde se alojan los templates
+// Standalone
+$view = new ViewEngine(
+    __DIR__.'/templates', // Directorio donde se alojan los templates
+    __DIR__.'/templates/cache' // Directorio caché de los templates
 );
+
+// Enviandolo como un servicio
+$services = new Services();
+$services->register('view', function() {
+    return new ViewEngine(
+    	__DIR__.'/templates', 
+    	__DIR__.'/templates/cache'
+	);
+});
+$router->setServices($services);
 ```
 
-La configuración inicial de `View` puede ser sobrescrita con el método `View::setViewsPath`.
+El método `ViewEngine::fetch` recibe el nombre de la plantilla sin la extensión de archivo y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`.
 
 ```php
-$view->setViewsPath(__DIR__.'/templates');
-```
-
->[!NOTE]
->Si previamente se ha definido el directorio de plantillas en la configuración inicial en el constructor del router no es necesario especificarlo en el constructor de la clase `View`, aunque si se define un directorio aquí, este tendrá prioridad sobre la configuración inicial.
-
-### Set template
-
-El método que permite definir una *plantilla* principal es `View::setTemplate` , este puede recibir uno o dos parámetros; el primer parámetro es el nombre del archivo de *plantilla* y el segundo es un array asociativo con argumentos que se envían a la *plantilla*.
-
-```php
-// app/Http/FooController.php
-function __construct(View $view) {
-    $this->view = $view;
+$router->get(Request $request, Services $service): Response {
+    $view = $service->view();
+    $data = [
+    	'home': '/',
+    	'about': '/about-us',
+    	'contact': '/contact-us'
+	];
+	$template = $view->fetch('menu', $data);
+    return new HtmlResponse($template);
 }
-
-public function homeAction(Request $request, Response $response): Response {
-    $result = $this->view->template('home.php', ['message' => 'Hola mundo!'])->render();
-    return $response->withContent($result);
-}
-```
-
-### Adding arguments
-
-Una forma alternativa de enviar argumentos a una vista es a través de los métodos `View::addArgument` y `View::addArguments`. El primero recibe dos parámetros (nombre y valor) y el segundo un array asociativo. Estos parámetros serán automáticamente incluidos al invocar el método `View::render`, por lo cual deben ser declarados antes de renderizar (Ver [Render](#render)).
-
-```php
-// Se agrega un solo argumento
-$view->addArgument('message', 'Hello weeerld!');
-// Se agregan varios argumentos a la vez
-$view->addArguments([
-    'id' => 1,
-    'name' => 'Banana',
-    'color' => 'yellow'
-]);
-```
-
-### Extending the template
-
-Para extender una plantilla se utiliza el método `View::extendWith`, este método recibe tres parámetros; el nombre de la plantilla que extenderá a la plantilla principal, un alias único con el que se incluirá en la plantilla principal y opcionalmente un *array* de argumentos que se envian a la actual plantilla que está extendiendo a la principal.
-
-```php
-$data = [
-    'home': '/',
-    'about': '/about-us',
-    'contact': '/contact-us'
-];
-// Se guarda el template menu.php con el alias 'menu_lateral' y se le envian parámetros en la variable $data
-$view->template('index.php', ['title' => 'Ejemplo de vistas']);
-$view->extendWith('menu.php', 'menu_lateral', $data);
-$view->render();
 ```
 
 Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
@@ -332,13 +302,6 @@ Imprime en pantalla el contenido de menu.php guardado previamente con el alias `
 </html>
 ```
 
-### Render view
-
-El método `View::render` se invoca siempre al final y devuelve lo contenido en el actual *buffer* para ser recuperado en una variable y enviado en un `Response`.
-
->[!NOTE]
->Un atajo para renderizar plantillas de manera simple es a través del método `Response::render` (Ver [Response](#response))
-
 ## Request
 
 Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `Parameters` con excepción de `Request::getParams` que puede variar.
@@ -365,14 +328,60 @@ Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `P
 Métodos de la clase `Response`.
 
 - `clear()`: Limpia los valores del `Response`.
-- `status(int $code)`: Asigna un código númerico de estatus http.
-- `header(string $name, string $content)`: Agrega un encabezado al `Response`.
-- `headers(array $headers)`: Agrega múltiples encabezados al `Response`.
-- `write(string $content)`: Agrega contenido al cuerpo del `Response`.
-- `send(string $content = '')`: Envía el `Response`. Opcionalmente permite mandar contenido del cuerpo del response.
-- `json($data, bool $encode = true)`: Devuelve el `Response` con contenido en formato JSON
-- `render(string $template, array $arguments = [])`: Devuelve el `Response` en forma de una plantilla renderizada (vista). Buscará las plantillas en el directorio definido en las configuraciones iniciales en el constructor del router. Si no se define un directorio default, se debe especificar la ruta completa de la plantilla.
-- `redirect(string $uri)`: Devuelve el `Response` como una redirección.
+- `setStatusCode(int $code)`: Asigna un código númerico de estatus HTTP.
+- `getStatusCode()`: Devuelve el actual código de estatus HTTP.
+- `headers`: Atributo público de tipo `HttpHeaders`. Contiene métodos para agregar encabezados HTTP al `Response`.
+- `body`: Atributo público de tipo `Stream`. Contiene métodos para agregar contenido al cuerpo del `Response`.
+
+>[!TIP]
+>Utiliza `JsonResponse` para devolver datos de una API en formato `JSON` y `HtmlResponse` para devolver contenido `html`.
+
+### HttpHeaders
+
+- `set(string $key, string $value)`: Agrega un encabezado.
+- `get(string $key, ?string $default = null)`: Devuelve un encabezado por nombre.
+- `remove(string $key)`: Elimina un encabezado por nombre.
+- `clear()`: Elimina todos los encabezados.
+- `all()`: Devuelve todos los encabezados en un _array_.
+- `has(string $key)`: Devuelve `true` si un encabezado existe, `false` en caso contrario.
+
+### Stream
+
+- `write(mixed $string)`: Escribe contenido y retorna el total de bytes escritos; o `false` en error.
+- `read(int $length)`: Lee el *stream*.
+- `getContents()`: Recupera el contenido restante del *stream* desde la posición actual del puntero.
+- `detach()`: Libera y devuelve el flujo actual.
+- `getSize()`: Devuelve el tamaño en bytes del *stream*.
+- `tell()`: Devuelve la posición actual del puntero de lectura/escritura del *stream*.
+- `eof()`: Devuelve `true` si el puntero del *stream* está al final del archivo; `false` en caso contrario.
+- `seek(int $offset, int $whence = SEEK_SET)`: Establece el indicador de posición del archivo referenciado por el *stream*. La nueva posición, medida en bytes desde el principio del archivo, se obtiene sumando el desplazamiento a la posición especificada por consiguiente.
+- `rewind()`: Rebobina el puntero del *stream* al inicio.
+- `close()`: Cierra el flujo contra escritura.
+
+## SapiEmitter
+
+Emite el `Response` con el método estático `SapiEmitter::emit`.
+
+```php
+$response = $router->run(Request::fromGlobals());
+SapiEmitter::emit($response);
+```
+
+Para más control utiliza `try-catch`:
+
+```php
+try {
+    $response = $app->run(Request::fromGlobals());
+} catch(UnexpectedValueException $e) {
+    $response = new Response('el controlador retorno un resultado no válido', HttpStatus::HTTP_EXPECTATION_FAILED);
+} catch(UnsupportedRequestMethodException $e) {
+    $response = new Response('Método de petición no permitido', HttpStatus::HTTP_METHOD_NOT_ALLOWED);
+} catch(RouteNotFoundException $e) {
+    $response = new Response('Ruta no encontrada', HttpStatus::HTTP_NOT_FOUND);
+}
+
+SapiEmitter::emit($response);
+```
 
 ## Session
 
@@ -550,30 +559,30 @@ use rguezque\{Group, Katya, Request, Response, Session};
 
 $router = new Katya;
 
-$router->get('/', function(Request $request, Response $response) {
+$router->get('/', function(Request $request) {
     $data = $request->getParams();
     $username = $data->get('@middleware_data');
-    $response->clear()->send(sprintf('The actual user is: %s'), $username);
-})->before(function(Request $request, Response $response) {
+    return new Response(sprintf('The actual user is: %s'), $username);
+})->before(function(Request $request) {
     $session = Session::select('mi_sesion');
     if(!$session->has('logged')) {
-        $response->redirect('/login');
+        return new Response(headers: ['location' => '/login']);
     }
 
     return $session->get('username');
 });
 
 $router->group('/admin', function(Group $group) {
-    $group->get('/clients', function(Request $request, Response $response) {
+    $group->get('/clients', function(Request $request) {
         // Do something
     });
-    $group->get('/customers', function(Request $request, Response $response) {
+    $group->get('/customers', function(Request $request) {
         // Do something
     });
-})->before(function(Request $request, Response $response) {
+})->before(function(Request $request) {
 	$session = Session::select('mi_sesion');
     if(!$session->has('logged') || !$session->has('logged_as_admin')) {
-        $response->redirect('/login');
+        return new Response(headers: ['location' => '/login']);
     }
 });
 ```
@@ -650,3 +659,5 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 >[!NOTE]
 >La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.
+
+[#stream]: 

@@ -52,6 +52,8 @@ class Session implements BagInterface, ArgumentsInterface {
 
     /**
      * Initialize a session
+     * 
+     * @param string $namespace Custom session vars namespace
      */
     protected function __construct(string $namespace = Session::NAMESPACE) {
         $this->namespace = $namespace;

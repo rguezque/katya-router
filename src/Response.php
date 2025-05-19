@@ -9,194 +9,79 @@
 namespace rguezque;
 
 /**
- * Represent a response
+ * Represent an HTTP response
  * 
- * @method Response clear() Reset the response to default values
- * @method Response status(int $code) Set the response status
- * @method Response header(string $name, string $content) Add a http header to response
- * @method Response headers(array $headers) Add multiples http headers to response
- * @method Response write($content) Add content to the response body
- * @method void send($data) Send response content
- * @method void json($data, bool $encode = true) Send json content
- * @method void render(string $template, array $arguments = []) Response a rendered template
- * @method void redirect(string $uri) Response a redirect
+ * @method void clear() Reset the initial values for response
+ * @method void setStatusCode(int $code) Set the HTTP status code
+ * @method int getStatusCode() Get the HTTP status code
  */
 class Response {
     /**
-     * Response content
-     * 
-     * @var string
-     */
-    private string $content = '';
-
-    /**
-     * Response status
+     * HTTP status code
      * 
      * @var int
      */
-    private int $status = HttpStatus::HTTP_OK;
+    protected int $status_code;
 
     /**
-     * Response headers
+     * HTTP headers container
      * 
-     * @var array
+     * @var HttpHeaders
      */
-    private array $headers = [];
+    public readonly HttpHeaders $headers;
 
     /**
-     * Create a response
+     * HTTP response body
      * 
-     * @param string $content Response content
-     * @param int $status Response status
-     * @param array $headers Headers array
+     * @var Stream
      */
-    public function __construct(string $content = '', int $status = HttpStatus::HTTP_OK, array $headers = []) {
-        $this->content = $content;
-        $this->status = $status;
-        $this->headers = $headers;
-    }
+    public readonly Stream $body;
 
     /**
-     * Reset the response to default values
+     * Initialize the http response
      * 
-     * @return Response
+     * @param string $content The content of http response
+     * @param int $status_code The http status code of response
+     * @param array $headers HTTP headers for response
      */
-    public function clear(): Response {
-        $this->content = '';
-        $this->status = HttpStatus::HTTP_OK;
-        $this->headers = [];
-
-        return $this;
-    }
-
-    /**
-     * Set the response status
-     * 
-     * @param int $code Status code
-     * @return Response
-     */
-    public function status(int $code): Response {
-        $this->status = $code;
-        return $this;
-    }
-
-    /**
-     * Add a http header to response
-     * 
-     * @param string $name Header name
-     * @param string $content Header content
-     * @return Response
-     */
-    public function header(string $name, string $content): Response {
-        $this->headers[trim($name)] = trim($content);
-        return $this;
-    }
-
-    /**
-     * Add multiples http headers to response
-     * 
-     * @param array $headers Associative array with headers
-     * @return Response
-     */
-    public function headers(array $headers): Response {
-        foreach($headers as $name => $content) {
-            $this->header($name, $content);
+    public function __construct(string $content = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
+        $this->status_code = $status_code;
+        $this->headers = [] !== $headers ? new HttpHeaders($headers) : new HttpHeaders;
+        $stream = new Stream(fopen('php://memory', 'r+'));
+        if('' !== trim($content)) {
+            $stream->write($content);
         }
-
-        return $this;
+        $this->body = $stream;
     }
 
     /**
-     * Add content to the response body
-     * 
-     * @param string $content Content to add
-     * @return Response
-     */
-    public function write(string $content): Response {
-        $this->content .= $content;
-        return $this;
-    }
-
-    /**
-     * Send response content
-     * 
-     * @param string $content Content to response
-     * @return void
-     */
-    public function send(string $content = ''): void {
-        if('' !== $content) {
-            $this->write($content);
-        }
-
-        // Send the http status header
-        http_response_code($this->status);
-
-        // Send http headers
-        if(!headers_sent()) {
-            $this->sendHeaders();
-        }
-
-        echo $this->content;
-    }
-
-    /**
-     * Send json content
-     * 
-     * @param array|string $data Response data
-     * @param bool $encode If true, the data in encode to json
-     * @return void
-     */
-    public function json(array|string $data, bool $encode = true): void {
-        $this->content = '';
-        $this->header('Content-Type', 'application/json;charset=UTF-8');
-        $data = $encode ? json_encode($data, JSON_PRETTY_PRINT) : $data;
-        $this->send($data);
-    }
-
-    /**
-     * Send the http headers
+     * Reset the initial values for response
      * 
      * @return void
      */
-    private function sendHeaders(): void {
-        foreach($this->headers as $name => $content) {
-            if(is_array($content)) {
-                foreach($content as $key => $value) {
-                    header(sprintf('%s: %s', $key, $value), false, $this->status);
-                }
-            }
-
-            header(sprintf('%s: %s', $name, $content), true, $this->status);
-        }
+    public function clear(): void {
+        $this->status_code = 200;
+        $this->headers->clear();
+        $this->body = new Stream(fopen('php://memory', 'r+'));
     }
 
     /**
-     * Response a rendered template
+     * Set the HTTP status code
      * 
-     * @param string $template The template file to render as a view
-     * @param array $arguments The array with arguments to send to the view
+     * @param int $code HTTP status code
      * @return void
      */
-    public function render(string $template, array $arguments = []): void {
-        $view = new View();
-        $view->setTemplate($template);
-        if([] !== $arguments) {
-            $view->addArguments($arguments);
-        }
-
-        $this->clear()->header('Content-Type', 'text/html;charset=UTF-8')->send($view->render());
+    public function setStatusCode(int $code): void {
+        $this->status_code = $code;
     }
 
     /**
-     * Response a redirect
+     * Get the HTTP status code
      * 
-     * @param string $uri URI to redirect
-     * @return void
+     * @return int
      */
-    public function redirect(string $uri): void {
-        $this->header('location', $uri)
-        ->status(HttpStatus::HTTP_MOVED_PERMANENTLY)
-        ->send();
+    public function getStatusCode(): int {
+        return $this->status_code;
     }
 
 }

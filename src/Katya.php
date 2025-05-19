@@ -13,6 +13,7 @@ use rguezque\Exceptions\{
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
+use UnexpectedValueException;
 
 use function rguezque\functions\add_trailing_slash;
 use function rguezque\functions\remove_trailing_slash;
@@ -120,22 +121,15 @@ class Katya {
     private ?CorsConfig $cors_config = null;
 
     /**
-     * Configure the router options
+     * Initialize a router instance
      * 
-     * @param array $options Set basepath, viewspath and cors
+     * @param ?string $basepath Set the basepath if router is nested in subdirectory
      */
-    public function __construct(array $options = []) {
+    public function __construct(?string $basepath = null) {
         // Default router basepath
-        $this->basepath = isset($options['basepath']) 
-            ? str_path($options['basepath']) 
+        $this->basepath = isset($basepath) 
+            ? str_path($basepath) 
             : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'])), '/\\');
-        
-        // Default directory for search views templates
-        $viewspath = isset($options['viewspath']) && is_string($options['viewspath']) 
-            ? add_trailing_slash(trim($options['viewspath'])) 
-            : '';
-            
-        Globals::set('viewspath', $viewspath);
     }
 
     /**
@@ -158,18 +152,6 @@ class Katya {
      */
     public function setServices(Services $services): Katya {
         $this->services = $services;
-
-        return $this;
-    }
-
-    /**
-     * Set variables to use into controllers
-     * 
-     * @param Variables $vars Variables object
-     * @return Katya
-     */
-    public function setVariables(Variables $vars): Katya {
-        $this->vars = $vars;
 
         return $this;
     }
@@ -284,25 +266,6 @@ class Katya {
     }
 
     /**
-     * Start the router
-     * 
-     * @param Request $request The Request object with global params
-     * @return void
-     * @throws UnsupportedRequestMethodException When request method isn't supported
-     * @throws RouteNotFoundException When request uri don't match any route
-     */
-    public function run(Request $request): void {
-        static $invoke = false;
-
-        if(!$invoke) {
-            $this->resolveCors($request);
-            $this->processGroups();
-            $this->handleRequest($request);
-            $invoke = true;
-        }
-    }
-
-    /**
      * Resolve the CORS configuration
      * 
      * @param Request $request Request object with informatión about the request origin
@@ -328,14 +291,52 @@ class Katya {
     }
 
     /**
+     * Start the router
+     * 
+     * @param Request $request The Request object with global params
+     * @return ?Response The controller response, or null if it has already been executed previously
+     * @throws UnexpectedValueException When the controller return an invalid result
+     * @throws UnsupportedRequestMethodException When request method isn't supported
+     * @throws RouteNotFoundException When request uri don't match any route
+     */
+    public function run(Request $request): ?Response {
+        static $invoke = false;
+
+        // Ensures that the router is only invoked the first time
+        if(!$invoke) {
+            $this->resolveCors($request);
+            $this->processGroups();
+            $invoke = true;
+            return $this->handleRequest($request);
+        }
+
+        return null;
+    }
+
+    /**
      * Handle the request uri and start router
      * 
      * @param Request $request The Request object with global params
-     * @return void
+     * @return Response The controller response
+     * @throws UnexpectedValueException When the controller return an invalid result
      * @throws UnsupportedRequestMethodException When the http method isn't allowed by router
      * @throws RouteNotFoundException When the request uri don't match any route
      */
-    private function handleRequest(Request $request): void {
+    private function handleRequest(Request $request): Response {
+        // Check if no routes are registered
+        if ([] === ($this->routes)) {
+            return new JsonResponse([
+                'message' => 'Welcome to PHP Katya Router!',
+                'status' => 'No routes registered',
+                'documentation' => 'https://github.com/rguezque/katya-router',
+                'hints' => [
+                    'Add routes using Katya::route() or shortcuts: Katya::get(), Katya::post(), Katya::put(), Katya::patch(), Katya::delete()',
+                    'Check your route configuration',
+                    'Ensure controllers are properly set up'
+                ]
+            ]);
+        }
+
         $server = $request->getServer();
         
         $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
@@ -367,8 +368,7 @@ class Katya {
                     $services = $this->filterServices($route->getRouteServices());
                 }
 
-                $response = new Response;
-                $controller_args = [$request, $response];
+                $controller_args = [$request];
 
                 // Add services to route arguments
                 if(null !== $services) {
@@ -393,10 +393,14 @@ class Katya {
                 }
 
                 // Exec the controller
-                call_user_func($route->getController(), ...$controller_args);
+                $result = call_user_func($route->getController(), ...$controller_args);
+
+                if(!$result instanceof Response) {
+                    throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
+                }
 
                 // Early return to end the routing
-                return;
+                return $result;
             }
         }
 

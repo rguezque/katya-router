@@ -75,9 +75,9 @@ class Environment {
     }
 
     /**
-     * Set the log path for error logging
+     * Set the log path for error logging. The directory must already exists
      * 
-     * @param string $path
+     * @param string $path The directory for log file
      * @return void
      */
     public static function setLogPath(string $path): void {
@@ -152,8 +152,6 @@ class Environment {
         // Log the error
         self::logError($exception);
 
-        // Prepare response
-        $response = new Response();
         $error_data = [
             'error' => $exception->getMessage(),
             'code' => $exception->getCode() ?: HttpStatus::HTTP_INTERNAL_SERVER_ERROR
@@ -163,13 +161,14 @@ class Environment {
         if (self::getMode() === 'development') {
             $error_data['file'] = $exception->getFile();
             $error_data['line'] = $exception->getLine();
-            $error_data['trace'] = $exception->getTraceAsString();
+            $error_data['trace'] = $exception->getTrace();
+            $error_data['trace_string'] = $exception->getTraceAsString();
         }
-
+        
+        // Prepare response
+        $response = new JsonResponse($error_data, HttpStatus::HTTP_INTERNAL_SERVER_ERROR);
         // Send error response
-        $response
-            ->status($error_data['code'])
-            ->json($error_data);
+        SapiEmitter::emit($response);
         exit;
     }
 
