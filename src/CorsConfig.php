@@ -78,11 +78,11 @@ class CorsConfig {
         }
 
         // Apply CORS headers for the matching origin
-        $response->header('Access-Control-Allow-Origin', $origin);
+        $response->headers->set('Access-Control-Allow-Origin', $origin);
 
         // Credentials support
         if ($origin_config['config']['supports_credentials']) {
-            $response->header('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
         }
 
         // Handle preflight requests (OPTIONS method)
@@ -90,7 +90,7 @@ class CorsConfig {
             return $this->handlePreflightRequest($request, $response, $origin_config);
         }
         
-        $response->send();
+        SapiEmitter::emit($response);
 
         // Validate request method for non-preflight requests
         return $this->validateRequestMethod($origin_config, $request_method);
@@ -140,25 +140,26 @@ class CorsConfig {
         }
 
         // Add allowed methods
-        $response->header(
+        $response->headers->set(
             'Access-Control-Allow-Methods', 
             implode(', ', $this->getAllowedMethods($origin_config))
         );
 
         // Add allowed headers
-        $response->header(
+        $response->headers->set(
             'Access-Control-Allow-Headers', 
             implode(', ', $origin_config['config']['allowed_headers'])
         );
 
         // Add max age for preflight caching
-        $response->header(
+        $response->headers->set(
             'Access-Control-Max-Age', 
             (string)$origin_config['config']['max_age']
         );
 
         // Respond immediately for preflight
-        $response->status(HttpStatus::HTTP_NO_CONTENT)->send();
+        $response->setStatusCode(HttpStatus::HTTP_NO_CONTENT);
+        SapiEmitter::emit($response);
         
         return true;
     }
