@@ -232,24 +232,20 @@ $katya->get('/hola/(\w+)/(\w+)', function(Request $request) {
 
 ## Views
 
-Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas y el directorio caché en una instancia de la clase `ViewEngine`. 
+Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas en la instancia de la clase `ViewEngine`. 
 
 ```php
 use rguezque\View;
 
 // Standalone
 $view = new ViewEngine(
-    __DIR__.'/templates', // Directorio donde se alojan los templates
-    __DIR__.'/templates/cache' // Directorio caché de los templates
+    __DIR__.'/templates' // Directorio donde se alojan los templates
 );
 
 // Enviandolo como un servicio
 $services = new Services();
 $services->register('view', function() {
-    return new ViewEngine(
-    	__DIR__.'/templates', 
-    	__DIR__.'/templates/cache'
-	);
+    return new ViewEngine(__DIR__.'/templates');
 });
 $router->setServices($services);
 ```
@@ -301,6 +297,12 @@ Imprime en pantalla el contenido de menu.php guardado previamente con el alias `
 </body>
 </html>
 ```
+
+Otros métodos para agregar argumentos a la plantilla antes de invocar `fetch`, son:
+
+- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
+- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
+- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
 
 ## Request
 
@@ -424,13 +426,21 @@ Para verificar si un servicio existe se usa `Services::has` (se envía como argu
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use rguezque\{Group, Katya, Request, Response, Services};
+use rguezque\{Group, Katya, Request, HtmlResponse, Services, ViewEngine};
 
 $router = new Katya;
 $services = new Services;
 
-$services->register('pi', function() {
-    return 3.141592654;
+// Ejemplo de registro eficiente de un servicio
+$services->register('view', static function() {
+    static $view = null;
+    if ($view === null) {
+        $view = new ViewEngine(
+            templates_dir: __DIR__.'/views',
+            cache_dir: __DIR__.'/views/cache'
+        );
+    }
+    return $view;
 });
 $services->register('is_pair', function(int $number) {
     return $number % 2 == 0;
@@ -438,10 +448,10 @@ $services->register('is_pair', function(int $number) {
 
 $router->setServices($services);
 
-$router->get('/', function(Request $request, Response $response, Services $service) {
-    $pi = $service->pi(); // o bien en contexto de objeto: $service->pi
-    $response->clear()->send($pi);
-})->useServices('pi'); // Solamente recibirá el servicio 'pi'
+$router->get('/', function(Request $request, Services $service) {
+    $view = $service->view(); // o bien en contexto de objeto: $service->view
+    return new HtmlResponse($view->fetch('home.php'));
+})->useServices('view'); // Solamente recibirá el servicio 'view'
 ```
 
 ## Variables
