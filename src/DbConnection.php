@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -26,7 +26,7 @@ class DbConnection {
     /**
      * PDO connection
      * 
-     * @var PDO|mysqli
+     * @var PDO|mysqli|null
      */
     private static $connection = null;
 
@@ -40,39 +40,58 @@ class DbConnection {
      * @throws InvalidArgumentException
      */
     public static function getConnection(array $params) {
-        if(!self::$connection) {
-            $driver = $params['driver'];
+        if(self::$connection) {
+            return self::$connection;
+        }
 
-            switch($driver) {
-                case 'pdomysql':
-                    $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s;', $params['host'] ?? '127.0.0.1', $params['port'] ?? 3306, $params['dbname'], $params['charset'] ?? 'utf8');
-                    $options = $params['options'] ?? [
-                        PDO::ATTR_PERSISTENT => true,
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-                    ];
-        
-                    try {
-                        self::$connection = new PDO($dsn, $params['user'], $params['pass'] ?? '', $options);
-                    } catch(PDOException $e) {
-                        throw new PDOException(sprintf('Failed to connect to MySQL with PDO driver: %s', $e->getMessage()));
-                    }
-                    break;
-                case 'mysqli':
-                    // You should enable error reporting for mysqli before attempting to make a connection
-                    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+        $driver = $params['driver'] ?? 'pdomysql';
+        switch($driver) {
+            case 'pdomysql':
+                $dsn = sprintf(
+                    'mysql:host=%s;port=%d;dbname=%s;charset=%s;', 
+                    $params['host'] ?? '127.0.0.1', 
+                    $params['port'] ?? 3306, 
+                    $params['dbname'] ?? '', 
+                    $params['charset'] ?? 'utf8'
+                );
+                $options = $params['options'] ?? [
+                    PDO::ATTR_PERSISTENT => true,
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ];
+    
+                try {
+                    self::$connection = new PDO(
+                        $dsn, 
+                        $params['user'] ?? '', 
+                        $params['pass'] ?? '', 
+                        $options
+                    );
+                } catch(PDOException $e) {
+                    throw new PDOException(sprintf('Failed to connect to MySQL with PDO driver: %s', $e->getMessage()));
+                }
+                break;
+            case 'mysqli':
+                // You should enable error reporting for mysqli before attempting to make a connection
+                mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-                    $mysqli = new mysqli($params['host'] ?? '127.0.0.1', $params['user'], $params['pass'] ?? '', $params['dbname'], intval($params['port'] ?? 3306), $params['socket'] ?? null);
+                $mysqli = new mysqli(
+                    $params['host'] ?? '127.0.0.1', 
+                    $params['user'] ?? '', 
+                    $params['pass'] ?? '', 
+                    $params['dbname'] ?? '', 
+                    intval($params['port'] ?? 3306), 
+                    $params['socket'] ?? null
+                );
 
-                    if($mysqli->connect_errno) {
-                        throw new mysqli_sql_exception(sprintf('Failed to connect to MySQL with mysqli: %s', $mysqli->connect_error));
-                    }
+                if($mysqli->connect_errno) {
+                    throw new mysqli_sql_exception(sprintf('Failed to connect to MySQL with mysqli: %s', $mysqli->connect_error));
+                }
 
-                    $mysqli->set_charset($params['charset'] ?? 'utf8');
-                    self::$connection = $mysqli;
-                    break;
-                default:
-                    throw new InvalidArgumentException('Invalid value for parameter "driver", mandatory to define as "pdomysql" or "mysqli".');
-            }
+                $mysqli->set_charset($params['charset'] ?? 'utf8');
+                self::$connection = $mysqli;
+                break;
+            default:
+                throw new InvalidArgumentException('Invalid value for parameter "driver", mandatory to define as "pdomysql" or "mysqli".');
         }
 
         return self::$connection;
@@ -84,18 +103,20 @@ class DbConnection {
      * @return PDO|mysqli
      */
     public static function autoConnect() {
-        if(isset($_ENV['DB_DRIVER']) && !in_array($_ENV['DB_DRIVER'], ['pdomysql', 'mysqli'])) {
-            throw new InvalidArgumentException('Invalid value for "DB_DRIVER" variable, mandatory to define as "pdomysql" or "mysqli".');
+        $driver = $_ENV['DB_DRIVER'] ?? 'pdomysql';
+        if (!in_array($driver, ['pdomysql', 'mysqli'])) {
+            throw new InvalidArgumentException('Invalid value for "DB_DRIVER", must be "pdomysql" or "mysqli".');
         }
 
         $params = [
-            'driver' => $_ENV['DB_DRIVER'] ?? 'pdomysql',
+            'driver' => $driver,
             'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
             'port' => $_ENV['DB_PORT'] ?? 3306,
-            'dbname' => $_ENV['DB_NAME'],
+            'dbname' => $_ENV['DB_NAME'] ?? '',
             'charset' => $_ENV['DB_CHARSET'] ?? 'utf8',
-            'user' => $_ENV['DB_USER'],
-            'pass' => $_ENV['DB_PASS'] ?? ''
+            'user' => $_ENV['DB_USER'] ?? '',
+            'pass' => $_ENV['DB_PASS'] ?? '',
+            'socket' => $_ENV['DB_SOCKET'] ?? null
         ];
 
         return self::getConnection($params);
@@ -117,19 +138,17 @@ class DbConnection {
 
         if(isset($dsn['query'])) {
             parse_str($dsn['query'], $segments);
-            $charset = $segments['charset'];
-            $socket = $segments['socket'];
         }
 
         return [
             'driver' => $dsn['scheme'] ?? 'pdomysql',
             'host' => $dsn['host'] ?? '127.0.0.1',
             'port' => $dsn['port'] ?? 3306,
-            'dbname' => trim($dsn['path'], '/\\'),
-            'charset' => $charset ?? 'utf8',
-            'user' => $dsn['user'],
+            'dbname' => isset($dsn['path']) ? trim($dsn['path'], '/\\') : '',
+            'charset' => $segments['charset'] ?? 'utf8',
+            'user' => $dsn['user'] ?? '',
             'pass' => $dsn['pass'] ?? '',
-            'socket' => $socket ?? null
+            'socket' => $segments['socket'] ?? null
         ];
     }
 }

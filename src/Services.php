@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -29,7 +29,7 @@ class Services {
     /**
      * Services collection
      * 
-     * @var array
+     * @var array<string, Closure>
      */
     private array $services = [];
 
@@ -112,11 +112,11 @@ class Services {
      * @throws NotFoundException
      */
     public function __call(string $name, array $params) {
-        if(!isset($this->services[$name]) && !is_callable($this->services[$name])) {
+        if(!$this->has($name)) {
             throw new NotFoundException(sprintf('The request service "%s" wasn\'t found.', $name));
         }
 
-        return call_user_func($this->services[$name], ...$params);
+        return ($this->services[$name])(...$params);
     }
 
     /**
@@ -127,13 +127,11 @@ class Services {
      * @throws NotFoundException
      */
     public function __get(string $name) {
-        if(!isset($this->services[$name])) {
+        if(!$this->has($name)) {
             throw new NotFoundException(sprintf('The request service "%s" wasn\'t found.', $name));
         }
 
-        $service = $this->services[$name];
-
-        return $service();
+        return ($this->services[$name])();
     }
 }
 ?>

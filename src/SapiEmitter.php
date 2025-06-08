@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -17,10 +17,11 @@ class SapiEmitter extends Response {
 
     /**
      * Send the response
+     * This method is responsible for sending the HTTP response
      * 
-     * @return true
+     * @return void
      */
-    public static function emit(Response $response): true {
+    public static function emit(Response $response): void {
         http_response_code($response->status_code);
         // Send the headers
         if(!headers_sent()) {
@@ -28,7 +29,7 @@ class SapiEmitter extends Response {
             while($response->headers->valid()) {
                 $key = $response->headers->key();
                 $value = $response->headers->current();
-                header("$key: $value");
+                header("$key: $value", false);
                 $response->headers->next();
             }
         }
@@ -36,7 +37,6 @@ class SapiEmitter extends Response {
         // Output the body
         $response->body->rewind();
         echo $response->body->getContents();
-        return true;
     }
 }
 

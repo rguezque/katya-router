@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -15,7 +15,6 @@ use rguezque\Exceptions\{
 };
 use UnexpectedValueException;
 
-use function rguezque\functions\add_trailing_slash;
 use function rguezque\functions\remove_trailing_slash;
 use function rguezque\functions\str_path;
 
@@ -165,7 +164,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function get(string $path, callable $controller): Route {
-        $route = $this->route('GET', $path, $controller);
+        $route = $this->route(self::GET, $path, $controller);
 
         return $route;
     }
@@ -179,7 +178,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function post(string $path, callable $controller): Route {
-        $route = $this->route('POST', $path, $controller);
+        $route = $this->route(self::POST, $path, $controller);
 
         return $route;
     }
@@ -193,7 +192,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function put(string $path, callable $controller): Route {
-        $route = $this->route('PUT', $path, $controller);
+        $route = $this->route(self::PUT, $path, $controller);
 
         return $route;
     }
@@ -207,7 +206,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function patch(string $path, callable $controller): Route {
-        $route = $this->route('PATCH', $path, $controller);
+        $route = $this->route(self::PATCH, $path, $controller);
 
         return $route;
     }
@@ -221,7 +220,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function delete(string $path, callable $controller): Route {
-        $route = $this->route('DELETE', $path, $controller);
+        $route = $this->route(self::DELETE, $path, $controller);
 
         return $route;
     }
@@ -243,12 +242,9 @@ class Katya {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
         }
 
-        $new_route = new Route($verb, $path, $controller);
         // Set the "path" as identifier, avoiding duplicate routes. 
         // So, a route overwrite another with same route path
-        $this->routes[$verb][$path] = $new_route;
-
-        return $new_route;
+        return $this->routes[$verb][$path] = new Route($verb, $path, $controller);
     }
 
     /**
@@ -259,10 +255,10 @@ class Katya {
      * @return Group
      */
     public function group(string $prefix, Closure $closure): Group {
-        $new_group = new Group(str_path($prefix), $closure, $this);
-        $this->groups[] = $new_group;
+        $group = new Group(str_path($prefix), $closure, $this);
+        $this->groups[] = $group;
 
-        return $new_group;
+        return $group;
     }
 
     /**
@@ -273,7 +269,7 @@ class Katya {
      */
     public function resolveCors(Request $request): void {
         if(null !== $this->cors_config) {
-            call_user_func($this->cors_config, $request, new Response);
+            ($this->cors_config)($request, new Response);
         }
     }
 
@@ -283,10 +279,8 @@ class Katya {
      * @return void
      */
     private function processGroups(): void {
-        if([] !== $this->groups) {
-            foreach($this->groups as $group) {
-                $group();
-            }
+        foreach($this->groups as $group) {
+            $group();
         }
     }
 
@@ -295,8 +289,8 @@ class Katya {
      * 
      * @param Request $request The Request object with global params
      * @return ?Response The controller response, or null if it has already been executed previously
-     * @throws UnexpectedValueException When the controller return an invalid result
      * @throws UnsupportedRequestMethodException When request method isn't supported
+     * @throws UnexpectedValueException When the controller return an invalid result
      * @throws RouteNotFoundException When request uri don't match any route
      */
     public function run(Request $request): ?Response {
@@ -318,8 +312,8 @@ class Katya {
      * 
      * @param Request $request The Request object with global params
      * @return Response The controller response
-     * @throws UnexpectedValueException When the controller return an invalid result
      * @throws UnsupportedRequestMethodException When the http method isn't allowed by router
+     * @throws UnexpectedValueException When the controller return an invalid result
      * @throws RouteNotFoundException When the request uri don't match any route
      */
     private function handleRequest(Request $request): Response {
@@ -338,7 +332,6 @@ class Katya {
         }
 
         $server = $request->getServer();
-        
         $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
         $request_method = $server->get('REQUEST_METHOD');
 
@@ -428,8 +421,7 @@ class Katya {
      * @return string
      */
     private function filterRequestUri(string $uri): string {
-        $uri = parse_url($uri, PHP_URL_PATH);
-        return rawurldecode($uri);
+        return rawurldecode(parse_url($uri, PHP_URL_PATH));
     }
 
     /**
@@ -438,11 +430,13 @@ class Katya {
      * @param string[] $names Service names to keep
      */
     private function filterServices(array $names): Services {
-        $new_service = clone $this->services;
-        $names = array_diff($new_service->keys(), $names);
-        $new_service->unregister(...$names);
+        $filtered = clone $this->services;
+        $to_remove = array_diff($filtered->keys(), $names);
+        if($to_remove) {
+            $filtered->unregister(...$to_remove);
+        }
 
-        return $new_service;
+        return $filtered;
     }
 
 }

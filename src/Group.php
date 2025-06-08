@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -15,17 +15,16 @@ use function rguezque\functions\str_path;
 /**
  * Routes group
  * 
- * @method Route route(string $verb, string $path, callable $controller) Route definition
- * @method Route get(string $path, callable $controller) Shortcut to add route with GET method
- * @method Route post(string $path, callable $controller) Shortcut to add route with POST method
- * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
- * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
- * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
- * @method Group before(callable $callable) Add a hook to exec before each route into the group
- * @method Group useServices(string ...$names) Specify the services to use in this routes group
+ * @method Route route(string $verb, string $path, callable $controller)
+ * @method Route get(string $path, callable $controller)
+ * @method Route post(string $path, callable $controller)
+ * @method Route put(string $path, callable $controller)
+ * @method Route patch(string $path, callable $controller)
+ * @method Route delete(string $path, callable $controller)
+ * @method Group before(callable $callable)
+ * @method Group useServices(string ...$names)
  */
 class Group {
-
     /**
      * Router object
      * 
@@ -53,6 +52,7 @@ class Group {
      * @var callable
      */
     private $before;
+    
 
     /**
      * List of lot of services to use for this routes group
@@ -85,18 +85,7 @@ class Group {
      */
     public function route(string $verb, string $path, callable $controller): Route {
         $route = $this->router->route($verb, $this->prefix.$path, $controller);
-        
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -109,18 +98,7 @@ class Group {
      */
     public function get(string $path, callable $controller): Route {
         $route = $this->router->get($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -133,18 +111,7 @@ class Group {
      */
     public function post(string $path, callable $controller): Route {
         $route = $this->router->post($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -157,18 +124,7 @@ class Group {
      */
     public function put(string $path, callable $controller): Route {
         $route = $this->router->put($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -181,18 +137,7 @@ class Group {
      */
     public function patch(string $path, callable $controller): Route {
         $route = $this->router->patch($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -205,18 +150,7 @@ class Group {
      */
     public function delete(string $path, callable $controller): Route {
         $route = $this->router->delete($this->prefix.$path, $controller);
-
-        // Set the hook
-        if(null !== $this->before) {
-            $route->before($this->before);
-        }
-
-        // Set the specific services to use
-        if([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
-        }
-
-        return $route;
+        return $this->applyGroupSettings($route);
     }
 
     /**
@@ -245,9 +179,19 @@ class Group {
      * Allow exec the class like a function
      */
     public function __invoke() {
-        call_user_func($this->closure, $this);
+        ($this->closure)($this);
     }
 
+    /**
+     * Apply group settings (middleware and services) to a route.
+     */
+    private function applyGroupSettings(Route $route): Route {
+        if (null !== $this->before) {
+            $route->before($this->before);
+        }
+        if ([] !== $this->onlyuse) {
+            $route->useServices(...$this->onlyuse);
+        }
+        return $route;
+    }
 }
-
-?>

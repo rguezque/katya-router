@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -66,7 +66,7 @@ class Session implements BagInterface, ArgumentsInterface {
      * @return Session
      */
     public static function create(string $session_name = Session::NAMESPACE): Session {
-        if(!self::$instance) {
+        if(!self::$instance || self::$instance->namespace !== $session_name) {
             self::$instance = new Session($session_name);
         }
 
@@ -157,7 +157,7 @@ class Session implements BagInterface, ArgumentsInterface {
      */
     public function has(string $key): bool {
         $this->start();
-        return array_key_exists($this->namespace, $_SESSION) && array_key_exists($key, $_SESSION[$this->namespace]);
+        return isset($this->namespace, $_SESSION) && array_key_exists($key, $_SESSION[$this->namespace]);
     }
 
     /**
@@ -178,7 +178,7 @@ class Session implements BagInterface, ArgumentsInterface {
      */
     public function count(): int {
         $this->start();
-    	return sizeof($_SESSION[$this->namespace]);
+    	return isset($_SESSION[$this->namespace]) ? count($_SESSION[$this->namespace]) : 0;
     }
 
     /**
@@ -198,7 +198,9 @@ class Session implements BagInterface, ArgumentsInterface {
      * @return void
      */
     public function clear(): void {
-        $_SESSION[$this->namespace] = [];
+        if (isset($_SESSION[$this->namespace])) {
+            unset($_SESSION[$this->namespace]);
+        }
     }
 
     /**

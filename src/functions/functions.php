@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -12,6 +12,7 @@ use rguezque\Exceptions\FileNotFoundException;
 
 /**
  * Add a trailing slash
+ * * This function adds a trailing slash to a string, ensuring that the string ends with a slash.
  * 
  * @param string $str A string
  * @return string
@@ -22,6 +23,7 @@ function add_trailing_slash(string $str): string {
 
 /**
  * Remove trailing slashes
+ * * This function removes trailing slashes from a string, ensuring that the string does not end with a slash or backslash.
  * 
  * @param string $str A string
  * @return string
@@ -32,6 +34,7 @@ function remove_trailing_slash(string $str): string {
 
 /**
  * Add a leading slash
+ * * This function adds a leading slash to a string, ensuring that the string starts with a slash.
  * 
  * @param string $str A string
  * @return string
@@ -42,6 +45,7 @@ function add_leading_slash(string $str): string {
 
 /**
  * Remove leading slashes
+ * * * This function removes leading slashes from a string, ensuring that the string does not start with a slash or backslash.
  * 
  * @param string $str A string
  * @return string
@@ -52,6 +56,7 @@ function remove_leading_slash(string $str): string {
 
 /**
  * Return a string like namespace format slashes
+ * * This function ensures that the namespace string is properly formatted with a trailing backslash.
  * 
  * @param string $namespace String namespace
  * @return string
@@ -62,6 +67,7 @@ function namespace_format(string $namespace): string {
 
 /**
  * Return true if a string has a specific prefix
+ * * * This function checks if the given string starts with the specified prefix.
  * 
  * @param string $haystack String to evaluate
  * @param string $needle Prefix to search
@@ -76,6 +82,7 @@ if(!function_exists('str_starts_with')) {
 
 /**
  * Return true if a string has a specific suffix
+ * * This function checks if the given string ends with the specified suffix.
  * 
  * @param string $haystack String to evaluate
  * @param string $needle Suffix to search
@@ -89,6 +96,7 @@ if(!function_exists('str_ends_with')) {
 
 /**
  * Prepend strings to subject string
+ * * This function prepends one or more strings to the beginning of a subject string.
  * 
  * @param string $subject String subject
  * @param string $prepend String to prepend (first declared, first prepended)
@@ -99,6 +107,7 @@ function str_prepend(string $subject, string ...$prepend): string {
 
 /**
  * Append strings to subject string
+ * * This function appends one or more strings to the end of a subject string.
  * 
  * @param string $subject String subject
  * @param string $append String to append
@@ -109,6 +118,7 @@ function str_append(string $subject, string ...$append): string {
 
 /**
  * Clean and prepare a string path
+ * * This function ensures that the path starts with a leading slash and does not end with a trailing slash.
  * 
  * @param string $path String path
  * @return string
@@ -119,6 +129,7 @@ function str_path(string $path): string {
 
 /**
  * Return true if the evaluated array is associative
+ * * An associative array is an array where the keys are not sequential integers starting from 0.
  * 
  * @param mixed $value Value to evaluate
  * @return bool
@@ -132,6 +143,7 @@ function is_assoc_array($value): bool {
 
 /**
  * Reads entire json file into an associative array
+ * * This function reads a JSON file and decodes its contents into an associative array.
  * 
  * @param string $file Json file path
  * @return array
@@ -148,6 +160,7 @@ function json_file_get_contents(string $file): array {
 
 /**
  * Delete a cookie
+ * * This function sets the cookie with an expiration time in the past, effectively deleting it.
  * 
  * @param string $name Cookie name
  * @return bool True on success, otherwise false
@@ -158,33 +171,15 @@ function unsetcookie(string $name): bool {
 
 /**
  * Returns true if two strings are equals, otherwise false
+ * * This function uses `strcmp` to compare the two strings.
  * 
- * @param string $strone First string
- * @param string $strtwo Second string
+ * @param string $str_one First string
+ * @param string $str_two Second string
  * @return bool
  */
 if(!function_exists('equals')) {
-    function equals(string $strone, string $strtwo): bool {
-        return strcmp($strone, $strtwo) === 0;
+    function equals(string $str_one, string $str_two): bool {
+        return strcmp($str_one, $str_two) === 0;
     }
 }
 
-/**
- * Generates RFC 4122 compliant version 4 UUIDs
- * 
- * @param string $data Data passed into the function
- * @return string
- */
-function uuidv4(?string $data = null) {
-    // Generate 16 bytes (128 bits) of random data or use the data passed into the function.
-    $data = $data ?? random_bytes(16);
-    assert(strlen($data) == 16);
-
-    // Set version to 0100
-    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-    // Set bits 6-7 to 10
-    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
-
-    // Output the 36 character UUID.
-    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
-}

@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -56,7 +56,7 @@ class Route {
      * 
      * @var string[]
      */
-    private array $onlyuse = [];
+    private array $services = [];
  
     /**
      * Create route
@@ -134,7 +134,7 @@ class Route {
      * @return Route
      */
     public function useServices(string ...$names): Route {
-        $this->onlyuse = $names;
+        $this->services = $names;
         return $this;
     }
 
@@ -144,7 +144,7 @@ class Route {
      * @return string[]
      */
     public function getRouteServices(): array {
-        return $this->onlyuse;
+        return $this->services;
     }
 
  }
