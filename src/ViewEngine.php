@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 /**
  * @author    Luis Arturo Rodríguez
- * @copyright Copyright (c) 2022-2024 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
  * @link      https://github.com/rguezque
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
@@ -9,11 +9,20 @@
 namespace rguezque;
 
 use ErrorException;
+use InvalidArgumentException;
+use rguezque\Exceptions\FileNotFoundException;
+use rguezque\Exceptions\NotFoundException;
+use rguezque\Exceptions\PermissionException;
+
+use function rguezque\functions\is_assoc_array;
 
 /**
  * Simple engine that allows render templates
  * 
  * @method string fetch(tring $view, array $data = []) Fetch the template from buffer and return the result as string to be render after
+ * @method void addArgument(string $key, mixed $value) Add an argument to be used in templates
+ * @method void addArguments(array $data) Add arguments to be used in templates
+ * @method void setArguments(array $data) Set the arguments to be used in templates
  */
 class ViewEngine {
     /**
@@ -24,21 +33,28 @@ class ViewEngine {
     private $templates_dir;
 
     /**
-     * Templates cache directory
+     * Store arguments to be used in templates
      * 
-     * @var string
+     * @var array<string, mixed>
      */
-    private $cache_dir;
+    private array $arguments = [];
 
     /**
      * Initialize the template engine
      * 
      * @param string $templates_dir Templates directory
-     * @param string $cache_dir Cache directory
+     * @throws NotFoundException When the templates directory does not exist
+     * @throws PermissionException When the templates directory is not readable
      */
-    public function __construct(string $templates_dir, string $cache_dir) {
-        $this->templates_dir = rtrim($templates_dir, '/\\').'/';
-        $this->cache_dir = rtrim($cache_dir, '/\\').'/';
+    public function __construct(string $templates_dir) {
+        $templates_dir = rtrim($templates_dir, '/\\').'/'; // Ensure the directory ends with a separator
+        if(!is_dir($templates_dir)) {
+            throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $templates_dir));
+        }
+        if(!is_readable($templates_dir)) {
+            throw new PermissionException(sprintf('The templates directory "%s" is not readable', $templates_dir));
+        }
+        $this->templates_dir = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $templates_dir); // Normalize directory separators
     }
 
     /**
@@ -47,54 +63,71 @@ class ViewEngine {
      * @param string $view The template to render
      * @param array $data Arguments to send for template
      * @return string
-     * @throws ErrorException When the file template is not found
+     * @throws FileNotFoundException When the file template is not found
      */
     public function fetch(string $view, array $data = []): string {
         $view = trim($view, '/\\ ');
-        $template_file = $this->templates_dir . $view . '.php';
+        if(!str_ends_with($view, '.php')) {
+            $view .= '.php'; // Ensure the view has .php extension
+        }
+        $view = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $view); // Normalize directory separators
+        $template_file = $this->templates_dir . $view;
         
         if(!file_exists($template_file)) {
-            throw new ErrorException(sprintf('The template "%s" is not found', $view));
+            throw new FileNotFoundException(sprintf('The template "%s" is not found', $view));
         }
 
-        $cache_file = $this->cache_dir . $view . '.cache';
-
-        if (!file_exists($cache_file) || filemtime($template_file) > filemtime($cache_file)) {
-            $this->compileTemplate($template_file, $cache_file);
+        if(!is_assoc_array($data)) {
+            throw new InvalidArgumentException('The arguments must be an associative array');
         }
+
+        $data = array_merge($this->arguments, $data); // Merge the arguments with the existing ones
 
         extract($data);
 
         ob_start();
-        include $cache_file;
+        include $template_file;
         $rendered_view = ob_get_clean();
 
         return $rendered_view;
     }
 
     /**
-     * Compile template and create cache with syntax replacement
+     * Add an argument to be used in templates
      * 
-     * @param string $template_file Filename for template
-     * @param string $cache_file Flename for cache template file
-     * @return void
+     * @param string $key Argument key
+     * @param mixed $value Argument value
      */
-    private function compileTemplate(string $template_file, string $cache_file): void {
-        $template_content = file_get_contents($template_file);        
-        $compiled_content = $this->compileTemplateContent($template_content);
-        file_put_contents($cache_file, $compiled_content);
+    public function addArgument(string $key, mixed $value): void {
+        $this->arguments[trim($key)] = $value; // Add the argument to the
     }
 
     /**
-     * Extract the template contents and replace special syntax for print variables
+     * Add arguments to be used in templates
      * 
-     * @param string $content Template file contents
-     * @return string
+     * @param array $data Arguments to add
+     * @throws InvalidArgumentException When the arguments are not an associative array
      */
-    private function compileTemplateContent(string $content): string {
-        // Simple template syntax replacement (e.g. {{ variable }} -> <?php echo $variable;?\>\)
-        $content = preg_replace('/{{\s*(\w+)\s*}}/', '<?php echo $\\1; ?>', $content);
+    public function addArguments(array $data): void {
+        if(!is_assoc_array($data)) {
+            throw new InvalidArgumentException('The arguments must be an associative array');
+        }
 
-        return $content;
+        $this->arguments = array_merge($this->arguments, $data); // Merge the arguments with the existing ones
     }
+
+    /**
+     * Set the arguments to be used in templates
+     * 
+     * @param array $data Arguments to set
+     * @throws InvalidArgumentException When the arguments are not an associative array
+     */
+    public function setArguments(array $data): void {
+        if(!is_assoc_array($data)) {
+            throw new InvalidArgumentException('The arguments must be an associative array');
+        }
+
+        $this->arguments = $data; // Set the arguments to the new ones
+    }
+
 }
