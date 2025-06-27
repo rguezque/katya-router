@@ -9,11 +9,16 @@
 namespace rguezque;
 
 /**
- * Get and process the response
+ * Sapi Emitter
+ * 
+ * This class is responsible for sending the HTTP response to the client.
+ * It sets the HTTP status code, sends the headers, and outputs the body
+ * of the response. It is designed to work with the SAPI (Server API) environment
+ * and is typically used in web applications to handle HTTP responses.
  * 
  * @static emit(Response $response) Send the response
  */
-class SapiEmitter extends Response {
+class SapiEmitter {
     /**
      * Send the response.
      * 
@@ -21,10 +26,11 @@ class SapiEmitter extends Response {
      * to the client. It sets the HTTP status code, sends the headers,
      * and outputs the body of the response.
      * 
+     * @param Response $response The response object to be sent
      * @return void
      */
     public static function emit(Response $response): void {
-        http_response_code($response->status_code);
+        http_response_code($response->getStatusCode());
         // Send the headers
         if(!headers_sent()) {
             $response->headers->rewind();
@@ -42,4 +48,4 @@ class SapiEmitter extends Response {
     }
 }
 
-?>
+?> 
