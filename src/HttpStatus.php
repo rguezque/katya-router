@@ -11,6 +11,9 @@ namespace rguezque;
 /**
  * Represents an HTTP Status
  * 
+ * This class defines constants for various HTTP status codes
+ * according to the IANA HTTP Status Code Registry.
+ * 
  * @see http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
  */
 class HttpStatus {

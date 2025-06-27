@@ -8,6 +8,18 @@
 
 namespace rguezque;
 
+/**
+ * Represent CORS configuration for handling cross-origin requests
+ * 
+ * This class provides methods to configure CORS for different origins,
+ * allowing you to specify allowed HTTP methods, headers, and other CORS
+ * settings. It can handle preflight requests and set appropriate CORS headers
+ * for incoming requests based on the origin and request method.
+ * 
+ * @method CorsConfig addOrigin(string $origin, array $methods = ['*'], array $config = []) Add an origin with specific configuration
+ * @method CorsConfig setDefaultConfig(array $config) Set global default configuration for CORS
+ * @method bool __invoke(Request $request, Response $response) Handle CORS headers
+ */
 class CorsConfig {
     /**
      * Configuration for different origins and their allowed methods

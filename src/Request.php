@@ -114,7 +114,7 @@ class Request {
     private array $params;
 
     /**
-     * Create Request
+     * This constructor initializes the Request object with the provided parameters.
      * 
      * @param array $query $_GET params
      * @param array $body $_POST params
@@ -140,7 +140,7 @@ class Request {
     }
 
     /**
-     * Create a Request object from default global params
+     * This method initializes a Request object using the global PHP arrays: $_GET, $_POST, $_SERVER, $_COOKIE, and $_FILES.
      * 
      * @return Request
      */
@@ -156,7 +156,7 @@ class Request {
     }
 
     /**
-     * Return the $_GET params array
+     * This method returns the $_GET params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -165,7 +165,7 @@ class Request {
     }
 
     /**
-     * Return the $_POST params array
+     * This method returns the $_POST params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -174,7 +174,7 @@ class Request {
     }
 
     /**
-     * Return a read-only stream that allows reading data from the requested body
+     * This method allows you to read the raw data from the request body, parse it as a query string, or decode it as JSON.
      * 
      * @param int $option Determinate format to return the stream
      * @return Parameters|string 
@@ -184,15 +184,15 @@ class Request {
         $phpinputstream = file_get_contents('php://input');
 
         switch($option) {
+            case Request::RAW_DATA:
+                $result = $phpinputstream;
+                break;
             case Request::PARSED_STR:
                 parse_str($phpinputstream, $result);
                 $result = new Parameters($result);
                 break;
             case Request::JSON_DECODED: 
                 $result = new Parameters(json_decode($phpinputstream, true));
-                break;
-            case Request::RAW_DATA:
-                $result = $phpinputstream;
                 break;
             default:
                 throw new InvalidArgumentException(sprintf('Invalid option: %s. Use Request::PARSED_STR, request::JSON_DECODED or Request::RAW_DATA', $option));
@@ -202,7 +202,7 @@ class Request {
     }
 
     /**
-     * Return the $_SERVER params array
+     * This method returns the $_SERVER params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -211,7 +211,7 @@ class Request {
     }
 
     /**
-     * Return the $_COOKIE params array
+     * This method returns the $_COOKIE params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -220,7 +220,7 @@ class Request {
     }
 
     /**
-     * Return the $_FILES params array
+     * This method returns the $_FILES params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -229,7 +229,7 @@ class Request {
     }
 
     /**
-     * Return route params
+     * This method allows you to retrieve the named parameters from the route.
      * 
      * @param int $type Specifies params array type: PARAMS_ASSOC (default), PARAMS_NUM or PARAMS_BOTH
      * @return Parameters|array
@@ -273,7 +273,7 @@ class Request {
     }
 
     /**
-     * Fetches all HTTP headers from the current request
+     * This method retrieves all HTTP headers from the current request and returns them as a Parameters object.
      * 
      * @return Parameters
      */
@@ -342,7 +342,7 @@ class Request {
     }
 
     /**
-     * Generate URL-encoded query string
+     * This method constructs a query string from the given URI and parameters.
      * 
      * @param string $uri URI to construct query
      * @param array $params Params to construct query

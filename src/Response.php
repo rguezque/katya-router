@@ -11,6 +11,12 @@ namespace rguezque;
 /**
  * Represent an HTTP response
  * 
+ * This class is used to create an HTTP response that can be sent back to the client.
+ * It contains the HTTP status code, headers, and body of the response.
+ * The response body is a Stream object that allows reading and writing data.
+ * The headers are stored in an HttpHeaders object, and the status code is set to
+ * the provided value or defaults to 200 (HTTP OK).
+ * 
  * @method void clear() Reset the initial values for response
  * @method void setStatusCode(int $code) Set the HTTP status code
  * @method int getStatusCode() Get the HTTP status code
@@ -38,7 +44,11 @@ class Response {
     public readonly Stream $body;
 
     /**
-     * Initialize the http response
+     * This class represents an HTTP response that can be sent back to the client.
+     * 
+     * The response body is a Stream object that allows reading and writing data.
+     * The headers are stored in an HttpHeaders object, and the status code is set to
+     * the provided value or defaults to 200 (HTTP OK).
      * 
      * @param string $content The content of http response
      * @param int $status_code The http status code of response
@@ -55,7 +65,7 @@ class Response {
     }
 
     /**
-     * Reset the initial values for response
+     * This method clears the status code, headers, and body of the response.
      * 
      * @return void
      */
@@ -66,7 +76,7 @@ class Response {
     }
 
     /**
-     * Set the HTTP status code
+     * This method allows you to set the HTTP status code for the response.
      * 
      * @param int $code HTTP status code
      * @return void
@@ -76,7 +86,7 @@ class Response {
     }
 
     /**
-     * Get the HTTP status code
+     * This method retrieves the current HTTP status code of the response.
      * 
      * @return int
      */

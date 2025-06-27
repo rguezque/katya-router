@@ -9,7 +9,11 @@
 namespace rguezque;
 
 /**
- * Represent an HTML response for views templates
+ * Represent an HTML response for html contents or views templates
+ * 
+ * This class extends the Response class to provide a specific implementation
+ * for HTML responses. It sets the content type to 'text/html;charset=utf-8'
+ * and allows you to specify the content, status code, and headers.
  */
 class HtmlResponse extends Response {
     public function __construct(string $content, int $status_code = HttpStatus::HTTP_OK, array $headers = []) {

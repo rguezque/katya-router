@@ -11,6 +11,10 @@ namespace rguezque\Interfaces;
 /**
  * Contain a parameters array.
  * 
+ * This interface defines methods for managing a collection of parameters.
+ * It allows you to set or overwrite a parameter, remove a parameter by name,
+ * and clear all parameters from the collection.
+ * 
  * @method void set(string $key, $value) Set or overwrite a parameter
  * @method void remove(string $key) Remove a parameter by name
  * @method void clear() Remove all parameters

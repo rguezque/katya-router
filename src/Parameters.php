@@ -15,6 +15,12 @@ use rguezque\Interfaces\BagInterface;
 /**
  * Contain a parameters array.
  * 
+ * This class provides a simple interface to manage parameters
+ * in a collection. It allows you to set, get, remove, and check
+ * the existence of parameters by name. The parameters are stored
+ * in an associative array, and if a parameter is an array, it is
+ * returned as a new Parameters object.
+ * 
  * @method mixed get(string $key, $default = null) Retrieve a parameter by name
  * @method array all() Retrieve all parameters array
  * @method bool has(string $key) Return true if a parameter exists

@@ -8,7 +8,6 @@
 
 namespace rguezque;
 
-use ErrorException;
 use InvalidArgumentException;
 use rguezque\Exceptions\FileNotFoundException;
 use rguezque\Exceptions\NotFoundException;
@@ -64,6 +63,7 @@ class ViewEngine {
      * @param array $data Arguments to send for template
      * @return string
      * @throws FileNotFoundException When the file template is not found
+     * @throws InvalidArgumentException When the data are not an associative array
      */
     public function fetch(string $view, array $data = []): string {
         $view = trim($view, '/\\ ');

@@ -14,10 +14,12 @@ namespace rguezque;
  * @static emit(Response $response) Send the response
  */
 class SapiEmitter extends Response {
-
     /**
-     * Send the response
+     * Send the response.
+     * 
      * This method is responsible for sending the HTTP response
+     * to the client. It sets the HTTP status code, sends the headers,
+     * and outputs the body of the response.
      * 
      * @return void
      */

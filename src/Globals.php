@@ -11,6 +11,12 @@ namespace rguezque;
 /**
  * Represent $GLOBALS router parameters
  * 
+ * This class provides a static interface to manage global parameters
+ * in the $GLOBALS array. It allows you to set, get, remove, and check
+ * the existence of global parameters. It also provides methods to
+ * retrieve all global parameters, check if a parameter is valid, and
+ * count the number of global parameters.
+ * 
  * @static void set(string $key, $value) Set or overwrite a global parameter
  * @static void remove(string $key) Remove a global parameter by name
  * @static void clear() Remove all globals parameters

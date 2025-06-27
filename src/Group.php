@@ -15,6 +15,10 @@ use function rguezque\functions\str_path;
 /**
  * Routes group
  * 
+ * This class allows you to define a group of routes with a common prefix.
+ * You can define routes using different HTTP methods (GET, POST, PUT, PATCH, DELETE)
+ * and apply middleware (hooks) that will be executed before the route controller.
+ * 
  * @method Route route(string $verb, string $path, callable $controller)
  * @method Route get(string $path, callable $controller)
  * @method Route post(string $path, callable $controller)

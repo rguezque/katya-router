@@ -13,6 +13,11 @@ use InvalidArgumentException;
 use Throwable;
 
 /**
+ * Represent the environment mode and error handling.
+ * 
+ * This class provides methods to set and get the environment mode,
+ * configure error handling, and log errors.
+ * 
  * @static void register(?string $env_mode = null) Register error and exception handlers
  * @static void setLogPath(string $path) Set the log path for error logging
  * @static string getLogPath() Get the log path, with a default if not set

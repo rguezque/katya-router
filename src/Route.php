@@ -13,6 +13,11 @@ use Closure;
 /**
  * Route
  * 
+ * This class represents a route in the application.
+ * It contains the HTTP method, path, controller, and optional hooks.
+ * The controller can be a callable function, and the route can have a hook
+ * that is executed before the controller is called.
+ * 
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
  * @method callable getController() Return controller

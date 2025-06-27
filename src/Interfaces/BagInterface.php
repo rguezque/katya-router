@@ -11,6 +11,11 @@ namespace rguezque\Interfaces;
 /**
  * Contain a parameters array.
  * 
+ * This interface defines methods for managing a collection of parameters.
+ * It allows you to get a parameter by name, retrieve all parameters,
+ * check if a parameter exists, check if a parameter is valid (exists and not empty or null),
+ * and count the number of parameters.
+ * 
  * @method mixed get(string $key, $default = null) Retrieve a parameter by name
  * @method array all() Retrieve all parameters array
  * @method bool has(string $key) Return true if a parameter exists

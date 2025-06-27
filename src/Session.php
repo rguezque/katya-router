@@ -14,6 +14,12 @@ use rguezque\Interfaces\BagInterface;
 /**
  * Represents a PHP session.
  * 
+ * This class provides methods to create, start, and manage session variables.
+ * It allows you to set, get, remove, and check the existence of session variables.
+ * The session variables are stored in a specific namespace, which can be customized.
+ * The class implements the BagInterface and ArgumentsInterface, providing a consistent
+ * interface for managing session variables.
+ * 
  * @method Session create(string $session_name = Session::NAMESPACE) Create or select a collection of session vars into the default router-session-vars-namespace
  * @method void start() Starts or resume a session
  * @method bool started() Return true if already exists an active session, otherwise false

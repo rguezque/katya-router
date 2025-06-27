@@ -11,6 +11,10 @@ namespace rguezque;
 /**
  * Represents variables setted and used across application
  * 
+ * This class provides a simple interface to manage variables
+ * in a collection. It allows you to set, get, and check the existence
+ * of variables by name. The variables are stored in a Parameters collection.
+ * 
  * @method Variables setVar(string $name, $value) Set or overwrite a variable by name
  * @method mixed getVar(string $name, $default = null) Return a variable by name is exists, otherwise return default specified value
  * @method bool hasVar(string $name) Return true if a variable exists, otherwise false

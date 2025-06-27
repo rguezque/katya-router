@@ -11,6 +11,10 @@ namespace rguezque;
 /**
  * Represent an HTTP response as JSON
  * 
+ * This class extends the Response class to provide a specific implementation
+ * for JSON responses. It sets the content type to 'application/json;charset=utf-8'
+ * and allows you to specify the data, status code, and headers.
+ * 
  * @throws JsonException
  */
 class JsonResponse extends Response {

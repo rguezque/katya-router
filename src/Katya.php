@@ -21,6 +21,13 @@ use function rguezque\functions\str_path;
 /**
  * Router
  * 
+ * This class provides a simple and flexible way to define routes and handle HTTP requests.
+ * It allows you to define routes with different HTTP methods (GET, POST, PUT, PATCH, DELETE)
+ * and associate them with controllers (callable functions).
+ * You can also group routes under a common prefix, set CORS configurations, and manage services
+ * and variables to be used in controllers. See the documentation for more details.
+ * 
+ * @see https://github.com/rguezque/katya-router
  * @method Route route(string $verb, string $path, callable $controller) Route definition
  * @method Route get(string $path, callable $controller) Shortcut to add route with GET method
  * @method Route post(string $path, callable $controller) Shortcut to add route with POST method
@@ -34,7 +41,6 @@ use function rguezque\functions\str_path;
  * @method void run(Request $request) Start the router
  */
 class Katya {
-
     /**
      * Supported verbs
      * 

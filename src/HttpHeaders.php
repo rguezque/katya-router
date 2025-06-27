@@ -12,6 +12,7 @@ use Iterator;
 
 /**
  * Represents a collection of HTTP headers.
+ * 
  * Provides methods for setting, getting, removing, and iterating over headers.
  * 
  * @implements \Iterator

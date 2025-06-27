@@ -17,6 +17,10 @@ use PDOException;
 /**
  * Represents a MySQL connection with PDO driver or mysqli
  * 
+ * This class provides methods to establish a connection to a MySQL database
+ * using either the PDO or mysqli driver. It supports connection parameters
+ * such as host, port, database name, charset, user, password, and socket.
+ * 
  * @method PDO getConnection(array $params) Return a Singleton PDO connection
  * @method PDO autoConnect() Return a PDO connection from stored params into .env file (using dotenv library)
  * @method array dsnParser(string $url) Parse a database URL

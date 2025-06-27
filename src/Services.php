@@ -16,6 +16,10 @@ use rguezque\Exceptions\NotFoundException;
 
 /**
  * Services provider.
+ * This class provides a simple interface to register, unregister, and access services
+ * in a collection. It allows you to define services using closures, which can be called
+ * later to retrieve the service instance. The services are stored in an associative array
+ * where the keys are the service names and the values are the closures that define the services.
  * 
  * @method Services register(string $alias, Closure $closure) Register services
  * @method Services unregister(string ...$alias) Unregister one or multiple services by name

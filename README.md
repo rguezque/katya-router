@@ -120,7 +120,7 @@ try {
 } 
 ```
 
-Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request`  (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)). `Request` primero contiene los métodos necesarios para manejar una petición.
+Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto  `Request`.
 
@@ -164,16 +164,19 @@ $katya->get('/user', function(Request $request) {
 });
 
 // Usando un método estático
-$katya->get('/user', ['App\Controller\Greeting', 'showProfile']);
+$katya->get('/user', ['App\Controller\GreetingController', 'showProfileAction']);
 // o bien
-use App\Controller\User;
-$katya->get('/user', [User::class, 'showProfile']);
-$katya->get('/user/permissions', [User::class, 'showPermissions']);
+use App\Controller\UserController;
+$katya->get('/user', [UserController::class, 'showProfileAction']);
+$katya->get('/user/permissions', [UserController::class, 'showPermissionsAction']);
 
 // Usando un método de un objeto
-$user = new App\Controller\User();
-$katya->get('/user', [$user, 'showProfile']);
+$user = new App\Controller\UserController();
+$katya->get('/user', [$user, 'showProfileAction']);
 ```
+
+>[!TIP]
+>Si se usan métodos de un objeto como controladores se recomienda nombrar las clases con el sufijo `Controller` y los métodos con el sufijo `Action` para identificarlos mejor a través del proyecto.
 
 ## Routes group
 

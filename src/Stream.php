@@ -11,6 +11,12 @@ namespace rguezque;
 /**
  * Represent a PHP stream
  * 
+ * This class provides a simple interface to manage a PHP stream resource.
+ * It allows you to write content to the stream, read from it, retrieve its contents
+ * and size, seek to a specific position, rewind the pointer, and check if the end of the
+ * stream has been reached. The stream can be detached, and it will be automatically closed
+ * when the object is destroyed.
+ * 
  * @method int|false write(mixed $string) Write content to stream and return the total bytes written, or false on error
  * @method string|false read(int $length) Read the stream
  * @method string|false getContents() Retrieve the remainder content of the stream from current pointer position
