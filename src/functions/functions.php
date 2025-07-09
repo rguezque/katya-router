@@ -183,3 +183,33 @@ if(!function_exists('equals')) {
     }
 }
 
+/**
+ * Imprime las etiquetas <link> y <script> para los recursos especificados. 
+ * Si los scripts tienen la extensión .module.js, se les añade el atributo type="module".
+ * 
+ * Si no se define la variable $_ENV[`BASE_URL`] en el archivo .env, se usará el directorio actual como base para las rutas de los recursos.
+ *
+ * @param array $styles Array de rutas a hojas de estilo CSS.
+ * @param array $scripts Array de rutas a archivos JavaScript.
+ * @return void
+ */
+function resources(array $styles = [], array $scripts = []) : void {
+    if(empty($styles) && empty($scripts)) {
+        return; // No hay recursos que imprimir
+    }
+
+    $basepath = rtrim($_ENV['BASE_URL'] ?? './', '/\\') . DIRECTORY_SEPARATOR; // Asegura que el basepath termine con un separador de directorio
+
+    foreach ($styles as $style) {
+        $style = ltrim($style, '/\\'); // Asegura que la ruta sea relativa al basepath
+        echo '<link rel="stylesheet" href="' . $basepath . htmlspecialchars($style, ENT_QUOTES) . '">' . PHP_EOL;
+    }
+
+    foreach ($scripts as $script) {
+        $script = ltrim($script, '/\\'); // Asegura que la ruta sea relativa al basepath
+        $isModule = preg_match('/\.module\.js$/i', $script);
+        $typeAttr = $isModule ? ' type="module"' : '';
+        echo '<script src="' . $basepath . htmlspecialchars($script, ENT_QUOTES) . '"' . $typeAttr . '></script>' . PHP_EOL;
+    }
+}
+
