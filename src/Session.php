@@ -212,6 +212,9 @@ class Session implements BagInterface, ArgumentsInterface {
     /**
      * Destroy the active session
      * 
+     * This method will clear all session variables,
+     * remove the session cookie if it exists, and destroy the session.
+     * 
      * @return bool True on success or false on failure
      */
     public function destroy(): bool {
@@ -228,7 +231,10 @@ class Session implements BagInterface, ArgumentsInterface {
                 $params["httponly"]
             );
         }
+        
         $this->clear();
+        $this->clearAllCookies(); // Clear all cookies in the current domain and path
+        
         return session_destroy();
     }
 
@@ -240,6 +246,26 @@ class Session implements BagInterface, ArgumentsInterface {
     public function __toString(): string {
         $this->start();
         return sprintf('<pre>%s</pre>', print_r($_SESSION[$this->namespace], true));
+    }
+
+    /**
+     * Clear all cookies in the current domain and path
+     * 
+     * This method iterates through all cookies set in the current domain and clears them.
+     * 
+     * @return void
+     */
+    private function clearAllCookies(): void {
+        if (isset($_SERVER['HTTP_COOKIE'])) {
+            $cookies = explode(';', $_SERVER['HTTP_COOKIE']);
+            foreach ($cookies as $cookie) {
+                $parts = explode('=', $cookie, 2);
+                $name = trim($parts[0]);
+                // Elimina la cookie en el path actual y en la raíz
+                setcookie($name, '', time() - 42000, '/');
+                setcookie($name, '', time() - 42000);
+            }
+        }
     }
 
 }
