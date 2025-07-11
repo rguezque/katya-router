@@ -28,6 +28,7 @@ A lightweight PHP router
 - [Middleware](#middleware)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
+- [funciones*](#funciones*)
 
 ## Install
 
@@ -611,9 +612,9 @@ use rguezque\Katya;
 use rguezque\CorsConfig;
 
 $router = new Katya;
-$cors = new CorsConfig();
+$cors_config = new CorsConfig();
 
-$corsConfig->addOrigin(
+$cors_config->addOrigin(
     'https://example.com', 
     ['GET', 'POST'], 
     [
@@ -622,7 +623,7 @@ $corsConfig->addOrigin(
     ]
 );
 
-$corsConfig->addOrigin(
+$cors_config->addOrigin(
     '(http(s)://)?(www\.)?localhost:4500', // También soporta regex
     ['GET', 'POST', 'DELETE'], 
     [
@@ -646,7 +647,7 @@ Asigna la configuración de CORS con el método `Katya::setCors` y automaticamen
 
 ```php
 // Se asigna al router
-$router->setCors($cors);
+$router->setCors($cors_config);
 ```
 
 ## Environment Management
@@ -673,4 +674,18 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 >[!NOTE]
 >La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.
 
-[#stream]: 
+## funciones*
+
+Se incluye también algunas funciones extras como:
+
+- `resources($styles = [], $scripts = [])`: Se utiliza en las plantillas de vistas y sirve para cargar hojas CSS y scripts JS. Requiere que previamente se haya definido la variable de entorno `$_ENV['BASE_URL']` en el archivo `.env` ya que los carga a partir de una URL absoluta.
+- `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
+- `unsetcookie(string $name)`: Elimina una cookie.
+- `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
+- `is_assoc_array($value)`: Devuelve `true` si un array es asociativo (key-value): `false` en caso contrario.
+- `add_trailing_slash(string $str)`: Agrega un *slash* al final de una cadena de texto.
+- `remove_trailing_slash(string $str)`: Elimina los *slashes* al final de una cadena de texto.
+- `add_leading_slash(string $str)`: Agrega un *slash* al inicio de una cadena de texto.
+- `remove_leading_slash(string $str)`: Elimina los *slashes* al inicio de una cadena de texto.
+- `str_prepend(string $subject, string ...$prepend)`: Concatena una o más cadenas de texto al inicio de una cadena de texto original. Los elementos se concatenan siguiendo el orden **FIFO** (el primero que se define es el primero que se concatena al inicio y así sucesivamente). Ej: `str_prepend("foo", "bar", "baz")` daría como resultado `"bazbarfoo"`.
+- `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
