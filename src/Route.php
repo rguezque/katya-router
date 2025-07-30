@@ -21,7 +21,7 @@ use Closure;
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
  * @method callable getController() Return controller
- * @method Route before(callable $callable) Add a hook to exec before the route controller
+ * @method Route before(callable ...$callable) Add a hook to exec before the route controller
  * @method callable getHookBefore() Return the hook
  * @method bool hasHookBefore() Return true if the route has a hook
  * @method Route use(string ...$names) Specify the services to use in this route
@@ -52,9 +52,9 @@ class Route {
     /**
      * Hook before the controller
      * 
-     * @var Closure
+     * @var array
      */
-    private ?Closure $before = null;
+    private array $before = [];
 
     /**
      * List of lot of services to use for this route
@@ -106,10 +106,10 @@ class Route {
     /**
      * Add a hook to exec before the route controller
      * 
-     * @param callable $callable Middleware before controller execution
+     * @param array<callable> $callable Middleware collection before controller execution
      * @return Route
      */
-    public function before(callable $callable): Route {
+    public function before(callable ...$callable): Route {
         $this->before = $callable;
         return $this;
     }
@@ -117,9 +117,9 @@ class Route {
     /**
      * Return the hook
      * 
-     * @return callable
+     * @return array
      */
-    public function getHookBefore(): callable {
+    public function getHookBefore(): array {
         return $this->before;
     }
 
@@ -129,7 +129,7 @@ class Route {
      * @return bool
      */
     public function hasHookBefore(): bool {
-        return null !== $this->before;
+        return [] !== $this->before;
     }
 
     /**

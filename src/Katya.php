@@ -38,7 +38,8 @@ use function rguezque\functions\str_path;
  * @method Katya setCors(CorsConfig $cors_config) Set the CORS configuration
  * @method Katya setServices(Services $services) Set services to use into controllers
  * @method Katya setVariables(Variables $vars) Set variables to use into controllers
- * @method void run(Request $request) Start the router
+ * @method ?Response run(Request $request) Start the router and return the response
+ * @method void halt(Response $response) Stop the router and send the response
  */
 class Katya {
     /**
@@ -379,20 +380,18 @@ class Katya {
                     array_push($controller_args, $this->vars);
                 }
 
-                // Exec the middleware
-                if($route->hasHookBefore()) {
-                    $before = $route->getHookBefore();
-                    
-                    $data = call_user_func($before, ...$controller_args);
-                    
-                    // If middleware return a value, is added to route params and these are reassigned
-                    if(null !== $data) {
-                        $request->setParams(array_merge($arguments, ['@middleware_data' => $data]));
-                    }
+                $next = function(...$controller_args) use($route) {
+                    return call_user_func($route->getController(), ...$controller_args);
+                };
+
+                foreach($route->getHookBefore() as $middleware) {
+                    $next = function(...$controller_args) use($middleware, $next) {
+                        $all_args = array_merge($controller_args, [$next]);
+                        return $middleware(...$all_args);
+                    };
                 }
 
-                // Exec the controller
-                $result = call_user_func($route->getController(), ...$controller_args);
+                $result = call_user_func($next, ...$controller_args);
 
                 if(!$result instanceof Response) {
                     throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
@@ -405,6 +404,16 @@ class Katya {
 
         // Exception for routes not found
         throw new RouteNotFoundException(sprintf('The request URI "%s" don\'t match any route.', $request_uri));
+    }
+
+    /**
+     * Stop the router
+     * 
+     * @param Response $response Response object
+     */
+    public static function halt(Response $response): void {
+        SapiEmitter::emit($response);
+        exit(0);
     }
 
     /**

@@ -25,7 +25,7 @@ use function rguezque\functions\str_path;
  * @method Route put(string $path, callable $controller)
  * @method Route patch(string $path, callable $controller)
  * @method Route delete(string $path, callable $controller)
- * @method Group before(callable $callable)
+ * @method Group before(callable ...$callable)
  * @method Group useServices(string ...$names)
  */
 class Group {
@@ -53,9 +53,9 @@ class Group {
     /**
      * Middleware before the controller execution into the group
      * 
-     * @var callable
+     * @var array
      */
-    private $before;
+    private array $before = [];
     
 
     /**
@@ -160,10 +160,10 @@ class Group {
     /**
      * Add a hook to exec before each route into the group
      * 
-     * @param callable $callable Middleware before each controller execution into the group
+     * @param array<callable> $callable Middleware collection before each controller execution into the group
      * @return Group
      */
-    public function before(callable $callable): Group {
+    public function before(callable ...$callable): Group {
         $this->before = $callable;
         return $this;
     }
@@ -190,12 +190,14 @@ class Group {
      * Apply group settings (middleware and services) to a route.
      */
     private function applyGroupSettings(Route $route): Route {
-        if (null !== $this->before) {
-            $route->before($this->before);
+        if ([] !== $this->before && !$route->hasHookBefore()) {
+            $route->before(...$this->before);
         }
+
         if ([] !== $this->onlyuse) {
             $route->useServices(...$this->onlyuse);
         }
+        
         return $route;
     }
 }
