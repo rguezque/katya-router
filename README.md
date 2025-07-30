@@ -154,6 +154,9 @@ $katya->post('/', function(Request $request) {
 });
 ```
 
+>[!NOTE]
+>Para detener el router en cualquier momento puedes utilizar `Katya::halt` que recibe un objeto `Response` que se envía antes de detener los procesos del router.
+
 ### Controllers
 
 Los controladores pueden ser: una función anónima, un método estático o un método de un objeto. 
@@ -560,11 +563,11 @@ DB_CHARSET="utf8"
 
 ## Middleware
 
-El *middleware* `Route::before` ejecuta una acción previa al controlador de una ruta. 
+El *middleware* `Route::before` ejecuta una o varias acciones previas al controlador de una ruta. 
 
-`Route::before` Recibe un objeto `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: las instancias de `Request`, `Response` y si se definieron servicios, la instancia de `Services`. Si un valor es devuelto este se pasa al controlador a través del objeto `Request` y se recupera con la clave `@middleware_data` en el objeto devuelto por `Request::getParams`.
+`Route::before` Recibe uno o varios objetos `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: obligatoriamente un objeto `Request` y en orden de prioridad, `Services` y `Variables` según hayan sido definidos. Y además recibe como último argumento una función que representa el siguiente middleware en la cadena o, finalmente, el controlador. Para continuar el flujo, el middleware debe invocarse con los mismos argumentos que reciben los controladores. Ej: `return $next($request, $services, ...)`.
 
-Tanto las rutas como los grupos de rutas pueden tener un *middleware*. Si se define en un grupo, todas las rutas heredarán la misma acción previa, pero si se define a una ruta individual esta tendrá preferencia sobre el *middleware* del grupo.
+Los middlewares de grupo se heredan, pero los definidos en rutas individuales tienen prioridad y no son sobreescritos.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -576,30 +579,23 @@ $router = new Katya;
 $router->get('/', function(Request $request) {
     $data = $request->getParams();
     $username = $data->get('@middleware_data');
-    return new Response(sprintf('The actual user is: %s'), $username);
-})->before(function(Request $request) {
+    return new Response(sprintf('The actual user is: %s', $username));
+})->before(function(Request $request, $next) {
     $session = Session::select('mi_sesion');
     if(!$session->has('logged')) {
-        return new Response(headers: ['location' => '/login']);
+        // Ejecuta el response y detiene el router
+        Katya::halt(new Response(headers: ['location' => '/login']));
     }
-
-    return $session->get('username');
-});
-
-$router->group('/admin', function(Group $group) {
-    $group->get('/clients', function(Request $request) {
-        // Do something
-    });
-    $group->get('/customers', function(Request $request) {
-        // Do something
-    });
-})->before(function(Request $request) {
-	$session = Session::select('mi_sesion');
-    if(!$session->has('logged') || !$session->has('logged_as_admin')) {
-        return new Response(headers: ['location' => '/login']);
-    }
+    // Puedes pasar datos al controlador usando parámetros
+    $request->setParams(['@middleware_data' => $session->get('username')]);
+    return $next($request);
 });
 ```
+
+>[!NOTE]
+>- Los middlewares se ejecutan en orden inverso de definición y cada uno debe invocar `$next` para continuar la cadena.
+>- Los middlewares de grupo se heredan, pero los definidos en rutas individuales tienen prioridad y no son sobreescritos.
+>- Si el middleware es una instancia de clase, esta clase debe definir las acciones del propio middlewae en el método `__invoke()`
 
 ## CORS
 
