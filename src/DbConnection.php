@@ -21,9 +21,9 @@ use PDOException;
  * using either the PDO or mysqli driver. It supports connection parameters
  * such as host, port, database name, charset, user, password, and socket.
  * 
- * @method PDO getConnection(array $params) Return a Singleton PDO connection
- * @method PDO autoConnect() Return a PDO connection from stored params into .env file (using dotenv library)
- * @method array dsnParser(string $url) Parse a database URL
+ * @method PDO getConnection(array $params) Return a Singleton MySQL connection.
+ * @method PDO autoConnect() Return a MySQL connection from stored params into .env file (using dotenv library).
+ * @method array dsnParser(string $url) This method extracts the components of a database URL and returns them as an associative array.
  */
 class DbConnection {
 
@@ -35,7 +35,8 @@ class DbConnection {
     private static $connection = null;
 
     /**
-     * Return a Singleton MySQL connection
+     * Return a Singleton MySQL connection.
+     * This method accepts an array of parameters to establish the connection.
      * 
      * @param array $params connection params
      * @return PDO|mysqli
@@ -102,7 +103,9 @@ class DbConnection {
     }
 
     /**
-     * Return a PDO connection from stored params into .env file (using dotenv library)
+     * Return a MySQL connection from stored params into .env file (using dotenv library).
+     * This method automatically reads the environment variables
+     * and establishes a connection using the specified driver.
      * 
      * @return PDO|mysqli
      */
@@ -127,7 +130,10 @@ class DbConnection {
     }
 
     /**
-     * Parse a database URL
+     * This method extracts the components of a database URL and returns them as an associative array.
+     * 
+     * The URL should be in the format:
+     * `scheme://user:pass@host:port/dbname?charset=utf8&socket=/path/to/socket`
      * 
      * @param string $url Database URL
      * @return array

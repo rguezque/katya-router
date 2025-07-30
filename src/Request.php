@@ -16,11 +16,11 @@ use InvalidArgumentException;
  * @static Request fromGlobals() Create a Request object from default global params
  * @method Parameters getQuery() Return the $_GET params array
  * @method Parameters getBody() Return the $_POST params array
- * @method string|Parameters getPhpInputStream() Return a read-only stream that allows reading data from the requested body
+ * @method Parameters|string getPhpInputStream(int $option = Request::RAW_DATA) Return a read-only stream that allows reading data from the requested body
  * @method Parameters getServer() Return the $_SERVER params array
  * @method Parameters getCookies() Return the $_COOKIE params array
  * @method Parameters getFiles() Return the $_FILES params array
- * @method Parameters getParams() Return named params array from routing
+ * @method Parameters|array getParams(int $type = Request::PARAMS_ASSOC) Get named parameters from the route
  * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
  * @method void setQuery(array $query) Set values for $_GET array
  * @method void setBody(array $body) Set values for $_POST array
@@ -28,6 +28,7 @@ use InvalidArgumentException;
  * @method void setCookies(array $cookies) Set values for $_COOKIE array
  * @method void setFiles(array $files) Set values for $_FILES array
  * @method void setParams(array $params) Set values for named params array
+ * @method void addParams(array $params) Add parameters to the existing named params array
  * @static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
@@ -339,6 +340,16 @@ class Request {
      */
     public function setParams(array $params): void {
         $this->params = $params;
+    }
+
+    /**
+     * This method adds parameters to the existing named params array.
+     * @param array $params Array of parameters to add
+     * @throws InvalidArgumentException When the provided parameter is not an array
+     * @return void
+     */
+    public function addParams(array $params): void {
+        $this->params = array_merge($this->params, $params);
     }
 
     /**

@@ -30,6 +30,8 @@ class SapiEmitter {
      * @return void
      */
     public static function emit(Response $response): void {
+        ob_end_clean(); // Clean the output buffer to prevent any previous output from interfering with the response
+        // Set the HTTP status code
         http_response_code($response->getStatusCode());
         // Send the headers
         if(!headers_sent()) {
@@ -37,7 +39,7 @@ class SapiEmitter {
             while($response->headers->valid()) {
                 $key = $response->headers->key();
                 $value = $response->headers->current();
-                header("$key: $value", false);
+                header("$key: $value");
                 $response->headers->next();
             }
         }
