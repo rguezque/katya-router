@@ -674,6 +674,7 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 Se incluye también algunas funciones extras como:
 
+- `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
 - `resources($styles = [], $scripts = [])`: Se utiliza en las plantillas de vistas y sirve para cargar hojas CSS y scripts JS. Requiere que previamente se haya definido la variable de entorno `$_ENV['BASE_URL']` en el archivo `.env` ya que los carga a partir de una URL absoluta.
 - `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
 - `unsetcookie(string $name)`: Elimina una cookie.

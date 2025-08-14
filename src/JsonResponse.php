@@ -18,9 +18,17 @@ namespace rguezque;
  * @throws JsonException
  */
 class JsonResponse extends Response {
+    /**
+     * Constructor
+     * 
+     * @param array|string $data The data to be sent in the response body. If an array is provided, it will be converted to a JSON string.
+     * @param int $status_code The HTTP status code for the response. Default is 200 (OK).
+     * @param array $headers An associative array of headers to be included in the response.
+     * @throws JsonException If there is an error encoding the data to JSON.
+     */
     public function __construct(array|string $data = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
         if(is_array($data) && [] !== $data) {
-            $data = json_encode($data, JSON_THROW_ON_ERROR);
+            $data = json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
         }
         parent::__construct($data, $status_code, $headers);
         $this->headers->set('Content-Type', 'application/json;charset=utf-8');
