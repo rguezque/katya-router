@@ -89,6 +89,7 @@ class Session implements BagInterface, ArgumentsInterface {
             session_name($this->namespace);
             session_start();
         }
+        session_regenerate_id(true);
     }
 
     /**
@@ -204,9 +205,8 @@ class Session implements BagInterface, ArgumentsInterface {
      * @return void
      */
     public function clear(): void {
-        if (isset($_SESSION[$this->namespace])) {
-            unset($_SESSION[$this->namespace]);
-        }
+        //The use of session_unset() is identical to $_SESSION = [].
+        session_unset();
     }
 
     /**
@@ -232,10 +232,9 @@ class Session implements BagInterface, ArgumentsInterface {
             );
         }
         
-        $this->clear();
         $this->clearAllCookies(); // Clear all cookies in the current domain and path
-        
-        return session_destroy();
+        $this->clear();
+        return session_destroy() && session_regenerate_id(true);
     }
 
     /**
