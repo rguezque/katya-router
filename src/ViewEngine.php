@@ -67,8 +67,8 @@ class ViewEngine {
      */
     public function fetch(string $view, array $data = []): string {
         $view = trim($view, '/\\ ');
-        if(!str_ends_with($view, '.php')) {
-            $view .= '.php'; // Ensure the view has .php extension
+        if(!str_ends_with($view, '.view.php')) {
+            $view .= '.view.php'; // Ensure the view has .view.php extension
         }
         $view = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $view); // Normalize directory separators
         $template_file = $this->templates_dir . $view;

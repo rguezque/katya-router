@@ -257,7 +257,7 @@ $services->register('view', function() {
 $router->setServices($services);
 ```
 
-El método `ViewEngine::fetch` recibe el nombre de la plantilla sin la extensión de archivo y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`.
+El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
 
 ```php
 $router->get(Request $request, Services $service): Response {
