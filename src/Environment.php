@@ -54,7 +54,7 @@ class Environment {
      */
     private static function initializeMode(?string $env_mode = null): void {
         // Load mode from environment, default to 'development'
-        $env_mode = strtolower($_ENV['APP_ENV'] ?? $env_mode ?? 'development');
+        $env_mode = strtolower($env_mode ?? $_ENV['APP_ENV'] ?? 'development');
         
         // Validate mode
         if (!in_array(trim($env_mode), ['development', 'production'])) {

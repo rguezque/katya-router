@@ -588,6 +588,7 @@ $router->get('/', function(Request $request) {
     }
     // Puedes pasar datos al controlador usando parámetros
     $request->setParams(['@middleware_data' => $session->get('username')]);
+    
     return $next($request);
 });
 ```
@@ -648,17 +649,17 @@ $router->setCors($cors_config);
 
 ## Environment Management
 
-El ambiente de desarrollo se carga automaticamente desde la variable  `APP_ENV` del archivo `.env`; en caso de no ser definida se tomará por default el modo `production`. El valor posible solo puede ser `development` o `production`.
+`Environment::register` inicializa el ambiente de desarrollo y puede recibir el argumento `development` o `production`. Si se invoca sin argumento buscará cargar automáticamente desde la variable `APP_ENV` del archivo `.env`; en caso de no encontrarla se tomará por default el modo `development`.
 
 ```php
-// Registra el manejo de errores y excepciones
-Environment::register();
+// Se define directamente el ambiente de desarrollo
+Environment::register('production');
 
-// O manualmente
-Environment::register('development');
+// O busca automáticamente la variable de ambiente APP_ENV
+Environment::register();
 ```
 
-Especifica el directorio (obligatorio) donde se guardará el registro de errores. Todos los errores que ocurran en ambos ambientes de desarrollo se volcarán en un archivo `php_errors.log`.
+`Environment::setLogPath` especifica el directorio (obligatorio) donde se guardará el registro de errores. Todos los errores que ocurran en ambos ambientes de desarrollo se volcarán en un archivo `php_errors.log`.
 
 ```php
 // Por ejemplo
