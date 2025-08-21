@@ -7,8 +7,7 @@
     "homepage": "https://www.github.com/rguezque/katya-router",
     "autoload": {
         "psr-4": {
-            "rguezque\\": "src/",
-            "Middlewares\\": "middlewares/"
+            "rguezque\\": "src/"
         },
         "files": ["src/functions/functions.php"]
     },
