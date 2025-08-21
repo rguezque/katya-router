@@ -1,6 +1,5 @@
 {
     "name": "rguezque/katya-router",
-    "version": "1.3.0",
     "description": "A lightweight PHP router.",
     "keywords": ["router", "routing", "mvc", "microframework", "php"],
     "type": "router",
@@ -8,7 +7,8 @@
     "homepage": "https://www.github.com/rguezque/katya-router",
     "autoload": {
         "psr-4": {
-            "rguezque\\": "src/"
+            "rguezque\\": "src/",
+            "Middlewares\\": "middlewares/"
         },
         "files": ["src/functions/functions.php"]
     },
