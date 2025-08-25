@@ -77,10 +77,6 @@ class ViewEngine {
             throw new FileNotFoundException(sprintf('The template "%s" is not found', $view));
         }
 
-        if(!is_assoc_array($data)) {
-            throw new InvalidArgumentException('The arguments must be an associative array');
-        }
-
         $data = array_merge($this->arguments, $data); // Merge the arguments with the existing ones
 
         extract($data);
