@@ -594,7 +594,7 @@ $router->get('/', function(Request $request) {
 ```
 
 >[!NOTE]
->- Los middlewares se ejecutan en orden inverso de definición y cada uno debe invocar `$next` para continuar la cadena.
+>- Los middlewares se ejecutan en orden inverso de definición (LIFO) y cada uno debe invocar `$next` para continuar la cadena.
 >- Los middlewares de grupo se heredan, pero los definidos en rutas individuales tienen prioridad y no son sobreescritos.
 >- Si el middleware es una instancia de clase, esta clase debe definir las acciones del propio middlewae en el método `__invoke()`
 
