@@ -158,8 +158,8 @@ class Environment {
         self::logError($exception);
 
         $error_data = [
-            'error' => $exception->getMessage(),
-            'code' => $exception->getCode() ?: HttpStatus::HTTP_INTERNAL_SERVER_ERROR
+            'error' => self::$mode == 'development' ? $exception->getMessage() : 'An internal server error occurred.',
+            'code' => self::$mode == 'development' ? $exception->getCode() : HttpStatus::HTTP_INTERNAL_SERVER_ERROR
         ];
 
         // In development, include more details
