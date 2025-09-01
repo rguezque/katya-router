@@ -28,7 +28,6 @@ A lightweight PHP router
 - [Middleware](#middleware)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
-- [funciones*](#funciones*)
 
 ## Install
 
@@ -97,7 +96,8 @@ use rguezque\{
     HttpStatus,
     Katya, 
     Request,
-    Response
+    Response,
+    SapiEmitter
 };
 use rguezque\Exceptions\{
     RouteNotFoundException, 
@@ -111,21 +111,26 @@ $router->route(Katya::GET, '/', function(Request $request) {
 });
 
 try {
-    $router->run(Request::fromGlobals());
+    $response = $router->run(Request::fromGlobals());
 } catch(RouteNotFoundException $e) {
     $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
     (new Response($message, HttpStatus::HTTP_NOT_FOUND))->send();
 } catch(UnsupportedRequestMethodException $e) {
     $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
     (new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED))->send();
+} catch(UnexpectedValueException $e) {
+    $message = sprintf('<h1>Unexpected Value</h1><p>%s</p>', $e->getMessage());
+    (new Response($message, HttpStatus::HTTP_NOT_ACCEPTABLE))->send();
 } 
+
+SapiEmitter::emit($response);
 ```
 
 Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto  `Request`.
 
-Si el router se aloja en un subdirectorio, este se puede especificar en el *array* de opciones al crear la instancia del router. Así mismo, se puede definir el directorio default donde se buscarán los archivos al renderizar una plantilla.
+Si el router se aloja en un subdirectorio, este se puede especificar en el *constructor* al crear la instancia del router.
 
 ```php
 $katya = new Katya('/nombre_directorio_base');
@@ -414,7 +419,7 @@ La clase `Session` sirve para la creación de sesiones y la administración de v
 $session = Session::create();
 $session->set('nombre', 'Juan');
 $session->set('edad', 30);
-$session->get('nombre);
+$session->get('nombre');
 ```
 
 >[!NOTE]
@@ -670,20 +675,3 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 >[!NOTE]
 >La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.
-
-## funciones*
-
-Se incluye también algunas funciones extras como:
-
-- `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
-- `resources($styles = [], $scripts = [])`: Se utiliza en las plantillas de vistas y sirve para cargar hojas CSS y scripts JS. Requiere que previamente se haya definido la variable de entorno `$_ENV['BASE_URL']` en el archivo `.env` ya que los carga a partir de una URL absoluta.
-- `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
-- `unsetcookie(string $name)`: Elimina una cookie.
-- `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
-- `is_assoc_array($value)`: Devuelve `true` si un array es asociativo (key-value): `false` en caso contrario.
-- `add_trailing_slash(string $str)`: Agrega un *slash* al final de una cadena de texto.
-- `remove_trailing_slash(string $str)`: Elimina los *slashes* al final de una cadena de texto.
-- `add_leading_slash(string $str)`: Agrega un *slash* al inicio de una cadena de texto.
-- `remove_leading_slash(string $str)`: Elimina los *slashes* al inicio de una cadena de texto.
-- `str_prepend(string $subject, string ...$prepend)`: Concatena una o más cadenas de texto al inicio de una cadena de texto original. Los elementos se concatenan siguiendo el orden **FIFO** (el primero que se define es el primero que se concatena al inicio y así sucesivamente). Ej: `str_prepend("foo", "bar", "baz")` daría como resultado `"bazbarfoo"`.
-- `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
