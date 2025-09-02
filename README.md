@@ -262,25 +262,26 @@ $services->register('view', function() {
 $router->setServices($services);
 ```
 
-El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
+El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación `.view.php` del archivo) y opcionalmente un array con variables. Devuelve en un string el contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
 
 ```php
-$router->get(Request $request, Services $service): Response {
-    $view = $service->view();
+$router->get('/home', function(Request $request, Services $services): Response {
+    $view = $services->view();
     $data = [
     	'home': '/',
     	'about': '/about-us',
     	'contact': '/contact-us'
 	];
 	$template = $view->fetch('menu', $data);
+    
     return new HtmlResponse($template);
-}
+});
 ```
 
 Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
 
 ```php
-//menu.php
+//menu.view.php
 <nav>
     <ul>
         <li><a href="<?= $home ?>">Home</a></li>
@@ -290,31 +291,46 @@ Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de cód
 </nav>
 ```
 
-Imprime en pantalla el contenido de menu.php guardado previamente con el alias `'menu_lateral'`.
+Otros métodos para agregar argumentos a la plantilla antes de invocar `ViewEngine::fetch`, son:
+
+- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez, a los ya existentes.
+- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
+- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
+
+También puedes utilizar `ViewEngine::fetchAsArgument` para renderizar una plantilla y agregarla como un argumento para enviarse a la plantilla principal en `ViewEngine::fetch`. Siguiendo el ejemplo anterior, modificado podría quedar así:
 
 ```php
-// index.php
+$router->get('/home', function(Request $request, Services $services): Response {
+    $view = $services->view();
+    $data = [
+        'home': '/',
+    	'about': '/about-us',
+    	'contact': '/contact-us'
+	];
+    // La plantilla se guarda con el nombre de variable 'menu_section'
+    $view->fetchAsArgument('menu', 'menu_section', $data);
+	$template = $view->fetch('home');
+
+    return new HtmlResponse($template);
+});
+```
+
+Y la vista principal quedaría así:
+
+```php
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?></title>
+    <title>Document</title>
 </head>
 <body>
-    <?php
-        echo $menu_lateral
-    ?>
+    <!-- Se imprime la variable 'menu_section' que contiene la plantilla 'menu.view.php' renderizada -->
+    <?= $menu_section; ?>
 </body>
 </html>
 ```
-
-Otros métodos para agregar argumentos a la plantilla antes de invocar `fetch`, son:
-
-- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
-- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
-- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
 
 ## Request
 
