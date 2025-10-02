@@ -554,7 +554,7 @@ $db = DbConnection::getConnection($connection_params);
 
 ### Auto connect
 
-El método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. 
+El método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. Solo aplica para `pdomysql` y `mysqli`.
 
 ```php
 use rguezque\DbConnection;
@@ -716,12 +716,12 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 ## funciones*
 
-Se incluye también algunas funciones extras como:
+Se incluye también algunas funciones extras bajo el namespace `\rguezque\functions\`:
 
 - `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
-- `resources($styles = [], $scripts = [])`: Se utiliza en las plantillas de vistas y sirve para cargar hojas CSS y scripts JS. Requiere que previamente se haya definido la variable de entorno `$_ENV['BASE_URL']` en el archivo `.env` ya que los carga a partir de una URL absoluta.
 - `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
 - `unsetcookie(string $name)`: Elimina una cookie.
+- `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
 - `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
 - `is_assoc_array($value)`: Devuelve `true` si un array es asociativo (key-value): `false` en caso contrario.
 - `add_trailing_slash(string $str)`: Agrega un *slash* al final de una cadena de texto.

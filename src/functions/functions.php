@@ -205,6 +205,19 @@ if(!function_exists('unsetcookie')) {
     }
 }
 
+if(!function_exists('getcookie')) {
+    /**
+     * Get a cookie value
+     * * This function retrieves the value of a cookie by its name. If the cookie does not exist, it returns a default value.
+     * 
+     * @param string $name Cookie name
+     * @return ?string
+     */
+    function getcookie(string $name, $default = null): ?string {
+        return $_COOKIE[$name] ?? $default;
+    }
+}
+
 if(!function_exists('equals')) {
     /**
      * Returns true if two strings are equals, otherwise false
@@ -218,38 +231,3 @@ if(!function_exists('equals')) {
         return strcmp($str_one, $str_two) === 0;
     }
 }
-
-if(!function_exists('resources')) {
-    /**
-     * Imprime las etiquetas <link> y <script> para los recursos especificados. 
-     * Si los scripts tienen la extensión .module.js, se les añade el atributo type="module".
-     * 
-     * Si no se define la variable $basepath se intentará usar $_ENV[`BASE_URL`] si existe en el archivo .env, 
-     * de lo contrario se usará el directorio actual como base de las rutas de los recursos.
-     *
-     * @param array $styles Array de rutas a hojas de estilo CSS.
-     * @param array $scripts Array de rutas a archivos JavaScript.
-     * @param string|null $basepath Ruta base para los recursos. Si es null, se usará la variable $_ENV[`BASE_URL`] o el directorio actual.
-     * @return void
-     */
-    function resources(array $styles = [], array $scripts = [], ?string $basepath = null) : void {
-        if(empty($styles) && empty($scripts)) {
-            return; // No hay recursos que imprimir
-        }
-
-        $basepath = rtrim($basepath ?? $_ENV['BASE_URL'] ?? './', '/\\') . DIRECTORY_SEPARATOR; // Asegura que el basepath termine con un separador de directorio
-
-        foreach ($styles as $style) {
-            $style = ltrim($style, '/\\'); // Asegura que la ruta sea relativa al basepath
-            echo '<link rel="stylesheet" href="' . $basepath . htmlspecialchars($style, ENT_QUOTES) . '">' . PHP_EOL;
-        }
-
-        foreach ($scripts as $script) {
-            $script = ltrim($script, '/\\'); // Asegura que la ruta sea relativa al basepath
-            $isModule = preg_match('/\.module\.js$/i', $script);
-            $typeAttr = $isModule ? ' type="module"' : '';
-            echo '<script src="' . $basepath . htmlspecialchars($script, ENT_QUOTES) . '"' . $typeAttr . '></script>' . PHP_EOL;
-        }
-    }
-}
-
