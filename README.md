@@ -25,9 +25,12 @@ A lightweight PHP router
 - [DB Connection](#db-connection)
   - [Connecting using an URL](#connecting-using-an-url)
   - [Auto connect](#auto-connect)
+  - [Create new instances](#create-new-instances)
+  - [SQLite connection](#sqlite-connection)
 - [Middleware](#middleware)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
+- [funciones*](#funciones*)
 
 ## Install
 
@@ -96,8 +99,7 @@ use rguezque\{
     HttpStatus,
     Katya, 
     Request,
-    Response,
-    SapiEmitter
+    Response
 };
 use rguezque\Exceptions\{
     RouteNotFoundException, 
@@ -111,26 +113,21 @@ $router->route(Katya::GET, '/', function(Request $request) {
 });
 
 try {
-    $response = $router->run(Request::fromGlobals());
+    $router->run(Request::fromGlobals());
 } catch(RouteNotFoundException $e) {
     $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
     (new Response($message, HttpStatus::HTTP_NOT_FOUND))->send();
 } catch(UnsupportedRequestMethodException $e) {
     $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
     (new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED))->send();
-} catch(UnexpectedValueException $e) {
-    $message = sprintf('<h1>Unexpected Value</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, HttpStatus::HTTP_NOT_ACCEPTABLE))->send();
 } 
-
-SapiEmitter::emit($response);
 ```
 
 Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto  `Request`.
 
-Si el router se aloja en un subdirectorio, este se puede especificar en el *constructor* al crear la instancia del router.
+Si el router se aloja en un subdirectorio, este se puede especificar en el *array* de opciones al crear la instancia del router. Así mismo, se puede definir el directorio default donde se buscarán los archivos al renderizar una plantilla.
 
 ```php
 $katya = new Katya('/nombre_directorio_base');
@@ -262,26 +259,25 @@ $services->register('view', function() {
 $router->setServices($services);
 ```
 
-El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación `.view.php` del archivo) y opcionalmente un array con variables. Devuelve en un string el contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
+El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
 
 ```php
-$router->get('/home', function(Request $request, Services $services): Response {
-    $view = $services->view();
+$router->get(Request $request, Services $service): Response {
+    $view = $service->view();
     $data = [
     	'home': '/',
     	'about': '/about-us',
     	'contact': '/contact-us'
 	];
 	$template = $view->fetch('menu', $data);
-    
     return new HtmlResponse($template);
-});
+}
 ```
 
 Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
 
 ```php
-//menu.view.php
+//menu.php
 <nav>
     <ul>
         <li><a href="<?= $home ?>">Home</a></li>
@@ -291,46 +287,31 @@ Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de cód
 </nav>
 ```
 
-Otros métodos para agregar argumentos a la plantilla antes de invocar `ViewEngine::fetch`, son:
-
-- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez, a los ya existentes.
-- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
-- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
-
-También puedes utilizar `ViewEngine::fetchAsArgument` para renderizar una plantilla y agregarla como un argumento para enviarse a la plantilla principal en `ViewEngine::fetch`. Siguiendo el ejemplo anterior, modificado podría quedar así:
+Imprime en pantalla el contenido de menu.php guardado previamente con el alias `'menu_lateral'`.
 
 ```php
-$router->get('/home', function(Request $request, Services $services): Response {
-    $view = $services->view();
-    $data = [
-        'home': '/',
-    	'about': '/about-us',
-    	'contact': '/contact-us'
-	];
-    // La plantilla se guarda con el nombre de variable 'menu_section'
-    $view->fetchAsArgument('menu', 'menu_section', $data);
-	$template = $view->fetch('home');
-
-    return new HtmlResponse($template);
-});
-```
-
-Y la vista principal quedaría así:
-
-```php
+// index.php
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title><?= $title ?></title>
 </head>
 <body>
-    <!-- Se imprime la variable 'menu_section' que contiene la plantilla 'menu.view.php' renderizada -->
-    <?= $menu_section; ?>
+    <?php
+        echo $menu_lateral
+    ?>
 </body>
 </html>
 ```
+
+Otros métodos para agregar argumentos a la plantilla antes de invocar `fetch`, son:
+
+- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
+- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
+- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
 
 ## Request
 
@@ -435,7 +416,7 @@ La clase `Session` sirve para la creación de sesiones y la administración de v
 $session = Session::create();
 $session->set('nombre', 'Juan');
 $session->set('edad', 30);
-$session->get('nombre');
+$session->get('nombre);
 ```
 
 >[!NOTE]
@@ -526,22 +507,36 @@ $vars->hasVar('pi') // Para este ejemplo devolvería TRUE
 
 ## DB Connection
 
-La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada dependiendo del parámetro `driver` donde se define si se utilizara por default MySQL con `PDO` o con `mysqli`.
+La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL o sqlite [Ver SQLite connection](#sqlite-connection) a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada. Los valores posibles para `driver` son: `pdomysql`, `mysqli` o `pdo_sqlite`.
 
 ```php
 use rguezque\DbConnection;
 
 $db = DbConnection::getConnection([
-    // 'driver' => 'mysqli',
     'driver' => 'pdomysql',
     'host' => 'localhost',
     'port' => 3306,
     'user' => 'root',
     'pass' => 'mypassword',
-    'dbname' => 'mydatabase'
+    'db_name' => 'mydatabase'
     'charset' => 'utf8'
 ]);
+
+$db = DbConnection::getConnection([
+    'driver' => 'mysqli',
+    'host' => 'localhost',
+    'port' => 3306,
+    'user' => 'root',
+    'pass' => 'mypassword',
+    'db_name' => 'mydatabase'
+    'charset' => 'utf8',
+]);
 ```
+
+>[!NOTE]
+>Para el caso de conexiones con `PDO`, si se utiliza un _socket_ define el parámetro `socket` que por lo regular es `/var/run/mysqld/mysqld.sock` o en el caso de XAMPP es `/opt/lampp/var/mysql/mysql.sock`; los parámetros `host` y `port` serán ignorados aunque hayan sido definidos.
+>
+>Para conexiones con `mysqli` el parámetro `socket` determinará el tipo de conexión aunque se haya definido `host`.
 
 ### Connecting using an URL
 
@@ -559,7 +554,7 @@ $db = DbConnection::getConnection($connection_params);
 
 ### Auto connect
 
-El método estático `DbConnection::autoConnect` realiza una conexión a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. 
+El método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. Solo aplica para `pdomysql` y `mysqli`.
 
 ```php
 use rguezque\DbConnection;
@@ -581,6 +576,33 @@ DB_CHARSET="utf8"
 
 >[!NOTE]
 >Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
+
+### Create new instances
+
+Para crear nuevas instancias de conexión `PDO` o `mysqli` utiliza el método `DbConnection::create()`, este devolverá una nueva instancia de conexión cada vez que se invoque con diferentes valores de conexión. Este método recibe los mismos parámetros que `DbConnection::getConnection()`.
+
+### SQLite connection
+
+Para crear una conexión sqlite debes definir el parámetro `driver` como `pdo_sqlite` y definir el parámetro `db_file` con la ruta completa al archivo `.sqlite`. Si el archivo no existe, se intentará crear automáticamente.
+
+```php
+// Singleton
+DbConnection::getConnection([
+    'driver' => 'pdo_sqlite',
+    'db_file' => __DIR__.'/storage/database.sqlite',
+    'charset' => 'utf8'
+]);
+
+//Nueva instancia
+$db = DbConnection::create([
+    'driver' => 'pdo_sqlite',
+    'db_file' => __DIR__.'/storage/database2.sqlite',
+    'charset' => 'utf8'
+]);
+```
+
+>[!NOTE]
+>Si se omite el parámetro `db_file` se creará una conexión en memoria `:memory:` automáticamente.
 
 ## Middleware
 
@@ -691,3 +713,20 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 >[!NOTE]
 >La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.
+
+## funciones*
+
+Se incluye también algunas funciones extras bajo el namespace `\rguezque\functions\`:
+
+- `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
+- `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
+- `unsetcookie(string $name)`: Elimina una cookie.
+- `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
+- `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
+- `is_assoc_array($value)`: Devuelve `true` si un array es asociativo (key-value): `false` en caso contrario.
+- `add_trailing_slash(string $str)`: Agrega un *slash* al final de una cadena de texto.
+- `remove_trailing_slash(string $str)`: Elimina los *slashes* al final de una cadena de texto.
+- `add_leading_slash(string $str)`: Agrega un *slash* al inicio de una cadena de texto.
+- `remove_leading_slash(string $str)`: Elimina los *slashes* al inicio de una cadena de texto.
+- `str_prepend(string $subject, string ...$prepend)`: Concatena una o más cadenas de texto al inicio de una cadena de texto original. Los elementos se concatenan siguiendo el orden **FIFO** (el primero que se define es el primero que se concatena al inicio y así sucesivamente). Ej: `str_prepend("foo", "bar", "baz")` daría como resultado `"bazbarfoo"`.
+- `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.

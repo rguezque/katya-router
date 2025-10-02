@@ -207,6 +207,19 @@ if(!function_exists('unsetcookie')) {
     }
 }
 
+if(!function_exists('getcookie')) {
+    /**
+     * Get a cookie value
+     * * This function retrieves the value of a cookie by its name. If the cookie does not exist, it returns a default value.
+     * 
+     * @param string $name Cookie name
+     * @return ?string
+     */
+    function getcookie(string $name, $default = null): ?string {
+        return $_COOKIE[$name] ?? $default;
+    }
+}
+
 if(!function_exists('equals')) {
     /**
      * Returns true if two strings are equals, otherwise false
