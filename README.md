@@ -25,6 +25,8 @@ A lightweight PHP router
 - [DB Connection](#db-connection)
   - [Connecting using an URL](#connecting-using-an-url)
   - [Auto connect](#auto-connect)
+  - [Create new instances](#create-new-instances)
+  - [SQLite connection](#sqlite-connection)
 - [Middleware](#middleware)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
@@ -505,22 +507,36 @@ $vars->hasVar('pi') // Para este ejemplo devolvería TRUE
 
 ## DB Connection
 
-La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada dependiendo del parámetro `driver` donde se define si se utilizara por default MySQL con `PDO` o con `mysqli`.
+La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL o sqlite [Ver SQLite connection](#sqlite-connection) a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada. Los valores posibles para `driver` son: `pdomysql`, `mysqli` o `pdo_sqlite`.
 
 ```php
 use rguezque\DbConnection;
 
 $db = DbConnection::getConnection([
-    // 'driver' => 'mysqli',
     'driver' => 'pdomysql',
     'host' => 'localhost',
     'port' => 3306,
     'user' => 'root',
     'pass' => 'mypassword',
-    'dbname' => 'mydatabase'
+    'db_name' => 'mydatabase'
     'charset' => 'utf8'
 ]);
+
+$db = DbConnection::getConnection([
+    'driver' => 'mysqli',
+    'host' => 'localhost',
+    'port' => 3306,
+    'user' => 'root',
+    'pass' => 'mypassword',
+    'db_name' => 'mydatabase'
+    'charset' => 'utf8',
+]);
 ```
+
+>[!NOTE]
+>Para el caso de conexiones con `PDO`, si se utiliza un _socket_ define el parámetro `socket` que por lo regular es `/var/run/mysqld/mysqld.sock` o en el caso de XAMPP es `/opt/lampp/var/mysql/mysql.sock`; los parámetros `host` y `port` serán ignorados aunque hayan sido definidos.
+>
+>Para conexiones con `mysqli` el parámetro `socket` determinará el tipo de conexión aunque se haya definido `host`.
 
 ### Connecting using an URL
 
@@ -538,7 +554,7 @@ $db = DbConnection::getConnection($connection_params);
 
 ### Auto connect
 
-El método estático `DbConnection::autoConnect` realiza una conexión a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. 
+El método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. 
 
 ```php
 use rguezque\DbConnection;
@@ -560,6 +576,33 @@ DB_CHARSET="utf8"
 
 >[!NOTE]
 >Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
+
+### Create new instances
+
+Para crear nuevas instancias de conexión `PDO` o `mysqli` utiliza el método `DbConnection::create()`, este devolverá una nueva instancia de conexión cada vez que se invoque con diferentes valores de conexión. Este método recibe los mismos parámetros que `DbConnection::getConnection()`.
+
+### SQLite connection
+
+Para crear una conexión sqlite debes definir el parámetro `driver` como `pdo_sqlite` y definir el parámetro `db_file` con la ruta completa al archivo `.sqlite`. Si el archivo no existe, se intentará crear automáticamente.
+
+```php
+// Singleton
+DbConnection::getConnection([
+    'driver' => 'pdo_sqlite',
+    'db_file' => __DIR__.'/storage/database.sqlite',
+    'charset' => 'utf8'
+]);
+
+//Nueva instancia
+$db = DbConnection::create([
+    'driver' => 'pdo_sqlite',
+    'db_file' => __DIR__.'/storage/database2.sqlite',
+    'charset' => 'utf8'
+]);
+```
+
+>[!NOTE]
+>Si se omite el parámetro `db_file` se creará una conexión en memoria `:memory:` automáticamente.
 
 ## Middleware
 
