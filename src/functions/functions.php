@@ -162,14 +162,12 @@ if(!function_exists('is_assoc_array')) {
      * Return true if the evaluated array is associative
      * * An associative array is an array where the keys are not sequential integers starting from 0.
      * 
-     * @param mixed $value Value to evaluate
+     * @param array $arr Array to evaluate
      * @return bool
      */
-    function is_assoc_array($value): bool {
-        if(!is_array($value)) return false;
-        if ([] === $value) return false;
-        
-        return array_keys($value) !== range(0, count($value) - 1);
+    function is_assoc_array(array $arr): bool {
+        if ([] === $arr) return false;
+        return array_keys($arr) !== range(0, count($arr) - 1);
     }
 }
 
