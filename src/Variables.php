@@ -15,9 +15,9 @@ namespace rguezque;
  * in a collection. It allows you to set, get, and check the existence
  * of variables by name. The variables are stored in a Parameters collection.
  * 
- * @method Variables setVar(string $name, $value) Set or overwrite a variable by name
- * @method mixed getVar(string $name, $default = null) Return a variable by name is exists, otherwise return default specified value
- * @method bool hasVar(string $name) Return true if a variable exists, otherwise false
+ * @method Variables set(string $name, $value) Set or overwrite a variable by name
+ * @method mixed get(string $name, $default = null) Return a variable by name is exists, otherwise return default specified value
+ * @method bool has(string $name) Return true if a variable exists, otherwise false
  */
 class Variables {
 
@@ -28,6 +28,11 @@ class Variables {
      */
     private Parameters $vars;
 
+    /**
+     * Initialize the vars collection
+     * 
+     * @param array<string, mixed> $variables The variables array
+     */
     public function __construct(array $variables = []) {
         $this->vars = new Parameters($variables);
     }
@@ -39,10 +44,8 @@ class Variables {
      * @param mixed $value Variable value
      * @return Variables
      */
-    public function setVar(string $name, $value): Variables {
-        $name = trim($name);
+    public function set(string $name, $value): Variables {
         $this->vars->set($name, $value);
-
         return $this;
     }
 
@@ -53,9 +56,7 @@ class Variables {
      * @param mixed $default Optional default value to return
      * @return mixed
      */
-    public function getVar(string $name, $default = null) {
-        $name = trim($name);
-
+    public function get(string $name, $default = null) {
         return $this->vars->get($name, $default);
     }
 
@@ -65,9 +66,7 @@ class Variables {
      * @param string $name variable name
      * @return bool
      */
-    public function hasVar(string $name): bool {
-        $name = trim($name);
-
+    public function has(string $name): bool {
         return $this->vars->has($name);
     }
 }

@@ -19,7 +19,7 @@ use function rguezque\functions\remove_trailing_slash;
 use function rguezque\functions\str_path;
 
 /**
- * Router
+ * Router engine
  * 
  * This class provides a simple and flexible way to define routes and handle HTTP requests.
  * It allows you to define routes with different HTTP methods (GET, POST, PUT, PATCH, DELETE)
@@ -42,94 +42,39 @@ use function rguezque\functions\str_path;
  * @method void halt(Response $response) Stop the router and send the response
  */
 class Katya {
-    /**
-     * Supported verbs
-     * 
-     * @var string[]
-     */
+    /** @var string[] Supported HTTP request methods */
     private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
-    /**
-     * GET constant
-     * 
-     * @var string
-     */
     const GET = 'GET';
-
-    /**
-     * POST constant
-     * 
-     * @var string
-     */
     const POST = 'POST';
-
-    /**
-     * PUT constant
-     * 
-     * @var string
-     */
     const PUT = 'PUT';
-
-    /**
-     * PATCH constant
-     * 
-     * @var string
-     */
     const PATCH = 'PATCH';
-
-    /**
-     * DELETE constant
-     * 
-     * @var string
-     */
     const DELETE = 'DELETE';
 
-    /**
-     * Routes collection
-     * 
-     * @var Route[]
-     */
+    /** @var array<string, array<string, Route>> Routes collection */
     private array $routes = [];
 
-    /**
-     * Route groups collection
-     * 
-     * @var array
-     */
+    /** @var Group[] Route groups collection */
     private array $groups = [];
 
-    /**
-     * Services collection
-     * 
-     * @var Services
-     */
+    /** Services collection */
     private ?Services $services = null;
 
-    /**
-     * Basepath if the router lives into subdirectory
-     * 
-     * @var string
-     */
+    /** Global prefix */
     private string $basepath = '';
 
-    /**
-     * Variables collection
-     * 
-     * @var Variables
-     */
+    /** Variables collection */
     private ?Variables $vars = null;
 
-    /**
-     * CORS configuration
-     * 
-     * @var CorsConfig
-     */
+    /** CORS configuration */
     private ?CorsConfig $cors_config = null;
 
     /**
      * Initialize a router instance
      * 
-     * @param ?string $basepath Set the basepath if router is nested in subdirectory
+     * @param ?string $basepath Assigns a global prefix to routes. 
+     * If not defined, the router will automatically detect if it 
+     * is nested in a subdirectory and use that as the prefix.
      */
     public function __construct(?string $basepath = null) {
         // Default router basepath
@@ -146,7 +91,6 @@ class Katya {
      */
     public function setCors(CorsConfig $cors_config): Katya {
         $this->cors_config = $cors_config;
-
         return $this;
     }
 
@@ -158,7 +102,6 @@ class Katya {
      */
     public function setServices(Services $services): Katya {
         $this->services = $services;
-
         return $this;
     }
 
@@ -171,9 +114,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function get(string $path, callable $controller): Route {
-        $route = $this->route(self::GET, $path, $controller);
-
-        return $route;
+        return $this->route(self::GET, $path, $controller);
     }
 
     /**
@@ -185,9 +126,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function post(string $path, callable $controller): Route {
-        $route = $this->route(self::POST, $path, $controller);
-
-        return $route;
+        return $this->route(self::POST, $path, $controller);
     }
 
     /**
@@ -199,9 +138,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function put(string $path, callable $controller): Route {
-        $route = $this->route(self::PUT, $path, $controller);
-
-        return $route;
+        return $this->route(self::PUT, $path, $controller);
     }
 
     /**
@@ -213,9 +150,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function patch(string $path, callable $controller): Route {
-        $route = $this->route(self::PATCH, $path, $controller);
-
-        return $route;
+        return $this->route(self::PATCH, $path, $controller);
     }
 
     /**
@@ -227,9 +162,7 @@ class Katya {
      * @throws UnsupportedRequestMethodException When the http request method isn't supported
      */
     public function delete(string $path, callable $controller): Route {
-        $route = $this->route(self::DELETE, $path, $controller);
-
-        return $route;
+        return $this->route(self::DELETE, $path, $controller);
     }
 
     /**
@@ -302,7 +235,6 @@ class Katya {
      */
     public function run(Request $request): ?Response {
         static $invoke = false;
-
         // Ensures that the router is only invoked the first time
         if(!$invoke) {
             $this->resolveCors($request);
@@ -325,7 +257,7 @@ class Katya {
      */
     private function handleRequest(Request $request): Response {
         // Check if no routes are registered
-        if ([] === ($this->routes)) {
+        if (empty($this->routes)) {
             return new JsonResponse([
                 'message' => 'Welcome to PHP Katya Router!',
                 'status' => 'No routes registered',
@@ -347,12 +279,10 @@ class Katya {
         }
 
         // Trailing slash no matters
-        $request_uri = '/' !== $request_uri 
-        ? remove_trailing_slash($request_uri) 
-        : $request_uri;
+        $request_uri = '/' !== $request_uri ? remove_trailing_slash($request_uri) : $request_uri;
 
         // Select the routes collection according to the http request method
-        $routes = $this->routes[$request_method] ?? [];
+        $routes = $this->routes[$request_method] ??= [];
 
         foreach($routes as $route) {
             $full_path = $this->basepath.$route->getPath();
@@ -362,33 +292,20 @@ class Katya {
                 $request->setParams($arguments);
 
                 $services = $this->services;
-
                 // Filter the services for route
-                if([] !== $route->getRouteServices() && null !== $services) {
-                    $services = $this->filterServices($route->getRouteServices());
-                }
+                if([] !== $route->getRouteServices() && null !== $services) $services = $services->only($route->getRouteServices());
 
                 $controller_args = [$request];
-
                 // Add services to route arguments
-                if(null !== $services) {
-                    array_push($controller_args, $services);
-                }
+                if(null !== $services) $controller_args[] = $services;
 
                 // Add variables to route arguments, if exists
-                if(null !== $this->vars) {
-                    array_push($controller_args, $this->vars);
-                }
+                if(null !== $this->vars) $controller_args[] = $this->vars;
 
-                $next = function(...$controller_args) use($route) {
-                    return call_user_func($route->getController(), ...$controller_args);
-                };
+                $next = fn(...$controller_args) => call_user_func($route->getController(), ...$controller_args);
 
                 foreach($route->getHookBefore() as $middleware) {
-                    $next = function(...$controller_args) use($middleware, $next) {
-                        $all_args = array_merge($controller_args, [$next]);
-                        return $middleware(...$all_args);
-                    };
+                    $next = fn(...$controller_args) => call_user_func($middleware, ...array_merge($controller_args, [$next]));
                 }
 
                 $result = call_user_func($next, ...$controller_args);
@@ -437,21 +354,6 @@ class Katya {
      */
     private function filterRequestUri(string $uri): string {
         return rawurldecode(parse_url($uri, PHP_URL_PATH));
-    }
-
-    /**
-     * Keep the services defined in list, otherwise unregister
-     * 
-     * @param string[] $names Service names to keep
-     */
-    private function filterServices(array $names): Services {
-        $filtered = clone $this->services;
-        $to_remove = array_diff($filtered->keys(), $names);
-        if($to_remove) {
-            $filtered->unregister(...$to_remove);
-        }
-
-        return $filtered;
     }
 
 }
