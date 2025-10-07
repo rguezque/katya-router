@@ -470,40 +470,40 @@ Asigna variables globales dentro de la aplicación con `Katya::setVariables` que
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use rguezque\{Katya, Request, Response, Variables};
+use rguezque\{Katya, Request, Variables};
 
 $router = new Katya;
 $vars = new Variables;
 
-$vars->setVar('pi', 3.141592654);
+$vars->set('pi', 3.141592654);
 $router->setVariables($vars);
 
-$router->get('/', function(Request $request, Response $response, Variables $vars) {
-    $response->send($vars->getVar('pi'));
+$router->route(Katya::GET, '/', function(Request $request, Variables $vars) {
+    $response->send($vars->get('pi'));
 });
 ```
 
-Con `Variables::setVar` se crea una variable, recibe como parámetros el nombre de la variable y su valor.
+Con `Variables::set` se crea una variable, recibe como parámetros el nombre de la variable y su valor.
 
 ```php
-$vars->setVar('pi', 3.141592654);
+$vars->set('pi', 3.141592654);
 ```
 
-Recupera una variable con el método `Variables::getVar`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
+Recupera una variable con el método `Variables::get`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
 
 ```php
-$vars->getVar('pi'); // Devuelve la variable pi (si no existe devuelve null)
-$vars->getVar('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
+$vars->get('pi'); // Devuelve la variable pi (si no existe devuelve null)
+$vars->get('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
 ```
 
-Para verificar si una variable existe se utiliza el método `Variables::hasVar` que devolverá `true` si la variable existe o `false` en caso contrario.
+Para verificar si una variable existe se utiliza el método `Variables::has` que devolverá `true` si la variable existe o `false` en caso contrario.
 
 ```php
-$vars->hasVar('pi') // Para este ejemplo devolvería TRUE
+$vars->has('pi') // Para este ejemplo devolvería TRUE
 ```
 
->[!NOTE]
->Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador, solo si se han definido y asignado con `Katya::setVariables`.
+>[!IMPORTANT]
+>Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador; solo si se han definido y asignado con `Katya::setVariables`.
 
 ## DB Connection
 

@@ -23,6 +23,7 @@ use rguezque\Exceptions\NotFoundException;
  * 
  * @method Services register(string $alias, Closure $closure) Register services
  * @method Services unregister(string ...$alias) Unregister one or multiple services by name
+ * @method Services only(array $names) Returns a Services instance filtered with only the defined services
  * @method bool has(string $key) Return true if a service exists
  * @method array all() Return all the services array
  * @method array names() Return the key names of availables services
@@ -36,6 +37,25 @@ class Services {
      * @var array<string, Closure>
      */
     private array $services = [];
+
+    /**
+     * Inicialize the Service Locator
+     * 
+     * @param array<string, Closure> $services_array The collection of services
+     * @throws InvalidArgumentException When the services array does not comply with the expected structure
+     */
+    public function __construct(array $services_array = []) {
+        foreach($services_array as $name => $service) {
+            if(!is_string($name)) {
+                throw new InvalidArgumentException('The collection of services must be an associative array, whose keys must be of type string and its values ​​of type Closure.');
+            }
+            if(!($service instanceof Closure)) {
+                throw new InvalidArgumentException(sprintf('The service with name "%s" must be a Closure, catched %s', $name, gettype($service)));
+            }
+        }
+
+        $this->services = $services_array;
+    }
 
     /**
      * Register services
@@ -108,7 +128,22 @@ class Services {
     }
 
     /**
-     * Allow to access the private services
+     * Returns a Services instance filtered with only the defined services
+     * 
+     * @param string[] $names Service names to keep
+     */
+    public function only(array $names): Services {
+        $filtered = clone $this;
+        $to_remove = array_diff($this->names(), $names);
+        if(!empty($to_remove)) {
+            $filtered->unregister(...$to_remove);
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Allow to access the private services. E.g. $services->db()
      * 
      * @param string $name Service name
      * @param array $params Service parameters
@@ -124,7 +159,7 @@ class Services {
     }
 
     /**
-     * Allow to acces services in object context
+     * Allow to acces services in object context.  E.g. $services->db
      * 
      * @param string $name Service name
      * @return mixed

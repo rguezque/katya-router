@@ -166,7 +166,7 @@ class DbConnection {
     }
 
     /**
-     * Establish a connection to a SQLite database using PDO.
+     * Establish a connection to a SQLite database using PDO. If the file don't exist it will try to create it.
      * @param array $params
      * @return PDO
      * @throws PDOException if the connection fails.

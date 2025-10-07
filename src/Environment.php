@@ -157,13 +157,15 @@ class Environment {
         // Log the error
         self::logError($exception);
 
+        // Prepare response data
+        $is_dev = self::getMode() === 'development';
         $error_data = [
-            'error' => self::$mode == 'development' ? $exception->getMessage() : 'An internal server error occurred.',
-            'code' => self::$mode == 'development' ? $exception->getCode() : HttpStatus::HTTP_INTERNAL_SERVER_ERROR
+            'error' => $is_dev ? $exception->getMessage() : 'Internal Server Error',
+            'code' => $is_dev ? $exception->getCode() : HttpStatus::HTTP_INTERNAL_SERVER_ERROR
         ];
 
         // In development, include more details
-        if (self::getMode() === 'development') {
+        if ($is_dev) {
             $error_data['file'] = $exception->getFile();
             $error_data['line'] = $exception->getLine();
             $error_data['trace'] = $exception->getTrace();
