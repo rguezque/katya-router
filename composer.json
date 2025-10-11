@@ -9,7 +9,7 @@
         "psr-4": {
             "rguezque\\": "src/"
         },
-        "files": ["src/functions/functions.php"]
+        "files": ["src/functions/helpers.php"]
     },
     "authors": [
         {

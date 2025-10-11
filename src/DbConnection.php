@@ -15,6 +15,8 @@ use PDO;
 use PDOException;
 use rguezque\Exceptions\PermissionException;
 
+use function rguezque\functions\env;
+
 /**
  * Represents a MySQL/SQLite connection
  * 
@@ -79,14 +81,14 @@ class DbConnection {
      */
     public static function autoConnect(): PDO|mysqli {
         $params = [
-            'driver'  => $_ENV['DB_DRIVER'] ?? 'pdomysql',
-            'host'    => $_ENV['DB_HOST'] ?? '127.0.0.1',
-            'port'    => (int)($_ENV['DB_PORT'] ?? 3306),
-            'db_name' => $_ENV['DB_NAME'] ?? '',
-            'charset' => $_ENV['DB_CHARSET'] ?? self::$charset,
-            'user'    => $_ENV['DB_USER'] ?? '',
-            'pass'    => $_ENV['DB_PASS'] ?? '',
-            'socket'  => $_ENV['DB_SOCKET'] ?? null
+            'driver'  => env('DB_DRIVER', 'pdomysql'),
+            'host'    => env('DB_HOST', '127.0.0.1'),
+            'port'    => env('DB_PORT', 3306, CAST_INT),
+            'db_name' => env('DB_NAME', ''),
+            'charset' => env('DB_CHARSET', self::$charset),
+            'user'    => env('DB_USER', ''),
+            'pass'    => env('DB_PASS', ''),
+            'socket'  => env('DB_SOCKET')
         ];
         return self::getConnection($params);
     }

@@ -1,4 +1,5 @@
 <?php declare(strict_types = 1);
+
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -10,19 +11,47 @@ namespace rguezque\functions;
 
 use rguezque\Exceptions\FileNotFoundException;
 
+define('CAST_INT', 91420);
+define('CAST_INTEGER', 91420);
+define('CAST_FLOAT', 61215120);
+define('CAST_STR', 192018);
+define('CAST_STRING', 192018);
+define('CAST_ARRAY', 1181825);
+define('CAST_BOOL', 2151512);
+define('CAST_OBJECT', 15210);
+
 if(!function_exists('env')) {
     /**
      * Get an environment variable
      * * This function retrieves the value of an environment variable. If the variable is not set, it returns a default value.
-     * * The variable is invoked in lowercase and with periods instead of underscores (if it has any). E.g., app.name instead of APP_NAME
      * 
      * @param string $key The name of the environment variable
      * @param mixed $default The default value to return if the environment variable is not set
+     * @param int $cast_to Integer constant that identifies the type of data to be cast to (`CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`)
      * @return mixed The value of the environment variable or the default value
      */
-    function env(string $key, mixed $default = null): mixed {
-        $key = str_replace(['.', '-'], '_', strtoupper(trim($key)));
-        return isset($_ENV[$key]) ? $_ENV[$key] : $default;
+    function env(string $key, mixed $default = null, ?int $cast_to = null): mixed {
+        return isset($_ENV[$key]) ? (isset($cast_to) ? cast_to($_ENV[$key], $cast_to) : $_ENV[$key]) : $default;
+    }
+}
+
+if(!function_exists('cast_to')) {
+    /**
+     * Cast a value to specific data type
+     * 
+     * @param mixed $value Value to be cast to
+     * @param int $cast_type_code Integer constant that identifies the type of data to be cast to (`CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`)
+     * @return mixed The value converted
+     */
+    function cast_to(mixed $value, int $cast_type_code) {
+        return match($cast_type_code) {
+            91420 => (int)$value,
+            61215120 => (float)$value,
+            192018 => (string)$value,
+            1181825 => (array)$value,
+            2151512 => (bool)$value,
+            15210 => (object)$value
+        };
     }
 }
 
@@ -88,35 +117,6 @@ if(!function_exists('namespace_format')) {
      */
     function namespace_format(string $namespace): string {
         return trim($namespace, '\\').'\\';
-    }
-}
-
-if(!function_exists('str_starts_with')) {
-    /**
-     * Return true if a string has a specific prefix
-     * * * This function checks if the given string starts with the specified prefix.
-     * 
-     * @param string $haystack String to evaluate
-     * @param string $needle Prefix to search
-     * @return bool
-     */
-    function str_starts_with(string $haystack, string $needle): bool {
-        return $needle === substr($haystack, 0, strlen($needle));
-    }
-}
-
-
-if(!function_exists('str_ends_with')) {
-    /**
-     * Return true if a string has a specific suffix
-     * * This function checks if the given string ends with the specified suffix.
-     * 
-     * @param string $haystack String to evaluate
-     * @param string $needle Suffix to search
-     * @return bool
-     */
-    function str_ends_with(string $haystack, string $needle): bool {
-        return $needle === substr($haystack, -strlen($needle));
     }
 }
 
