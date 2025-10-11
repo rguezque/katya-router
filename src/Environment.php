@@ -12,6 +12,8 @@ use ErrorException;
 use InvalidArgumentException;
 use Throwable;
 
+use function rguezque\functions\env;
+
 /**
  * Represent the environment mode and error handling.
  * 
@@ -24,6 +26,10 @@ use Throwable;
  * @static string getMode() Get the current environment mode
  */
 class Environment {
+    const DEVELOPMENT = 'development';
+    const PRODUCTION = 'production';
+    const VALID_ENVIRONMENTS = ['development', 'production'];
+
     /**
      * Environment mode ("development" or "production")
      * 
@@ -54,10 +60,10 @@ class Environment {
      */
     private static function initializeMode(?string $env_mode = null): void {
         // Load mode from environment, default to 'development'
-        $env_mode = strtolower($env_mode ?? $_ENV['APP_ENV'] ?? 'development');
+        $env_mode = strtolower($env_mode ?? env('APP_ENV', self::DEVELOPMENT));
         
         // Validate mode
-        if (!in_array(trim($env_mode), ['development', 'production'])) {
+        if (!in_array(trim($env_mode), self::VALID_ENVIRONMENTS)) {
             throw new InvalidArgumentException("Environment mode must be 'development' or 'production'");
         }
         
@@ -101,7 +107,7 @@ class Environment {
      * @return string
      */
     public static function getLogPath(): string {
-        return self::$log_path ?: dirname(__DIR__, 2) . '/logs/php_errors.log';
+        return self::$log_path ?: dirname(__DIR__, 1) . '/logs/php_errors.log';
     }
 
     /**
@@ -158,7 +164,7 @@ class Environment {
         self::logError($exception);
 
         // Prepare response data
-        $is_dev = self::getMode() === 'development';
+        $is_dev = self::getMode() === self::DEVELOPMENT;
         $error_data = [
             'error' => $is_dev ? $exception->getMessage() : 'Internal Server Error',
             'code' => $is_dev ? $exception->getCode() : HttpStatus::HTTP_INTERNAL_SERVER_ERROR
