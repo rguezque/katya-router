@@ -60,7 +60,7 @@ class Environment {
      */
     private static function initializeMode(?string $env_mode = null): void {
         // Load mode from environment, default to 'development'
-        $env_mode = strtolower($env_mode ?? env('APP_ENV', self::DEVELOPMENT));
+        $env_mode = strtolower($env_mode ?? env('app.env', self::DEVELOPMENT));
         
         // Validate mode
         if (!in_array(trim($env_mode), self::VALID_ENVIRONMENTS)) {
