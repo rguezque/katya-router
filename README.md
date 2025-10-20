@@ -720,8 +720,6 @@ Se incluye también algunas funciones extras bajo el namespace `\rguezque\functi
 
 - `env(string $key, mixed $default = null, ?int $cast_to = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado. Si se especifica el tercer argumento casteará la variable al tipo de dato especificado entre los disponibles `CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`.
 
-  La variable debe llamarse en minúsculas y con puntos en vez de guiones bajos. El nombre de la variable automáticamente será buscada en su notación normal en mayúsculas y sustituirá los puntos por guiones bajos (si existen). Ejemplo: En el archivo `.env` debe llamarse `APP_NAME`, pero se recupera con `env('app.name')`.
-
 - `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
 
 - `unsetcookie(string $name)`: Elimina una cookie.
