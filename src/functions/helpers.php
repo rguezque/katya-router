@@ -24,7 +24,6 @@ if(!function_exists('env')) {
     /**
      * Get an environment variable
      * * This function retrieves the value of an environment variable. If the variable is not set, it returns a default value.
-     * * The variable is invoked in lowercase and with periods instead of underscores (if it has any). Automatically converts the name to uppercase notation. E.g., `app.name` instead of `APP_NAME`
      * 
      * @param string $key The name of the environment variable
      * @param mixed $default The default value to return if the environment variable is not set
@@ -32,8 +31,7 @@ if(!function_exists('env')) {
      * @return mixed The value of the environment variable or the default value
      */
     function env(string $key, mixed $default = null, ?int $cast_to = null): mixed {
-        $key = str_replace(['.', '-'], '_', strtoupper($key));
-        $value = $_ENV[$key];
+        $value = $_ENV[$key] ??= null;
         return isset($value) ? (isset($cast_to) ? cast_to($value, $cast_to) : $value) : $default;
     }
 }
@@ -55,6 +53,8 @@ if(!function_exists('cast_to')) {
             2151512 => (bool)$value,
             15210 => (object)$value
         };
+
+        return $value;
     }
 }
 
