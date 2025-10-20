@@ -81,14 +81,14 @@ class DbConnection {
      */
     public static function autoConnect(): PDO|mysqli {
         $params = [
-            'driver'  => env('DB_DRIVER', 'pdomysql'),
-            'host'    => env('DB_HOST', '127.0.0.1'),
-            'port'    => env('DB_PORT', 3306, CAST_INT),
-            'db_name' => env('DB_NAME', ''),
-            'charset' => env('DB_CHARSET', self::$charset),
-            'user'    => env('DB_USER', ''),
-            'pass'    => env('DB_PASS', ''),
-            'socket'  => env('DB_SOCKET')
+            'driver'  => env('db.driver', 'pdomysql'),
+            'host'    => env('db.host', '127.0.0.1'),
+            'port'    => env('db.host', 3306, CAST_INT),
+            'db_name' => env('db.name', ''),
+            'charset' => env('db.charset', self::$charset),
+            'user'    => env('db.user', ''),
+            'pass'    => env('db.pass', ''),
+            'socket'  => env('db.socket')
         ];
         return self::getConnection($params);
     }
