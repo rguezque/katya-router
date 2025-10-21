@@ -51,10 +51,9 @@ if(!function_exists('cast_to')) {
             192018 => (string)$value,
             1181825 => (array)$value,
             2151512 => (bool)$value,
-            15210 => (object)$value
+            15210 => (object)$value,
+            default => $value
         };
-
-        return $value;
     }
 }
 
