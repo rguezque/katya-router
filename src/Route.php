@@ -45,9 +45,9 @@ class Route {
     /**
      * Route controller
      * 
-     * @var Closure|array|string
+     * @var callable
      */
-    private Closure|array|string $controller;
+    private $controller;
 
     /**
      * Hook before the controller
