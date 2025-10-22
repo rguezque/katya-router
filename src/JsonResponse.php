@@ -27,7 +27,7 @@ class JsonResponse extends Response {
      * @throws JsonException If there is an error encoding the data to JSON.
      */
     public function __construct(array|string $data = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
-        if(is_array($data) && [] !== $data) {
+        if(is_array($data)) {
             $data = json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
         }
         parent::__construct($data, $status_code, $headers);
