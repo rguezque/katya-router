@@ -712,7 +712,7 @@ Environment::setLogPath(__DIR__.'/path/to/custom/logs');
 Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de registro de errores.
 
 >[!NOTE]
->La salida en pantalla del registro de errores se muestra en formato JSON para una mejor legibilidad.
+>Asegurate de definir tu zona horaria previamente con `set_default_timezone_set('America/Mexico_City')` de lo contrario los *logs* mostrarán la fecha en `GMT` (Greenwich Mean Time) por default.
 
 ## helpers
 
