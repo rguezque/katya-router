@@ -134,9 +134,11 @@ class Environment {
      * @return void
      */
     public static function logError(Throwable $exception): void {
+        $timestamp = time();
         $log_message = sprintf(
-            "[%s] %s in %s on line %d\n%s\n\n",
-            date('Y-m-d H:i:s'),
+            "[%d][%s] %s in %s on line %d\n%s\n\n",
+            $timestamp,
+            date('Y-m-d H:i:s', $timestamp),
             $exception->getMessage(),
             $exception->getFile(),
             $exception->getLine(),

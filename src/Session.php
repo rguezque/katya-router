@@ -234,7 +234,7 @@ class Session implements BagInterface, ArgumentsInterface {
         
         $this->clearAllCookies(); // Clear all cookies in the current domain and path
         $this->clear();
-        return session_destroy() && session_regenerate_id(true);
+        return session_destroy() && session_write_close();
     }
 
     /**
