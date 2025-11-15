@@ -207,10 +207,13 @@ $katya->group('/foo', function(Group $group) {
 
 Los *wildcards* son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve por default un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los *wildcards*. El argumento por default de esté método es `Request::PARAMS_ASSOC` el cual indica que el *array* de parámetros tiene índices nombrados correspondientes a los *wildcards* y no numéricos.
 
+Los *wildcards* permiten la definición de `regex` opcionales para hacer más estrictas las rutas.
+
 ```php
-$katya->get('/hola/{nombre}', function(Request $request) {
+// Si `edad` no es un número entero, arrojará una excepción `RouteNotFoundException`
+$katya->get('/hola/{nombre}/{edad: \d+}', function(Request $request) {
     $params = $request->getParams(); // Devuelve un objeto Parameter
-    return new Response(sprintf('Hola %s', $params->get('nombre')));
+    return new JsonResponse(['nombre' => $params['nombre'], 'edad' => $params['edad']]);
 });
 ```
 
@@ -226,18 +229,18 @@ El objeto `Parameters` tiene los siguientes métodos:
 - `keys()`: Devuelve un array lineal con los nombres de todos los parámetros.
 - `gettype(string $key)`: Devuelve el tipo de dato de un parámetro.
 
-Si los *wildcards* fueron definidos como expresiones regulares envía el argumento `Request::PARAMS_NUM` el cual devuelve un *array* lineal con los valores de las coincidencias encontradas.
+Si los *wildcards* fueron definidos como expresiones regulares puras, envía el argumento `Request::PARAMS_NUM` el cual devuelve un *array* lineal con los valores de las coincidencias encontradas.
 
 ```php
-$katya->get('/hola/(\w+)/(\w+)', function(Request $request) {
+$katya->get('/hola/(\w+)/(\w+)/(\d+)', function(Request $request) {
     $params = $request->getParams(Request::PARAMS_NUM); // Devuelve un array lineal
-    list($nombre, $apellido) = $params;
-    return new Response(sprintf('Hola %s %s', $nombre, $apellido));
+    list($nombre, $apellido, $edad) = $params;
+    return new Response(sprintf('Hola %s %s, tu edad recibida es: %d', $nombre, $apellido, $edad));
 });
 ```
 
 >[!IMPORTANT]
->Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podrás recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, envía el argumento `Request::PARAMS_BOTH` para recuperar un array con todos los parámetros en el orden que hayan sido definidos en la ruta.
+>Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podrás recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, envía el argumento `Request::PARAMS_BOTH` para recuperar un **_array_** con todos los parámetros en el orden que hayan sido definidos en la ruta.
 
 ## Views
 

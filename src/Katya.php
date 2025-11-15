@@ -271,7 +271,7 @@ class Katya {
         }
 
         $server = $request->getServer();
-        $request_uri = $this->filterRequestUri($server->get('REQUEST_URI'));
+        $request_uri = self::filterRequestUri($server->get('REQUEST_URI'));
         $request_method = $server->get('REQUEST_METHOD');
 
         if(!in_array($request_method, self::SUPPORTED_VERBS)) {
@@ -340,10 +340,24 @@ class Katya {
      * @return string
      */
     private function getPattern(string $path): string {
-        $path = str_replace('/', '\/', str_path($path));
-        $path = preg_replace('#{(\w+)}#', '(?<$1>\w+)', $path); // Replace wildcards
-        
-        return '#^'.$path.'$#i';
+        // Normalize path
+        $path = str_path($path);
+
+        // Replace named wildcards {name[:regex]} with named capture groups.
+        // If regex is not provided, use a default that matches any segment except '/'
+        $pattern = preg_replace_callback(
+            '#\{([a-zA-Z_][\w\-]*)(?::([^}]+))?\}#',
+            function (array $m): string {
+                $name = $m[1];
+                $regex = isset($m[2]) && '' !== $m[2] ? trim($m[2]) : '[^/]+';
+                // Escape the pattern delimiter if present in user regex
+                $regex = str_replace('#', '\#', $regex);
+                return '(?P<' . $name . '>' . $regex . ')';
+            },
+            $path
+        );
+
+        return '#^' . $pattern . '$#';
     }
 
     /**
@@ -352,8 +366,8 @@ class Katya {
      * @param string $uri The URI
      * @return string
      */
-    private function filterRequestUri(string $uri): string {
-        return rawurldecode(parse_url($uri, PHP_URL_PATH));
+    private static function filterRequestUri(string $uri): string {
+        return rawurldecode(strtok($uri, '?'));
     }
 
 }
