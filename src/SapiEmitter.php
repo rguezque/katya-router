@@ -32,7 +32,8 @@ class SapiEmitter {
     public static function emit(Response $response): void {
         ob_end_clean(); // Clean the output buffer to prevent any previous output from interfering with the response
         // Set the HTTP status code
-        http_response_code($response->getStatusCode());
+        $status_code = $response->getStatusCode();
+        http_response_code($status_code);
 
         
         // Send the headers
@@ -40,15 +41,16 @@ class SapiEmitter {
             // If it's a redirection, avoid to emit the body of response and exit
             if($response instanceof RedirectResponse) {
                 $location = $response->headers->get('Location');
-                header("Location: $location");
+                header("Location: $location", true, $status_code);
                 exit();
             }
 
             $response->headers->rewind();
             while($response->headers->valid()) {
                 $key = ucwords($response->headers->key(), '-');
+                $replace = $key !== 'Set-Cookie';
                 $value = $response->headers->current();
-                header("$key: $value");
+                header("$key: $value", $replace, $status_code);
                 $response->headers->next();
             }
         }
