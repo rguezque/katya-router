@@ -56,7 +56,7 @@ class Response {
      */
     public function __construct(string $content = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
         $this->status_code = $status_code;
-        $this->headers = [] !== $headers ? new HttpHeaders($headers) : new HttpHeaders;
+        $this->headers = new HttpHeaders($headers);
         $stream = new Stream(fopen('php://memory', 'r+'));
         if('' !== trim($content)) {
             $stream->write($content);
