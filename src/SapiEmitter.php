@@ -33,11 +33,20 @@ class SapiEmitter {
         ob_end_clean(); // Clean the output buffer to prevent any previous output from interfering with the response
         // Set the HTTP status code
         http_response_code($response->getStatusCode());
+
+        
         // Send the headers
         if(!headers_sent()) {
+            // If it's a redirection, avoid to emit the body of response and exit
+            if($response instanceof RedirectResponse) {
+                $location = $response->headers->get('Location');
+                header("Location: $location");
+                exit();
+            }
+
             $response->headers->rewind();
             while($response->headers->valid()) {
-                $key = $response->headers->key();
+                $key = ucwords($response->headers->key(), '-');
                 $value = $response->headers->current();
                 header("$key: $value");
                 $response->headers->next();
