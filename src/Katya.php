@@ -9,6 +9,7 @@
 namespace rguezque;
 
 use Closure;
+use Exception;
 use rguezque\Exceptions\{
     RouteNotFoundException,
     UnsupportedRequestMethodException
@@ -207,9 +208,18 @@ class Katya {
      * @param Request $request Request object with informatión about the request origin
      * @return void
      */
-    public function resolveCors(Request $request): void {
-        if(null !== $this->cors_config) {
-            ($this->cors_config)($request, new Response);
+    public function resolveCors(Request $request) {
+        if(null !== $this->cors_config ) {
+            try {
+                $cors_headers = ($this->cors_config)($request);
+                if ($request->getServer()->get('REQUEST_METHOD') === 'OPTIONS') {
+                    SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
+                    die(0);
+                }
+                SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
+            } catch(Exception $e) {
+                Katya::halt(new Response($e->getMessage(), HttpStatus::HTTP_UNAUTHORIZED));
+            }
         }
     }
 
@@ -238,8 +248,8 @@ class Katya {
         // Ensures that the router is only invoked the first time
         if(!$invoke) {
             $this->resolveCors($request);
-            $this->processGroups();
             $invoke = true;
+            $this->processGroups();
             return $this->handleRequest($request);
         }
 

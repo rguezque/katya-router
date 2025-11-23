@@ -33,8 +33,6 @@ class SapiEmitter {
         ob_end_clean(); // Clean the output buffer to prevent any previous output from interfering with the response
         // Set the HTTP status code
         $status_code = $response->getStatusCode();
-        http_response_code($status_code);
-
         
         // Send the headers
         if(!headers_sent()) {
@@ -42,22 +40,35 @@ class SapiEmitter {
             if($response instanceof RedirectResponse) {
                 $location = $response->headers->get('Location');
                 header("Location: $location", true, $status_code);
-                exit();
+                exit(0);
             }
 
-            $response->headers->rewind();
-            while($response->headers->valid()) {
-                $key = ucwords($response->headers->key(), '-');
-                $replace = $key !== 'Set-Cookie';
-                $value = $response->headers->current();
-                header("$key: $value", $replace, $status_code);
-                $response->headers->next();
-            }
+            self::emitHeaders($response->headers, $status_code);
         }
 
         // Output the body
         $response->body->rewind();
         echo $response->body->getContents();
+    }
+
+    /**
+     * Send only HTTP headers with a status code
+     * 
+     * @param HttpHeaders $headers Object with the headers
+     * @param int $status_code The HTTP status code
+     * @return void
+     */
+    public static function emitHeaders(HttpHeaders $headers, int $status_code): void {
+        http_response_code($status_code);
+
+        $headers->rewind();
+        while($headers->valid()) {
+            $key = ucwords($headers->key(), '-');
+            $replace = $key !== 'Set-Cookie';
+            $value = $headers->current();
+            header("$key: $value", $replace, $status_code);
+            $headers->next();
+        }
     }
 }
 
