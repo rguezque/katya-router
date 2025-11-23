@@ -164,7 +164,7 @@ class Session implements BagInterface, ArgumentsInterface {
      */
     public function has(string $key): bool {
         $this->start();
-        return isset($this->namespace, $_SESSION) && array_key_exists($key, $_SESSION[$this->namespace]);
+        return isset($_SESSION[$this->namespace]) && array_key_exists($key, $_SESSION[$this->namespace]);
     }
 
     /**
