@@ -233,3 +233,25 @@ if(!function_exists('equals')) {
         return strcmp($str_one, $str_two) === 0;
     }
 }
+
+if(!function_exists('is_localhost')) {
+    /**
+     * Returns `true` if the client IP is in localhost, `false` en caso contrario.
+     * 
+     * @return bool
+     */
+    function is_localhost(): bool {
+        // List of IPs that correspond to localhost
+        $white_list = array(
+            '127.0.0.1', // IPv4
+            '::1'        // IPv6
+        );
+
+        // It checks if the client's IP is in the list or the server name is localhost
+        if (in_array($_SERVER['REMOTE_ADDR'], $white_list) || $_SERVER['SERVER_NAME'] === 'localhost') {
+            return true;
+        }
+
+        return false;
+    }
+}

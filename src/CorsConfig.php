@@ -8,6 +8,9 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
+use RuntimeException;
+
 /**
  * Represent CORS configuration for handling cross-origin requests
  * 
@@ -36,6 +39,13 @@ class CorsConfig {
         'max_age' => 86400, // 24 hours
         'supports_credentials' => false
     ];
+
+    private $headers;
+
+    public function __construct()
+    {
+        $this->headers = new HttpHeaders();
+    }
 
     /**
      * Add an origin with specific configuration
@@ -68,17 +78,22 @@ class CorsConfig {
      * Handle CORS headers for a request
      * 
      * @param Request $request Incoming request
-     * @param Response $response Response object to modify
-     * @return bool Whether to continue processing the request
+     * @return HttpHeaders 
+     * @throws RuntimeException
+     * @throws InvalidArgumentException
      */
-    public function __invoke(Request $request, Response $response): bool {
+    public function __invoke(Request $request): HttpHeaders {
+        if(headers_sent($file, $line)) {
+            new RuntimeException(sprintf('Headers sent from file "%s" line %s', $file, $line));
+        }
+
         $server = $request->getServer();
         $origin = $server->get('HTTP_ORIGIN');
         $request_method = $server->get('REQUEST_METHOD');
 
         // No origin, skip CORS handling
         if (!$origin) {
-            return true;
+            throw new RuntimeException('Something went wrong');
         }
 
         // Find matching origin configuration
@@ -86,26 +101,39 @@ class CorsConfig {
         
         // No matching origin found, allow request to continue
         if (!$origin_config) {
-            return true;
+            throw new RuntimeException('Has been blocked by CORS policy. You do not have permissions configured for this resource.');
         }
 
         // Apply CORS headers for the matching origin
-        $response->headers->set('Access-Control-Allow-Origin', $origin);
+        $this->headers->set('Access-Control-Allow-Origin', $origin);
+
+        $this->headers->set(
+            'Access-Control-Allow-Methods', 
+            implode(', ', $this->getAllowedMethods($origin_config))
+        );
+
+        // Add allowed headers
+        $this->headers->set(
+            'Access-Control-Allow-Headers', 
+            implode(', ', $origin_config['config']['allowed_headers'])
+        );
 
         // Credentials support
         if ($origin_config['config']['supports_credentials']) {
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $this->headers->set('Access-Control-Allow-Credentials', 'true');
         }
 
-        // Handle preflight requests (OPTIONS method)
-        if ($request_method === 'OPTIONS') {
-            return $this->handlePreflightRequest($request, $response, $origin_config);
+        // Add max age for preflight caching
+        if ($origin_config['config']['max_age']) {
+            $this->headers->set('Access-Control-Max-Age', (string)$origin_config['config']['max_age']);
         }
-        
-        SapiEmitter::emit($response);
 
         // Validate request method for non-preflight requests
-        return $this->validateRequestMethod($origin_config, $request_method);
+        if(!$this->isMethodAllowed($origin_config, $request_method)) {
+            throw new InvalidArgumentException(sprintf('The request HTTP method "%s" is not allowed for origin: %s', $request_method, $origin));
+        }
+
+        return $this->headers;
     }
 
     /**
@@ -115,19 +143,22 @@ class CorsConfig {
      * @return array|null Origin configuration or null if not found
      */
     private function findOriginConfig(string $origin): ?array {
-        foreach ($this->origins as $origin_pattern => $config) {
-            if (preg_match('#' . $origin_pattern . '#', $origin)) {
-                return $config;
-            }
+        // PRIORIDAD: Chequear si existe la configuración global wildcard '*'
+        // Esto evita que el '*' entre al preg_match y rompa el código.
+        if (isset($this->origins['*'])) {
+            return $this->origins['*'];
         }
-        // Exact match
-        /* if (isset($this->origins[$origin])) {
-            return $this->origins[$origin];
-        } */
 
-        // Wildcard match
-        foreach ($this->origins as $config_origin => $config) {
-            if ($config_origin === '*') {
+        // Chequear patrones Regex
+        foreach ($this->origins as $origin_pattern => $config) {
+            // Saltamos el '*' si llegara a estar aquí para evitar error de regex
+            if ($origin_pattern === '*') { 
+                continue; 
+            }
+            
+            // Usamos @ para suprimir warnings de regex mal formados por el usuario,
+            // o idealmente deberías validar que sea un regex válido al hacer addOrigin
+            if (@preg_match('#' . $origin_pattern . '#', $origin)) {
                 return $config;
             }
         }
@@ -139,40 +170,28 @@ class CorsConfig {
      * Handle preflight request
      * 
      * @param Request $request Incoming request
-     * @param Response $response Response object
      * @param array $origin_config Origin configuration
      * @return bool Whether to continue processing
      */
-    private function handlePreflightRequest(Request $request, Response $response, array $origin_config): bool {
-        $requested_method = $request->getAllHeaders()->get('Access-Control-Request-Method');
-        
-        // Validate requested method
-        if (!$this->isMethodAllowed($origin_config, $requested_method)) {
-            return false;
-        }
-
+    private function handlePreflightRequest(Request $request, array $origin_config): bool {
         // Add allowed methods
-        $response->headers->set(
+        $this->headers->set(
             'Access-Control-Allow-Methods', 
             implode(', ', $this->getAllowedMethods($origin_config))
         );
 
         // Add allowed headers
-        $response->headers->set(
+        $this->headers->set(
             'Access-Control-Allow-Headers', 
             implode(', ', $origin_config['config']['allowed_headers'])
         );
 
         // Add max age for preflight caching
-        $response->headers->set(
+        $this->headers->set(
             'Access-Control-Max-Age', 
             (string)$origin_config['config']['max_age']
         );
-
-        // Respond immediately for preflight
-        $response->setStatusCode(HttpStatus::HTTP_NO_CONTENT);
-        SapiEmitter::emit($response);
-        
+        http_response_code(200);
         return true;
     }
 
@@ -200,14 +219,4 @@ class CorsConfig {
             : $origin_config['methods'];
     }
 
-    /**
-     * Validate request method for a non-preflight request
-     * 
-     * @param array $origin_config Origin configuration
-     * @param string $request_method HTTP method of the request
-     * @return bool Whether the request method is allowed
-     */
-    private function validateRequestMethod(array $origin_config, string $request_method): bool {
-        return $this->isMethodAllowed($origin_config, $request_method);
-    }
 }
