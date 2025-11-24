@@ -209,24 +209,33 @@ class Katya {
      * @return void
      */
     public function resolveCors(Request $request) {
-        if(null !== $this->cors_config ) {
-            try {
-                $server = $request->getServer();
-                // If not exists the origin of a cross-origin request
-                // avoid the CORS
-                if($server->get('HTTP_ORIGIN')) {
-                    $cors_headers = ($this->cors_config)($request);
-                    // Manage pre-flight requests
-                    if ($server->get('REQUEST_METHOD') === 'OPTIONS') {
-                        SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
-                        die(0);
-                    }
-                    
-                    SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
-                }
-            } catch(Exception $e) {
-                Katya::halt(new Response($e->getMessage(), HttpStatus::HTTP_UNAUTHORIZED));
+        if(null === $this->cors_config) {
+            return;
+        }
+
+        try {
+            $server = $request->getServer();
+            $origin = $server->get('HTTP_ORIGIN');
+            
+            // Only process CORS if origin header exists
+            if(!$origin) {
+                return;
             }
+
+            // Get CORS headers from config
+            $cors_headers = ($this->cors_config)($request);
+            
+            // Manage pre-flight requests (OPTIONS)
+            if($server->get('REQUEST_METHOD') === 'OPTIONS') {
+                SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
+                exit(0);
+            }
+            
+            // Emit CORS headers for actual requests
+            SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
+            
+        } catch(Exception $e) {
+            Katya::halt(new Response($e->getMessage(), HttpStatus::HTTP_FORBIDDEN));
         }
     }
 
