@@ -211,12 +211,19 @@ class Katya {
     public function resolveCors(Request $request) {
         if(null !== $this->cors_config ) {
             try {
-                $cors_headers = ($this->cors_config)($request);
-                if ($request->getServer()->get('REQUEST_METHOD') === 'OPTIONS') {
+                $server = $request->getServer();
+                // If not exists the origin of a cross-origin request
+                // avoid the CORS
+                if($server->get('HTTP_ORIGIN')) {
+                    $cors_headers = ($this->cors_config)($request);
+                    // Manage pre-flight requests
+                    if ($server->get('REQUEST_METHOD') === 'OPTIONS') {
+                        SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
+                        die(0);
+                    }
+                    
                     SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
-                    die(0);
                 }
-                SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
             } catch(Exception $e) {
                 Katya::halt(new Response($e->getMessage(), HttpStatus::HTTP_UNAUTHORIZED));
             }
