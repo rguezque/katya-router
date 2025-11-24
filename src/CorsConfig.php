@@ -93,7 +93,7 @@ class CorsConfig {
 
         // No origin, skip CORS handling
         if (!$origin) {
-            throw new RuntimeException('Something went wrong');
+            throw new RuntimeException('Something went wrong. Origin of a cross-origin request, not detected.');
         }
 
         // Find matching origin configuration
