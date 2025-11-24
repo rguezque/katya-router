@@ -167,35 +167,6 @@ class CorsConfig {
     }
 
     /**
-     * Handle preflight request
-     * 
-     * @param Request $request Incoming request
-     * @param array $origin_config Origin configuration
-     * @return bool Whether to continue processing
-     */
-    private function handlePreflightRequest(Request $request, array $origin_config): bool {
-        // Add allowed methods
-        $this->headers->set(
-            'Access-Control-Allow-Methods', 
-            implode(', ', $this->getAllowedMethods($origin_config))
-        );
-
-        // Add allowed headers
-        $this->headers->set(
-            'Access-Control-Allow-Headers', 
-            implode(', ', $origin_config['config']['allowed_headers'])
-        );
-
-        // Add max age for preflight caching
-        $this->headers->set(
-            'Access-Control-Max-Age', 
-            (string)$origin_config['config']['max_age']
-        );
-        http_response_code(200);
-        return true;
-    }
-
-    /**
      * Check if a method is allowed for a specific origin
      * 
      * @param array $origin_config Origin configuration
