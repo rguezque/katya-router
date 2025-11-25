@@ -40,7 +40,11 @@ class CorsConfig {
         'supports_credentials' => false
     ];
 
-    private $headers;
+    /**
+     * HTTP headers
+     * @var HttpHeaders
+     */
+    private ?HttpHeaders $headers = null;
 
     public function __construct()
     {
@@ -57,7 +61,7 @@ class CorsConfig {
      */
     public function addOrigin(string $origin, array $methods = ['*'], array $config = []): CorsConfig {
         $this->origins[$origin] = [
-            'methods' => $methods,
+            'methods' => array_map(fn($m) => strtoupper(trim($m)), $methods),
             'config' => array_merge($this->default_config, $config)
         ];
         return $this;
