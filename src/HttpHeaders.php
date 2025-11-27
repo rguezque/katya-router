@@ -14,7 +14,7 @@ use Iterator;
  * Represents a collection of HTTP headers.
  * Provides methods for setting, getting, removing, and iterating over headers.
  */
-class HttpHeaders {
+class HttpHeaders implements Iterator {
     /**
      * Internal storage for HTTP headers.
      * Keys are stored in lowercase to ensure case-insensitive access.
@@ -23,22 +23,13 @@ class HttpHeaders {
      */
     private array $headers = [];
 
-    /**
-     * Internal pointer for iterator implementation.
-     * Tracks the current position during iteration.
-     * 
-     * @var int
-     */
-    private int $position = 0;
-
     public function __construct(array $headers = []) {
-        if([] !== $headers) {
-            $keys = array_keys($headers);
-            $normalized_keys = array_map(function($item) {
-                return strtolower(trim($item));
-            }, $keys);
-            $values = array_values($headers);
-            $this->headers = array_combine($normalized_keys, $values);
+        if(empty($headers)) {
+            return;
+        }
+
+        foreach ($headers as $key => $value) {
+            $this->set((string) $key, (string) $value); 
         }
     }
 
@@ -50,8 +41,8 @@ class HttpHeaders {
      * @return HttpHeaders The current HttpHeaders instance for method chaining
      */
     public function set(string $key, string $value): HttpHeaders {
-        $key = strtolower(trim($key));
-        $this->headers[trim($key)] = $value;
+        $normalized_key = strtolower(trim($key));
+        $this->headers[$normalized_key] = $value;
         return $this;
     }
 
@@ -63,8 +54,8 @@ class HttpHeaders {
      * @return string|null The header value, or null if not found
      */
     public function get(string $key, ?string $default = null): ?string {
-        $key = strtolower(trim($key));
-        return $this->headers[$key] ?? $default;
+        $normalized_key = strtolower(trim($key));
+        return $this->headers[$normalized_key] ?? $default;
     }
 
     /**
@@ -74,8 +65,8 @@ class HttpHeaders {
      * @return HttpHeaders The current HttpHeaders instance for method chaining
      */
     public function remove(string $key): HttpHeaders {
-        $key = strtolower(trim($key));
-        unset($this->headers[$key]);
+        $normalized_key = strtolower(trim($key));
+        unset($this->headers[$normalized_key]);
         return $this;
     }
 
@@ -105,8 +96,8 @@ class HttpHeaders {
      * @return bool True if the header exists, false otherwise
      */
     public function has(string $key): bool {
-        $key = strtolower(trim($key));
-        return isset($this->headers[$key]);
+        $normalized_key = strtolower(trim($key));
+        return isset($this->headers[$normalized_key]);
     }
 
     /**

@@ -31,7 +31,7 @@ class JsonResponse extends Response {
             $data = json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
         }
         parent::__construct($data, $status_code, $headers);
-        $this->headers->set('Content-Type', 'application/json;charset=utf-8');
+        $this->headers->set('Content-Type', 'application/json; charset=utf-8');
     }
 }
 
