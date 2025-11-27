@@ -8,6 +8,8 @@
 
 namespace rguezque;
 
+use RuntimeException;
+
 /**
  * Sapi Emitter
  * 
@@ -35,20 +37,21 @@ class SapiEmitter {
         $status_code = $response->getStatusCode();
         
         // Send the headers
-        if(!headers_sent()) {
-            // If it's a redirection, avoid to emit the body of response and exit
-            if($response instanceof RedirectResponse) {
-                $location = $response->headers->get('Location');
-                header("Location: $location", true, $status_code);
-                exit(0);
-            }
-
-            self::emitHeaders($response->headers, $status_code);
+        if(headers_sent($file, $line)) {
+            throw new RuntimeException("Headers already sent in $file on line $line.");
+        }
+        // If it's a redirection, avoid to emit the body of response and exit
+        if($response instanceof RedirectResponse) {
+            $location = $response->headers->get('Location');
+            header('Location: ' . $location, true, $status_code);
+            http_response_code($status_code);
+            exit(0);
         }
 
+        self::emitHeaders($response->headers, $status_code);
+
         // Output the body
-        $response->body->rewind();
-        echo $response->body->getContents();
+        self::emitBody($response->body);
     }
 
     /**
@@ -59,16 +62,21 @@ class SapiEmitter {
      * @return void
      */
     public static function emitHeaders(HttpHeaders $headers, int $status_code): void {
-        http_response_code($status_code);
-
+        
         $headers->rewind();
         while($headers->valid()) {
             $key = ucwords($headers->key(), '-');
-            $replace = $key !== 'Set-Cookie';
+            $replace = strcasecmp($key, 'Set-Cookie') !== 0;
             $value = $headers->current();
-            header("$key: $value", $replace, $status_code);
+            header($key . ':' . $value, $replace, $status_code);
             $headers->next();
         }
+        http_response_code($status_code);
+    }
+
+    public static function emitBody(Stream $body) {
+        $body->rewind();
+        echo $body->getContents();
     }
 }
 

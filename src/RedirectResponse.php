@@ -14,7 +14,7 @@ namespace rguezque;
  * This class extends the Response class to provide a specific implementation for redirects
  */
 class RedirectResponse extends Response {
-    public function __construct(string $location, int $status_code = HttpStatus::HTTP_FOUND) {
+    public function __construct(string $location, int $status_code = HttpStatus::HTTP_SEE_OTHER) {
         parent::__construct(status_code: $status_code, headers: ['Location' => $location]);
     }
 }
