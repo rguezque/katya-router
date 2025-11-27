@@ -9,6 +9,8 @@
 namespace rguezque;
 
 use InvalidArgumentException;
+use rguezque\HttpHeaders;
+use rguezque\Request;
 use RuntimeException;
 
 /**
@@ -35,21 +37,10 @@ class CorsConfig {
      * @var array
      */
     private array $default_config = [
-        'allowed_headers' => ['Content-Type', 'Authorization'],
+        'allowed_headers' => ['Content-Type', 'Authorization', 'X-Request-With'],
         'max_age' => 86400, // 24 hours
         'supports_credentials' => false
     ];
-
-    /**
-     * HTTP headers
-     * @var HttpHeaders
-     */
-    private ?HttpHeaders $headers = null;
-
-    public function __construct()
-    {
-        $this->headers = new HttpHeaders();
-    }
 
     /**
      * Add an origin with specific configuration
@@ -82,22 +73,16 @@ class CorsConfig {
      * Handle CORS headers for a request
      * 
      * @param Request $request Incoming request
-     * @return HttpHeaders 
-     * @throws RuntimeException
-     * @throws InvalidArgumentException
+     * @return HttpHeaders|false CORS headers to apply, or false if no CORS handling is needed
      */
-    public function __invoke(Request $request): HttpHeaders {
-        if(headers_sent($file, $line)) {
-            new RuntimeException(sprintf('Headers sent from file "%s" line %s', $file, $line));
-        }
-
+    public function handle(Request $request): HttpHeaders|false {
         $server = $request->getServer();
         $origin = $server->get('HTTP_ORIGIN');
         $request_method = $server->get('REQUEST_METHOD');
 
         // No origin, skip CORS handling
         if (!$origin) {
-            throw new RuntimeException('Something went wrong. Origin of a cross-origin request, not detected.');
+            return false;
         }
 
         // Find matching origin configuration
@@ -105,39 +90,79 @@ class CorsConfig {
         
         // No matching origin found, allow request to continue
         if (!$origin_config) {
-            throw new RuntimeException('Has been blocked by CORS policy. You do not have permissions configured for this resource.');
+            return false;
+        }
+
+        // Check if the request method is allowed
+        if (!$this->isMethodAllowed($origin_config, $request_method)) {
+            return false;
         }
 
         // Apply CORS headers for the matching origin
-        $this->headers->set('Access-Control-Allow-Origin', $origin);
+        $headers = new HttpHeaders();
+        // Credentials support
+        if ($origin_config['config']['supports_credentials']) {
+            $headers->set('Access-Control-Allow-Credentials', 'true');
+        }
+        $headers->set('Access-Control-Allow-Origin', $origin);
+        $headers->set('Vary', 'Origin');
 
-        $this->headers->set(
+        return $headers;
+    }
+
+    /**
+     * Handle CORS preflight request
+     * 
+     * @param Request $request Incoming request
+     * @return HttpHeaders|false CORS headers for preflight, or false if no CORS handling is needed
+     */
+    public function handlePreflight(Request $request): HttpHeaders|false {
+        $server = $request->getServer();
+        $origin = $server->get('HTTP_ORIGIN');
+        $request_method = $server->get('REQUEST_METHOD');
+
+        // No origin, skip CORS handling
+        if (!$origin) {
+            return false;
+        }
+
+        // Find matching origin configuration
+        $origin_config = $this->findOriginConfig($origin);
+        
+        // No matching origin found, allow request to continue
+        if (!$origin_config) {
+            return false;
+        }
+
+        // Check if the request method is allowed
+        if (!$this->isMethodAllowed($origin_config, $request_method)) {
+            return false;
+        }
+        
+        $headers = new HttpHeaders();
+        $headers->set('Access-Control-Allow-Origin', $origin);
+        $headers->set(
             'Access-Control-Allow-Methods', 
             implode(', ', $this->getAllowedMethods($origin_config))
         );
 
         // Add allowed headers
-        $this->headers->set(
+        $headers->set(
             'Access-Control-Allow-Headers', 
             implode(', ', $origin_config['config']['allowed_headers'])
         );
-
+        
         // Credentials support
         if ($origin_config['config']['supports_credentials']) {
-            $this->headers->set('Access-Control-Allow-Credentials', 'true');
+            $headers->set('Access-Control-Allow-Credentials', 'true');
         }
-
         // Add max age for preflight caching
         if ($origin_config['config']['max_age']) {
-            $this->headers->set('Access-Control-Max-Age', (string)$origin_config['config']['max_age']);
+            $headers->set('Access-Control-Max-Age', (string)$origin_config['config']['max_age']);
         }
+        $headers->set('Vary', 'Origin');
 
-        // Validate request method for non-preflight requests
-        if(!$this->isMethodAllowed($origin_config, $request_method)) {
-            throw new InvalidArgumentException(sprintf('The request HTTP method "%s" is not allowed for origin: %s', $request_method, $origin));
-        }
-
-        return $this->headers;
+        return $headers;
     }
 
     /**

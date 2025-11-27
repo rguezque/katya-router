@@ -67,8 +67,8 @@ class Katya {
     /** Variables collection */
     private ?Variables $vars = null;
 
-    /** CORS configuration */
-    private ?CorsConfig $cors_config = null;
+    /** @var CorsHandler CORS handler */
+    private CorsHandler $cors_handler;
 
     /**
      * Initialize a router instance
@@ -91,7 +91,7 @@ class Katya {
      * @return Katya
      */
     public function setCors(CorsConfig $cors_config): Katya {
-        $this->cors_config = $cors_config;
+        $this->cors_handler->setConfig($cors_config);
         return $this;
     }
 
@@ -203,43 +203,6 @@ class Katya {
     }
 
     /**
-     * Resolve the CORS configuration
-     * 
-     * @param Request $request Request object with informatión about the request origin
-     * @return void
-     */
-    public function resolveCors(Request $request) {
-        if(null === $this->cors_config) {
-            return;
-        }
-
-        try {
-            $server = $request->getServer();
-            $origin = $server->get('HTTP_ORIGIN');
-            
-            // Only process CORS if origin header exists
-            if(!$origin) {
-                return;
-            }
-
-            // Get CORS headers from config
-            $cors_headers = ($this->cors_config)($request);
-            
-            // Manage pre-flight requests (OPTIONS)
-            if($server->get('REQUEST_METHOD') === 'OPTIONS') {
-                SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
-                exit(0);
-            }
-            
-            // Emit CORS headers for actual requests
-            SapiEmitter::emitHeaders($cors_headers, HttpStatus::HTTP_OK);
-            
-        } catch(Exception $e) {
-            Katya::halt(new Response($e->getMessage(), HttpStatus::HTTP_FORBIDDEN));
-        }
-    }
-
-    /**
      * Process the route groups before routing
      * 
      * @return void
@@ -263,8 +226,16 @@ class Katya {
         static $invoke = false;
         // Ensures that the router is only invoked the first time
         if(!$invoke) {
-            $this->resolveCors($request);
             $invoke = true;
+
+            // Resolver CORS headers al inicio
+            $this->cors_handler->resolveHeaders($request);
+            
+            // Manejar preflight requests
+            if($this->cors_handler->isPreflight($request)) {
+                return $this->cors_handler->handlePreflight($request);
+            }
+
             $this->processGroups();
             return $this->handleRequest($request);
         }
@@ -340,6 +311,8 @@ class Katya {
                     throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
                 }
 
+                // Aplicar headers CORS a la respuesta
+                $this->cors_handler->applyHeadersToResponse($result);
                 // Early return to end the routing
                 return $result;
             }
