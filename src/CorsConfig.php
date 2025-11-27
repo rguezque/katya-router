@@ -8,10 +8,8 @@
 
 namespace rguezque;
 
-use InvalidArgumentException;
 use rguezque\HttpHeaders;
 use rguezque\Request;
-use RuntimeException;
 
 /**
  * Represent CORS configuration for handling cross-origin requests

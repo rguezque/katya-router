@@ -82,6 +82,8 @@ class Katya {
         $this->basepath = isset($basepath) 
             ? str_path($basepath) 
             : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'])), '/\\');
+
+        $this->cors_handler = new CorsHandler();
     }
 
     /**
