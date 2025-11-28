@@ -21,5 +21,3 @@ class HtmlResponse extends Response {
         $this->headers->set('Content-Type', 'text/html;charset=utf-8');
     }
 }
-
-?>

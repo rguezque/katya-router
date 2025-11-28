@@ -19,5 +19,3 @@ class FileNotFoundException extends NotFoundException {
         parent::__construct($message, $code, $previous);
     }
 }
-
-?>

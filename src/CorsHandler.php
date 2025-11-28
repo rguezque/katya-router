@@ -103,5 +103,3 @@ class CorsHandler {
         return null !== $this->cors_config;
     }
 }
-
-?>

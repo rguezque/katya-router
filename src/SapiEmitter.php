@@ -79,5 +79,3 @@ class SapiEmitter {
         echo $body->getContents();
     }
 }
-
-?> 

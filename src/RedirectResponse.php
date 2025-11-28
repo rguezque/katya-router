@@ -18,5 +18,3 @@ class RedirectResponse extends Response {
         parent::__construct(status_code: $status_code, headers: ['Location' => $location]);
     }
 }
-
-?>

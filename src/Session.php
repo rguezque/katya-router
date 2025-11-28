@@ -268,4 +268,3 @@ class Session implements BagInterface, ArgumentsInterface {
     }
 
 }
-?>
