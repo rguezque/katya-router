@@ -173,4 +173,3 @@ class Services {
         return ($this->services[$name])();
     }
 }
-?>

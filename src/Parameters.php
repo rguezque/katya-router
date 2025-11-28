@@ -168,5 +168,3 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
 }
-
-?>

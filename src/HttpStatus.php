@@ -85,5 +85,3 @@ class HttpStatus {
     const HTTP_NOT_EXTENDED = 510;                                                // RFC2774
     const HTTP_NETWORK_AUTHENTICATION_REQUIRED = 511;
 }
-
-?>

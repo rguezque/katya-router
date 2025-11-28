@@ -19,5 +19,3 @@ class RouteNotFoundException extends NotFoundException {
         parent::__construct($message, $code, $previous);
     }
 }
-
-?>

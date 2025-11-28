@@ -150,5 +150,3 @@ class Stream {
         return $this->getContents();
     }
 }
-
-?>

@@ -44,5 +44,3 @@ interface ArgumentsInterface {
      */
     public function clear(): void;
 }
-
-?>

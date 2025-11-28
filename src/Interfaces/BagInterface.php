@@ -64,5 +64,3 @@ interface BagInterface {
 	 */
     public function count(): int;
 }
-
-?>

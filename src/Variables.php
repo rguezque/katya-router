@@ -70,5 +70,3 @@ class Variables {
         return $this->vars->has($name);
     }
 }
-
-?>
