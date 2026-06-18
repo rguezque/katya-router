@@ -11,15 +11,6 @@ namespace rguezque\functions;
 
 use rguezque\Exceptions\FileNotFoundException;
 
-define('CAST_INT', 91420);
-define('CAST_INTEGER', 91420);
-define('CAST_FLOAT', 61215120);
-define('CAST_STR', 192018);
-define('CAST_STRING', 192018);
-define('CAST_ARRAY', 1181825);
-define('CAST_BOOL', 2151512);
-define('CAST_OBJECT', 15210);
-
 if(!function_exists('env')) {
     /**
      * Get an environment variable
@@ -27,33 +18,11 @@ if(!function_exists('env')) {
      * 
      * @param string $key The name of the environment variable
      * @param mixed $default The default value to return if the environment variable is not set
-     * @param int $cast_to Integer constant that identifies the type of data to be cast to (`CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`)
      * @return mixed The value of the environment variable or the default value
      */
-    function env(string $key, mixed $default = null, ?int $cast_to = null): mixed {
-        $value = $_ENV[$key] ??= null;
-        return isset($value) ? (isset($cast_to) ? cast_to($value, $cast_to) : $value) : $default;
-    }
-}
-
-if(!function_exists('cast_to')) {
-    /**
-     * Cast a value to specific data type
-     * 
-     * @param mixed $value Value to be cast to
-     * @param int $cast_type_code Integer constant that identifies the type of data to be cast to (`CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`)
-     * @return mixed The value converted
-     */
-    function cast_to(mixed $value, int $cast_type_code) {
-        return match($cast_type_code) {
-            91420 => (int)$value,
-            61215120 => (float)$value,
-            192018 => (string)$value,
-            1181825 => (array)$value,
-            2151512 => (bool)$value,
-            15210 => (object)$value,
-            default => $value
-        };
+    function env(string $key, mixed $default = null): mixed {
+        $value = $_ENV[$key] ?? null;
+        return isset($value) ? $value : $default;
     }
 }
 

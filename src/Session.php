@@ -8,8 +8,11 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
 use rguezque\Interfaces\ArgumentsInterface;
 use rguezque\Interfaces\BagInterface;
+
+use function rguezque\functions\env;
 
 /**
  * Represents a PHP session.
@@ -20,8 +23,11 @@ use rguezque\Interfaces\BagInterface;
  * The class implements the BagInterface and ArgumentsInterface, providing a consistent
  * interface for managing session variables.
  * 
- * @method Session create(string $session_name = Session::NAMESPACE) Create or select a collection of session vars into the default router-session-vars-namespace
+ * @method Session withNamespace(?string $session_name = null) Create or select the specified namespace of the session variables and return an instance of `Session` with the Singleton pattern
+ * @method string getNamespace() Return the current session vars namespace
+ * @method bool alreadyExists(string $namespace) Return `true` if a namespace already exists, otherwise `false`
  * @method void start() Starts or resume a session
+ * @method void regenerateId(bool $delete_old_session = true) Regenerates the session ID to prevent session fixation attacks.
  * @method bool started() Return true if already exists an active session, otherwise false
  * @method void set(string $key, mixed $value) Set or overwrite a session var
  * @method void get(string $key, mixed $default = null) If exists, retrieve a session var by name, otherwise returns default
@@ -34,14 +40,6 @@ use rguezque\Interfaces\BagInterface;
  * @method bool destroy() Destroy the active session
  */
 class Session implements BagInterface, ArgumentsInterface {
-
-    /**
-     * Default session vars namespace
-     * 
-     * @var string
-     */
-    private const NAMESPACE = '__KATYA_ROUTER_SESSION_VARS__';
-
     /**
      * Custom session vars namespace
      * 
@@ -50,33 +48,63 @@ class Session implements BagInterface, ArgumentsInterface {
     private string $namespace = '';
 
     /**
-     * Store instance of Session
+     * Store instances of `Session`
      * 
-     * @var Session
+     * @var array
      */
-    private static ?Session $instance = null;
+    private static array $instances = [];
 
     /**
      * Initialize a session
      * 
      * @param string $namespace Custom session vars namespace
      */
-    protected function __construct(string $namespace = Session::NAMESPACE) {
+    protected function __construct(string $namespace) {
         $this->namespace = $namespace;
     }
 
     /**
-     * Create or select a collection of session vars into the default router-session-vars-namespace
+     * Create or return an instance of `Session` from the specified namespace.
      * 
-     * @param string $session_name Name for the current session (Must be only alphanumeric)
+     * Works as a semantic constructor implementing the Factory + Multiton patterns. 
+     * Allows you to create and manage different namespaces and prevents overwriting 
+     * them throughout the entire application.
+     * 
+     * @param string $namespace Namespace for session vars
      * @return Session
+     * @throws InvalidArgumentException If the namespace is an empty string
      */
-    public static function create(string $session_name = Session::NAMESPACE): Session {
-        if(!self::$instance || self::$instance->namespace !== $session_name) {
-            self::$instance = new Session($session_name);
+    public static function withNamespace(string $namespace): Session {
+        $session_namespace = trim($namespace);
+        
+        if($session_namespace === '') {
+            throw new InvalidArgumentException('The namespace is not valid. Empty string is NOT allowed.');
         }
 
-        return self::$instance;
+        if (!self::exists($session_namespace)) {
+            self::$instances[$session_namespace] = new self($session_namespace);
+        }
+
+        return self::$instances[$session_namespace];
+    }
+
+    /**
+     * Return `true` if a namespace already exists, otherwise `false`
+     * 
+     * @param string $namespace The session vars namespace to check if it already exists
+     * @return bool
+     */
+    public static function exists(string $namespace): bool {
+        return isset(self::$instances[trim($namespace)]);
+    }
+
+    /**
+     * Return the current session vars namespace
+     * 
+     * @return string
+     */
+    public function getNamespace(): string {
+        return $this->namespace;
     }
 
     /**
@@ -89,7 +117,19 @@ class Session implements BagInterface, ArgumentsInterface {
             session_name($this->namespace);
             session_start();
         }
-        session_regenerate_id(true);
+    }
+
+    /**
+     * Regenerates the session ID to prevent session fixation attacks.
+     * Should be called ONLY on authentication events (login/logout).
+     * 
+     * @param bool $delete_old_session Flag for indicate regenerate session id
+     * @return void
+     */
+    public function regenerateId(bool $delete_old_session = true): void {
+        if ($this->started()) {
+            session_regenerate_id($delete_old_session);
+        }
     }
 
     /**
@@ -200,13 +240,12 @@ class Session implements BagInterface, ArgumentsInterface {
     }
 
     /**
-     * Removes all session vars
+     * Removes all session vars from current namespace
      * 
      * @return void
      */
     public function clear(): void {
-        //The use of session_unset() is identical to $_SESSION = [].
-        session_unset();
+        unset($_SESSION[$this->namespace]);
     }
 
     /**
@@ -219,6 +258,7 @@ class Session implements BagInterface, ArgumentsInterface {
      */
     public function destroy(): bool {
         $this->start();
+
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             setcookie(
@@ -232,39 +272,8 @@ class Session implements BagInterface, ArgumentsInterface {
             );
         }
         
-        $this->clearAllCookies(); // Clear all cookies in the current domain and path
         $this->clear();
-        return session_destroy() && session_write_close();
-    }
-
-    /**
-     * Print all session vars in readable format if the class is invoked like a string
-     * 
-     * @return string
-     */
-    public function __toString(): string {
-        $this->start();
-        return sprintf('<pre>%s</pre>', print_r($_SESSION[$this->namespace], true));
-    }
-
-    /**
-     * Clear all cookies in the current domain and path
-     * 
-     * This method iterates through all cookies set in the current domain and clears them.
-     * 
-     * @return void
-     */
-    private function clearAllCookies(): void {
-        if (isset($_SERVER['HTTP_COOKIE'])) {
-            $cookies = explode(';', $_SERVER['HTTP_COOKIE']);
-            foreach ($cookies as $cookie) {
-                $parts = explode('=', $cookie, 2);
-                $name = trim($parts[0]);
-                // Elimina la cookie en el path actual y en la raíz
-                setcookie($name, '', time() - 42000, '/');
-                setcookie($name, '', time() - 42000);
-            }
-        }
+        return session_destroy();
     }
 
 }

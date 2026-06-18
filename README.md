@@ -399,13 +399,14 @@ SapiEmitter::emit($response);
 
 ## Session
 
-La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un *namespace* privado del router. Se inicializa o selecciona una colección de variables de sesión con el método estático `Session::create` el cual devuelve un **singleton** de la clase. Los métodos disponibles son:
+La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un *namespace*. Se inicializa o selecciona una colección de variables de sesión con el método estático `Session::withNamespace` el cual devuelve un objeto `Session`. Los métodos disponibles son:
 
-- `create(string $session_name = Session::NAMESPACE)`: Crea o reanuda una sesión. Se envía como argumento un nombre para la sesión; aunque no es obligatorio es recomendable hacerlo para evitar colisiones de variables con otras aplicaciones. Por default se asigna un nombre definido por el router.
-  >[!TIP]
-  >Utiliza variables de entorno (`.env`) para declarar un nombre de sesión a través de toda la aplicación.
+- `withNamespace(string $namespace = '')`: Es el punto de entrada para crear o recuperar un objeto `Session` con el patrón _Singleton_. Se envía como argumento un nombre para el _namespace_ de las variables de sesión. Este método estático funciona como un constructor semántico para hacerlo más descriptivo; además de que implementa el patrón _Multiton_ que permita crear y administrar diferentes _namespace_ evitando sobrescribirlos.
+- `exists(string $namespace)`: Método estático que devuelve `true` si un namespace ya existe, `false` en caso contrario.
 - `start()`: Inicia o retoma la sesión activa.
 - `started()`: Devuelve `true` si la sesión está activa.
+- `regenerateId(bool $delete_old_session = true)`: Regenera el ID de la sesión actual.
+- `getNamespace`: Devuelve el nombre del actual _namespace_.
 - `set(string $key, mixed $value)`: Crea o sobrescribe una variable de sesion.
 - `get(string $key, mixed $default = null)`: Devuelve una variable de sesión, si no existe devuelve el valor default que se asigne en el segundo parámetro.
 - `all()`: Devuelve un array con todas las variables de sesión del actual _namespace_.
@@ -416,14 +417,11 @@ La clase `Session` sirve para la creación de sesiones y la administración de v
 - `destroy()`; Destruye la sesión actual junto con las cookies y variables de sesión.
 
 ```php
-$session = Session::create();
+$session = Session::withNamespace('my_custom_namespace');
 $session->set('nombre', 'Juan');
 $session->set('edad', 30);
-$session->get('nombre);
+$session->get('nombre');
 ```
-
->[!NOTE]
->`Session::start` se invoca automáticamente en cada llamado del resto de métodos pero se deja como acceso público.
 
 ## Services
 
@@ -721,7 +719,7 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 Se incluye también algunas funciones extras bajo el namespace `\rguezque\functions\`:
 
-- `env(string $key, mixed $default = null, ?int $cast_to = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado. Si se especifica el tercer argumento casteará la variable al tipo de dato especificado entre los disponibles `CAST_INT`, `CAST_STR`, `CAST_FLOAT`, `CAST_ARRAY`, `CAST_BOOL`, `CAST_OBJECT`.
+- `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado. 
 
 - `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
 
