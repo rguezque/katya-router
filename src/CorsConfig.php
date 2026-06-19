@@ -36,6 +36,7 @@ class CorsConfig {
      */
     private array $default_config = [
         'allowed_headers' => ['Content-Type', 'Authorization', 'X-Request-With'],
+        'expose_headers'  => [],
         'max_age' => 86400, // 24 hours
         'supports_credentials' => false
     ];
@@ -46,7 +47,7 @@ class CorsConfig {
      * @param string $origin Origin URL
      * @param array $methods Allowed HTTP methods for this origin
      * @param array $config Additional CORS configuration for this origin
-     * @return Cors
+     * @return CorsConfig
      */
     public function addOrigin(string $origin, array $methods = ['*'], array $config = []): CorsConfig {
         $this->origins[$origin] = [
@@ -60,7 +61,7 @@ class CorsConfig {
      * Set global default configuration
      * 
      * @param array $config Default CORS configuration
-     * @return Cors
+     * @return CorsConfig
      */
     public function setDefaultConfig(array $config): CorsConfig {
         $this->default_config = array_merge($this->default_config, $config);
@@ -99,11 +100,17 @@ class CorsConfig {
         // Apply CORS headers for the matching origin
         $headers = new HttpHeaders();
         // Credentials support
+        $headers->set('Access-Control-Allow-Origin', $origin);
+        $headers->set('Vary', 'Origin');
+        
         if ($origin_config['config']['supports_credentials']) {
             $headers->set('Access-Control-Allow-Credentials', 'true');
         }
-        $headers->set('Access-Control-Allow-Origin', $origin);
-        $headers->set('Vary', 'Origin');
+
+        // Expose headers to frontend
+        if (!empty($origin_config['config']['expose_headers'])) {
+            $headers->set('Access-Control-Expose-Headers', implode(', ', $origin_config['config']['expose_headers']));
+        }
 
         return $headers;
     }
@@ -117,7 +124,8 @@ class CorsConfig {
     public function handlePreflight(Request $request): HttpHeaders|false {
         $server = $request->getServer();
         $origin = $server->get('HTTP_ORIGIN');
-        $request_method = $server->get('REQUEST_METHOD');
+        $request_method = $server->get('HTTP_ACCESS_CONTROL_REQUEST_METHOD');
+        if (!$request_method) return false;
 
         // No origin, skip CORS handling
         if (!$origin) {
@@ -134,6 +142,12 @@ class CorsConfig {
 
         // Check if the request method is allowed
         if (!$this->isMethodAllowed($origin_config, $request_method)) {
+            return false;
+        }
+
+        // OPCIONAL PERO RECOMENDADO: Validar cabeceras solicitadas
+        $requested_headers = $server->get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS');
+        if ($requested_headers && !$this->areHeadersAllowed($origin_config, $requested_headers)) {
             return false;
         }
         
@@ -170,22 +184,28 @@ class CorsConfig {
      * @return array|null Origin configuration or null if not found
      */
     private function findOriginConfig(string $origin): ?array {
-        // PRIORIDAD: Chequear si existe la configuración global wildcard '*'
-        // Esto evita que el '*' entre al preg_match y rompa el código.
+        // Check if the global wildcard configuration '*' exists
         if (isset($this->origins['*'])) {
             return $this->origins['*'];
         }
 
-        // Chequear patrones Regex
+        // Check regex patterns
         foreach ($this->origins as $origin_pattern => $config) {
-            // Saltamos el '*' si llegara a estar aquí para evitar error de regex
+            // Skip the '*' if it appears here to avoid regex errors
             if ($origin_pattern === '*') { 
                 continue; 
             }
+            // Exact coincidence
+            if ($origin_pattern === $origin) {
+                return $config;
+            }
             
-            // Usamos @ para suprimir warnings de regex mal formados por el usuario,
-            // o idealmente deberías validar que sea un regex válido al hacer addOrigin
-            if (@preg_match('#' . $origin_pattern . '#', $origin)) {
+            // Exact match delimiters are added if they have not been defined in the regex pattern
+            $regex = $origin_pattern;
+            if (!str_starts_with($regex, '^')) $regex = '^' . $regex;
+            if (!str_ends_with($regex, '$')) $regex = $regex . '$';
+
+            if (@preg_match('#' . $regex . '#', $origin)) {
                 return $config;
             }
         }
@@ -212,9 +232,15 @@ class CorsConfig {
      * @return array Allowed HTTP methods
      */
     private function getAllowedMethods(array $origin_config): array {
-        return $origin_config['methods'][0] === '*' 
-            ? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] 
+        return in_array('*', $origin_config['methods'], true)
+            ? ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
             : $origin_config['methods'];
     }
 
+    private function areHeadersAllowed(array $origin_config, string $requested_headers): bool {
+        $allowed = array_map('strtolower', $origin_config['config']['allowed_headers']);
+        $requested = array_map('strtolower', array_map('trim', explode(',', $requested_headers)));
+        
+        return empty(array_diff($requested, $allowed));
+    }
 }

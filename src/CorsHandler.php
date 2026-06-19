@@ -44,7 +44,8 @@ class CorsHandler {
     public function handlePreflight(Request $request): Response {
         $this->resolvePreflightHeaders($request);
         
-        $response = new Response('', 204);
+        $response = new Response();
+        $response->setStatusCode(HttpStatus::HTTP_NO_CONTENT);
         $this->applyHeadersToResponse($response);
         
         return $response;
@@ -80,12 +81,8 @@ class CorsHandler {
             return;
         }
 
-        $this->cors_headers->rewind();
-        while ($this->cors_headers->valid()) {
-            $key = $this->cors_headers->key();
-            $value = $this->cors_headers->current();
+        foreach ($this->cors_headers as $key => $value) {
             $response->headers->set($key, $value);
-            $this->cors_headers->next();
         }
     }
 
