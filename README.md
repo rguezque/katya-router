@@ -212,7 +212,9 @@ Los *wildcards* permiten la definición de `regex` opcionales para hacer más es
 ```php
 // Si `edad` no es un número entero, arrojará una excepción `RouteNotFoundException`
 $katya->get('/hola/{nombre}/{edad: \d+}', function(Request $request) {
-    $params = $request->getParams(); // Devuelve un objeto Parameter
+    // Filtra los parámetros y devuelve un objeto Parameter que encapsula un array asociativo (clave-valor)
+    // Usa $request->getParams(Request::PARAMS_BOTH) para devolver el array de párametros sin filtrar
+    $params = $request->getParams(); 
     return new JsonResponse(['nombre' => $params['nombre'], 'edad' => $params['edad']]);
 });
 ```
@@ -318,7 +320,7 @@ Otros métodos para agregar argumentos a la plantilla antes de invocar `fetch`, 
 
 ## Request
 
-Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `Parameters` con excepción de `Request::getParams` que puede variar.
+Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `Parameters` con excepción de `Request::getParams` que depende del filtro que se le especifique.
 
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
@@ -329,6 +331,7 @@ Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `P
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
 - `getParams(Request::PARAMS_ASSOC)`: Devuelve el array de parámetros nombrados de una ruta solicitada. Dependiendo de la definición de los *wildcards* de una ruta, se puede especificar el formato de datos a devolver (Ver [Wildcards](#wildcards)).
 - `getAllHeaders()`: Devuelve todos los encabezados HTTP recibidos en la actual petición.
+- `getUri()`: Devuelve un objeto `Uri` que representa la URL de la petición actual.
 - `setQuery(array $query)`: Asigna valores a `$_GET`.
 - `setBody(array $body)`: Asigna valores a `$_POST`.
 - `setServer(array $server)`: Asigna valores a `$_SERVER`.
@@ -508,11 +511,12 @@ $vars->has('pi') // Para este ejemplo devolvería TRUE
 
 ## DB Connection
 
-La clase `DbConnection` proporciona el medio para crear una conexión *singleton* con MySQL o sqlite [Ver SQLite connection](#sqlite-connection) a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` recibe los parámetros de conexión y devuelve un objeto con la conexión creada. Los valores posibles para `driver` son: `pdomysql`, `mysqli` o `pdo_sqlite`.
+La clase `DbConnection` proporciona el medio para crear conexiones a MySQL o sqlite [Ver SQLite connection](#sqlite-connection) a través del driver `PDO` o la clase `mysqli`. El método estático `DbConnection::getConnection` implementa los patrones Factory+Multiton, de tal forma que cada conexión creada es un _Singleton_. Los valores posibles para `driver` son: `pdomysql`, `mysqli` o `pdo_sqlite`.
 
 ```php
 use rguezque\DbConnection;
 
+// Internamente se guarda con el identificador "pdomysql_mydatabase"
 $db = DbConnection::getConnection([
     'driver' => 'pdomysql',
     'host' => 'localhost',
@@ -520,9 +524,10 @@ $db = DbConnection::getConnection([
     'user' => 'root',
     'pass' => 'mypassword',
     'db_name' => 'mydatabase'
-    'charset' => 'utf8'
+    'charset' => 'utf8mb4'
 ]);
 
+// Internamente se guarda con el identificador "mysqli_mydatabase"
 $db = DbConnection::getConnection([
     'driver' => 'mysqli',
     'host' => 'localhost',
@@ -530,7 +535,7 @@ $db = DbConnection::getConnection([
     'user' => 'root',
     'pass' => 'mypassword',
     'db_name' => 'mydatabase'
-    'charset' => 'utf8',
+    'charset' => 'utf8mb4',
 ]);
 ```
 
@@ -555,7 +560,7 @@ $db = DbConnection::getConnection($connection_params);
 
 ### Auto connect
 
-El método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. Solo aplica para `pdomysql` y `mysqli`.
+Si solo necesitas una conexión, el método estático `DbConnection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. Solo aplica para `pdomysql` y `mysqli`.
 
 ```php
 use rguezque\DbConnection;
@@ -572,7 +577,7 @@ DB_HOST="127.0.0.1"
 DB_PORT=3306
 DB_USER="root"
 DB_PASS="mypassword"
-DB_CHARSET="utf8"
+DB_CHARSET="utf8mb4"
 ```
 
 >[!NOTE]
@@ -580,7 +585,7 @@ DB_CHARSET="utf8"
 
 ### Create new instances
 
-Para crear nuevas instancias de conexión `PDO` o `mysqli` utiliza el método `DbConnection::create()`, este devolverá una nueva instancia de conexión cada vez que se invoque con diferentes valores de conexión. Este método recibe los mismos parámetros que `DbConnection::getConnection()`.
+Para crear nuevas instancias de conexión `PDO` o `mysqli` utiliza el método `DbConnection::create()`, este devolverá una nueva instancia de conexión cada vez que se invoque. Este método recibe los mismos parámetros que `DbConnection::getConnection()`.
 
 ### SQLite connection
 
@@ -591,19 +596,23 @@ Para crear una conexión sqlite debes definir el parámetro `driver` como `pdo_s
 DbConnection::getConnection([
     'driver' => 'pdo_sqlite',
     'db_file' => __DIR__.'/storage/database.sqlite',
-    'charset' => 'utf8'
+    'charset' => 'utf8mb4'
 ]);
 
 //Nueva instancia
 $db = DbConnection::create([
     'driver' => 'pdo_sqlite',
     'db_file' => __DIR__.'/storage/database2.sqlite',
-    'charset' => 'utf8'
+    'charset' => 'utf8mb4'
 ]);
 ```
 
 >[!NOTE]
 >Si se omite el parámetro `db_file` se creará una conexión en memoria `:memory:` automáticamente.
+
+>[!IMPORTANT]
+>En MySQL, el charset `utf8` es una implementación defectuosa que solo soporta 3 bytes (no soporta emojis ni algunos caracteres asiáticos).
+>Considera usar `utf8mb4`, que es el verdadero `UTF-8` de 4 bytes.
 
 ## Middleware
 
