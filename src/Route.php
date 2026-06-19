@@ -8,7 +8,8 @@
 
 namespace rguezque;
 
-use Closure;
+use rguezque\Interfaces\MiddlewareInterface;
+use rguezque\MiddlewareTrait;
 
 /**
  * Route
@@ -21,12 +22,11 @@ use Closure;
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
  * @method callable getController() Return controller
- * @method Route before(callable ...$callable) Add a hook to exec before the route controller
- * @method callable getHookBefore() Return the hook
- * @method bool hasHookBefore() Return true if the route has a hook
  * @method Route use(string ...$names) Specify the services to use in this route
  */
 class Route {
+
+    use MiddlewareTrait;
 
     /**
      * Route method
@@ -48,13 +48,6 @@ class Route {
      * @var callable
      */
     private $controller;
-
-    /**
-     * Hook before the controller
-     * 
-     * @var array
-     */
-    private array $before = [];
 
     /**
      * List of lot of services to use for this route
@@ -101,35 +94,6 @@ class Route {
      */
     public function getController(): callable {
         return $this->controller;
-    }
-
-    /**
-     * Add a hook to exec before the route controller
-     * 
-     * @param array<callable> $callable Middleware collection before controller execution
-     * @return Route
-     */
-    public function before(callable ...$callable): Route {
-        $this->before = $callable;
-        return $this;
-    }
-
-    /**
-     * Return the hook
-     * 
-     * @return array
-     */
-    public function getHookBefore(): array {
-        return $this->before;
-    }
-
-    /**
-     * Return true if the route has a hook
-     * 
-     * @return bool
-     */
-    public function hasHookBefore(): bool {
-        return [] !== $this->before;
     }
 
     /**

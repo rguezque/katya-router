@@ -9,23 +9,36 @@
 
 namespace rguezque;
 
+use rguezque\Interfaces\MiddlewareInterface;
+
 /**
  * Handles CORS preflight requests and adds CORS headers to responses
  */
-class CorsHandler {
+class CorsHandler implements MiddlewareInterface {
     private ?CorsConfig $cors_config = null;
     private HttpHeaders|false $cors_headers = false;
-
-    public function __construct(?CorsConfig $cors_config = null) {
-        $this->cors_config = $cors_config;
-    }
+    private Response $response;
 
     /**
      * Set CORS configuration
      */
-    public function setConfig(CorsConfig $cors_config): self {
+    public function __construct(CorsConfig $cors_config, Response $response) {
         $this->cors_config = $cors_config;
-        return $this;
+        $this->response = $response;
+    }
+
+    public function __invoke(Request $request, callable $next): Response {
+        // Manejar preflight requests
+        if($this->isPreflight($request)) {
+            return $this->handlePreflight($request);
+        }
+        
+        // Resolve CORS headers
+        $this->resolveHeaders($request);
+
+        // Apply resolved CORS headers to response
+        $response = $next($request);
+        return $this->applyCorsHeaders($response);
     }
 
     /**
@@ -44,17 +57,20 @@ class CorsHandler {
     public function handlePreflight(Request $request): Response {
         $this->resolvePreflightHeaders($request);
         
-        $response = new Response();
-        $response->setStatusCode(HttpStatus::HTTP_NO_CONTENT);
-        $this->applyHeadersToResponse($response);
+        $this->response->setStatusCode(HttpStatus::HTTP_NO_CONTENT);
+        $response = $this->applyCorsHeaders($this->response);
         
         return $response;
     }
 
     /**
      * Resolve CORS headers from config
+     * 
+     * @param Request $request Current request
      */
     public function resolveHeaders(Request $request): void {
+        $this->cors_headers = false;
+
         if (null === $this->cors_config) {
             return;
         }
@@ -66,6 +82,8 @@ class CorsHandler {
      * Resolve CORS headers for preflight request
      */
     public function resolvePreflightHeaders(Request $request): void {
+        $this->cors_headers = false;
+
         if (null === $this->cors_config) {
             return;
         }
@@ -75,15 +93,20 @@ class CorsHandler {
 
     /**
      * Apply CORS headers to response
+     * 
+     * @param Response $response Response object to add CORS headers
+     * @return Response
      */
-    public function applyHeadersToResponse(Response &$response): void {
+    public function applyCorsHeaders(Response $response): Response {
         if (!$this->cors_headers) {
-            return;
+            return $response;
         }
 
         foreach ($this->cors_headers as $key => $value) {
             $response->headers->set($key, $value);
         }
+
+        return $response;
     }
 
     /**

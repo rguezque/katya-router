@@ -9,6 +9,9 @@
 namespace rguezque;
 
 use Closure;
+use rguezque\Exceptions\UnsupportedRequestMethodException;
+use rguezque\Interfaces\MiddlewareInterface;
+use rguezque\MiddlewareTrait;
 
 use function rguezque\functions\str_path;
 
@@ -25,10 +28,13 @@ use function rguezque\functions\str_path;
  * @method Route put(string $path, callable $controller)
  * @method Route patch(string $path, callable $controller)
  * @method Route delete(string $path, callable $controller)
- * @method Group before(callable ...$callable)
+ * @method Group before(MiddlewareInterface $middleware)
  * @method Group useServices(string ...$names)
  */
 class Group {
+
+    use MiddlewareTrait;
+
     /**
      * Router object
      * 
@@ -49,14 +55,6 @@ class Group {
      * @var Closure
      */
     private Closure $closure;
-
-    /**
-     * Middleware before the controller execution into the group
-     * 
-     * @var array
-     */
-    private array $before = [];
-    
 
     /**
      * List of lot of services to use for this routes group
@@ -158,17 +156,6 @@ class Group {
     }
 
     /**
-     * Add a hook to exec before each route into the group
-     * 
-     * @param array<callable> $callable Middleware collection before each controller execution into the group
-     * @return Group
-     */
-    public function before(callable ...$callable): Group {
-        $this->before = $callable;
-        return $this;
-    }
-
-    /**
      * Specify the services to use in this route
      * 
      * @param string ...$names Service names separated by comma
@@ -188,10 +175,15 @@ class Group {
 
     /**
      * Apply group settings (middleware and services) to a route.
+     * 
+     * @param Route $route The Route object
+     * @return Route The processed Route object
      */
     private function applyGroupSettings(Route $route): Route {
-        if ([] !== $this->before && !$route->hasHookBefore()) {
-            $route->before(...$this->before);
+        if ([] !== $this->before) {
+            foreach($this->before as $middleware) {
+                $route->before($middleware);
+            }
         }
 
         if ([] !== $this->onlyuse) {

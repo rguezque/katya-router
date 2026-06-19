@@ -9,11 +9,11 @@
 namespace rguezque;
 
 use Closure;
-use Exception;
 use rguezque\Exceptions\{
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
+use rguezque\MiddlewareTrait;
 use UnexpectedValueException;
 
 use function rguezque\functions\remove_trailing_slash;
@@ -43,6 +43,9 @@ use function rguezque\functions\str_path;
  * @method void halt(Response $response) Stop the router and send the response
  */
 class Katya {
+    
+    use MiddlewareTrait;
+
     /** @var string[] Supported HTTP request methods */
     private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
@@ -67,9 +70,6 @@ class Katya {
     /** Variables collection */
     private ?Variables $vars = null;
 
-    /** @var CorsHandler CORS handler */
-    private CorsHandler $cors_handler;
-
     /**
      * Initialize a router instance
      * 
@@ -82,19 +82,6 @@ class Katya {
         $this->basepath = isset($basepath) 
             ? str_path($basepath) 
             : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'])), '/\\');
-
-        $this->cors_handler = new CorsHandler();
-    }
-
-    /**
-     * Set the CORS configuration
-     * 
-     * @param CorsConfig $cors_config An object with the CORS definitions
-     * @return Katya
-     */
-    public function setCors(CorsConfig $cors_config): Katya {
-        $this->cors_handler->setConfig($cors_config);
-        return $this;
     }
 
     /**
@@ -230,14 +217,6 @@ class Katya {
         if(!$invoke) {
             $invoke = true;
 
-            // Resolver CORS headers al inicio
-            $this->cors_handler->resolveHeaders($request);
-            
-            // Manejar preflight requests
-            if($this->cors_handler->isPreflight($request)) {
-                return $this->cors_handler->handlePreflight($request);
-            }
-
             $this->processGroups();
             return $this->handleRequest($request);
         }
@@ -301,20 +280,25 @@ class Katya {
                 // Add variables to route arguments, if exists
                 if(null !== $this->vars) $controller_args[] = $this->vars;
 
-                $next = fn(...$controller_args) => call_user_func($route->getController(), ...$controller_args);
+                // Controller enveloped
+                $next = fn() => call_user_func($route->getController(), ...$controller_args);
 
-                foreach($route->getHookBefore() as $middleware) {
-                    $next = fn(...$controller_args) => call_user_func($middleware, ...array_merge($controller_args, [$next]));
+                // Global middlewares (at the router level) are merged with route middlewares
+                // Due to the reverse execution of the layered structure, the global middlewares are merged at the end.
+                $global_middlewares = array_merge($route->getMiddlewares(), $this->getMiddlewares());
+
+                // Build the layered structure (onion) where each new layer envelops the previous one.
+                foreach($global_middlewares as $middleware) {
+                    $next = fn() => call_user_func($middleware, $request, $next);
                 }
 
-                $result = call_user_func($next, ...$controller_args);
+                // Triggers the reverse execution of the middlewares and finally the controller
+                $result = call_user_func($next);
 
                 if(!$result instanceof Response) {
                     throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
                 }
-
-                // Aplicar headers CORS a la respuesta
-                $this->cors_handler->applyHeadersToResponse($result);
+                
                 // Early return to end the routing
                 return $result;
             }
