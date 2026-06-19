@@ -11,7 +11,7 @@ namespace rguezque;
 use InvalidArgumentException;
 
 /**
- * Represent a request
+ * Represent a server request
  * 
  * @static Request fromGlobals() Create a Request object from default global params
  * @method Parameters getQuery() Return the $_GET params array
@@ -22,6 +22,7 @@ use InvalidArgumentException;
  * @method Parameters getFiles() Return the $_FILES params array
  * @method Parameters|array getParams(int $type = Request::PARAMS_ASSOC) Get named parameters from the route
  * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
+ * @method Uri getUri() Returns the URI object representing the current request URL
  * @method void setQuery(array $query) Set values for $_GET array
  * @method void setBody(array $body) Set values for $_POST array
  * @method void setServer(array $server) Set values for $_SERVER array
@@ -29,7 +30,7 @@ use InvalidArgumentException;
  * @method void setFiles(array $files) Set values for $_FILES array
  * @method void setParams(array $params) Set values for named params array
  * @method void addParams(array $params) Add parameters to the existing named params array
- * @static string buildQuery(string $uri, array $params) Generate URL-encoded query string
+ * @method string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
     /**
@@ -114,6 +115,16 @@ class Request {
      */
     private array $params;
 
+    // Cache properties for lazy loading
+    private ?Parameters $query_object = null;
+    private ?Parameters $body_object = null;
+    private ?Parameters $server_object = null;
+    private ?Parameters $cookies_object = null;
+    private ?Parameters $files_object = null;
+    private ?Parameters $headers_object = null;
+    private ?Uri $uri_object = null;
+    private ?string $raw_input = null;
+
     /**
      * This constructor initializes the Request object with the provided parameters.
      * 
@@ -162,7 +173,7 @@ class Request {
      * @return Parameters
      */
     public function getQuery(): Parameters {
-        return new Parameters($this->query);
+        return $this->query_object ??= new Parameters($this->query);
     }
 
     /**
@@ -171,7 +182,7 @@ class Request {
      * @return Parameters
      */
     public function getBody(): Parameters {
-        return new Parameters($this->body);
+        return $this->body_object ??= new Parameters($this->body);
     }
 
     /**
@@ -182,24 +193,20 @@ class Request {
      * @throws InvalidArgumentException When the option is not valid
      */
     public function getPhpInputStream(int $option = Request::RAW_DATA): Parameters|string {
-        $phpinputstream = file_get_contents('php://input');
+        $phpinputstream = $this->raw_input ??= file_get_contents('php://input');
 
         switch($option) {
             case Request::RAW_DATA:
-                $result = $phpinputstream;
-                break;
+                return $phpinputstream;
             case Request::PARSED_STR:
-                parse_str($phpinputstream, $result);
-                $result = new Parameters($result);
-                break;
+                $parsed = [];
+                parse_str($phpinputstream, $parsed);
+                return new Parameters($parsed);
             case Request::JSON_DECODED: 
-                $result = new Parameters(json_decode($phpinputstream, true));
-                break;
+                return new Parameters(json_decode($phpinputstream, true));
             default:
                 throw new InvalidArgumentException(sprintf('Invalid option: %s. Use Request::PARSED_STR, request::JSON_DECODED or Request::RAW_DATA', $option));
         }
-
-        return $result;
     }
 
     /**
@@ -208,7 +215,7 @@ class Request {
      * @return Parameters
      */
     public function getServer(): Parameters {
-        return new Parameters($this->server);
+        return $this->server_object ??= new Parameters($this->server);
     }
 
     /**
@@ -217,7 +224,7 @@ class Request {
      * @return Parameters
      */
     public function getCookies(): Parameters {
-        return new Parameters($this->cookies);
+        return $this->cookies_object ??= new Parameters($this->cookies);
     }
 
     /**
@@ -226,7 +233,7 @@ class Request {
      * @return Parameters
      */
     public function getFiles(): Parameters {
-        return new Parameters($this->files);
+        return $this->files_object ??= new Parameters($this->files);
     }
 
     /**
@@ -237,40 +244,12 @@ class Request {
      * @throws InvalidArgumentException When the argument is not a valid array type to return
      */
     public function getParams(int $type = Request::PARAMS_ASSOC): Parameters|array {
-        $result = [];
-        switch($type) {
-            case Request::PARAMS_ASSOC:
-                foreach($this->params as $key => $value) {
-                    if(!is_numeric($key)) {
-                        $result[$key] = $value;
-                    }
-                }
-                return new Parameters($result);
-                break;
-            case Request::PARAMS_NUM:
-                foreach($this->params as $key => $value) {
-                    if(is_numeric($key) && is_int($key)) {
-                        $result[] = $value;
-                    }
-                }
-                return array_values($result);
-                break;
-            case Request::PARAMS_BOTH:
-                return $this->params;
-                break;
-            default:
-                throw new InvalidArgumentException('Invalid argument type: '.$type.'.  Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.');
-        }
-    }
-
-    /**
-     * Return a named param from route
-     * 
-     * @return mixed
-     * @deprecated Since v1.2.6
-     */
-    public function getParam(string $name, $default = null) {
-        return $this->params[$name] ?? $default;
+        return match($type) {
+            self::PARAMS_ASSOC => new Parameters(array_filter($this->params, fn($key) => !is_numeric($key), ARRAY_FILTER_USE_KEY)),
+            self::PARAMS_NUM => array_values(array_filter($this->params, fn($key) => is_int($key), ARRAY_FILTER_USE_KEY)),
+            self::PARAMS_BOTH => $this->params,
+            default => throw new InvalidArgumentException('Invalid argument type: '.$type.'. Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.')
+        };
     }
 
     /**
@@ -279,7 +258,14 @@ class Request {
      * @return Parameters
      */
     public function getAllHeaders(): Parameters {
-        return new Parameters(getallheaders());
+        return $this->headers_object ??= new Parameters(getallheaders());
+    }
+
+    /**
+     * Returns the URI object representing the current request URL
+     */
+    public function getUri(): Uri {
+        return $this->uri_object ??= new Uri($this->server);
     }
 
     /**
@@ -290,6 +276,7 @@ class Request {
      */
     public function setQuery(array $query): void {
         $this->query = $query;
+        $this->query_object = null;
     }
 
     /**
@@ -300,6 +287,7 @@ class Request {
      */
     public function setBody(array $body): void {
         $this->body = $body;
+        $this->body_object = null;
     }
 
     /**
@@ -310,6 +298,7 @@ class Request {
      */
     public function setServer(array $server): void {
         $this->server = $server;
+        $this->server_object = null;
     }
 
     /**
@@ -320,6 +309,7 @@ class Request {
      */
     public function setCookies(array $cookies): void {
         $this->cookies = $cookies;
+        $this->cookies_object = null;
     }
 
     /**
@@ -330,6 +320,7 @@ class Request {
      */
     public function setFiles(array $files): void {
         $this->files = $files;
+        $this->files_object = null;
     }
 
     /**
@@ -360,7 +351,8 @@ class Request {
      * @return string
      */
     public static function buildQuery(string $uri, array $params): string {
-        return trim($uri).'?'.http_build_query($params);
+        $query = http_build_query($params);
+        return $query === '' ? trim($uri) : trim($uri) . '?' . $query;
     }
 
 }
