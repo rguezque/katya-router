@@ -29,7 +29,8 @@ namespace rguezque;
  * @method void close() Close the stream from writing
  */
 class Stream {
-    private $stream;
+    /** @var mixed The PHP stream */
+    private mixed $stream;
 
     /**
      * Initialize the stream
@@ -144,6 +145,16 @@ class Stream {
             fclose($this->stream);
             $this->stream = null;
         }
+    }
+
+    /**
+     * Truncate the stream to a new length. Requires the stream to be open for writing
+     * 
+     * @param int $size New length in bytes
+     * @return bool `true` on success, otherwise `false`
+     */
+    public function truncate(int $size): bool {
+        return ftruncate($this->stream, $size);
     }
 
     public function __toString() {

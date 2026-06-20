@@ -16,7 +16,7 @@ A lightweight PHP router
 - [Request](#request)
 - [Response](#response)
   - [HttpHeaders](#httpheaders)
-  - [Stream](#stream)
+- [Stream](#stream)
 
 - [SapiEmitter](#sapiemitter)
 - [Session](#session)
@@ -324,8 +324,8 @@ Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `P
 
 - `fromGlobals()`: Crea un objeto `Request` con las variables globales PHP.
 - `getQuery()`: Devuelve el array de parámetros `$_GET`.
-- `getBody()`: Devuelve el array de parámetros `$_POST`.
-- `getPhpInputStream(int $option = Request::RAW_DATA)`: Devuelve el *stream* `php://input` sin procesar. Si se recibe la petición en formato JSON se envía un argumento `Request::JSON_DECODE`; si es un *query string* se envía el argumento`Request::PARSED_STR`. En estos últimos dos casos, devolverá un objeto `Parameters`.
+- `getParsedBody()`: Devuelve el array de parámetros `$_POST`.
+- `getBody()`: Devuelve el *stream* `php://input` encapsulado en un objeto `Stream`.
 -  `getServer()`: Devuelve el array de parámetros `$_SERVER`.
 - `getCookies()`: Devuelve el array de parámetros `$_COOKIE`.
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
@@ -351,22 +351,43 @@ Métodos de la clase `Response`.
 - `body`: Atributo público de tipo `Stream`. Contiene métodos para agregar contenido al cuerpo del `Response`.
 
 >[!TIP]
->Utiliza `JsonResponse` para devolver datos de una API en formato `JSON` y `HtmlResponse` para devolver contenido `html`.
+>Utiliza `JsonResponse` para devolver datos de una API en formato `JSON` , `HtmlResponse` para devolver contenido `html` (vistas) y `RedirectResponse` para redirecciones.
 
 ### HttpHeaders
 
-- `set(string $key, string $value)`: Agrega un encabezado.
+Métodos de la clase:
+
+- `set(string $key, string $value)`: Agrega un encabezado HTTP.
 - `get(string $key, ?string $default = null)`: Devuelve un encabezado por nombre.
 - `remove(string $key)`: Elimina un encabezado por nombre.
 - `clear()`: Elimina todos los encabezados.
 - `all()`: Devuelve todos los encabezados en un _array_.
 - `has(string $key)`: Devuelve `true` si un encabezado existe, `false` en caso contrario.
 
-### Stream
+## Stream
+
+Su función es proporcionar un contenedor orientado a objetos para manipular los recursos de flujos (streams) en PHP, abstrayendo operaciones de lectura, escritura y posicionamiento de datos como archivos, memoria o entradas de red (HTTP).
+
+Dependiendo de si lo usas en una Request o una Response, la funcionalidad varía:
+
+1. **En un Request (Petición)**
+
+    Sirve para leer los datos enviados por el cliente (ej. payloads JSON de una API). Encapsula el _stream_ `php://input`.
+
+    - `$request->getBody()->getContents()`: Devuelve todo el contenido del cuerpo en un string.
+    - `$request->getBody()->rewind()`: Vuelve al inicio del flujo si necesitas leerlo varias veces.
+
+2. **En un Response (Respuesta)**
+
+    Sirve para construir el contenido que enviarás de vuelta al cliente. Encapsula el _stream_ `php://memory`.
+
+    - `$response->body->write("contenido")`: Escribe texto o datos en la respuesta. Múltiples llamadas concatenan el texto.
+
+Los métodos de esta clase son:
 
 - `write(mixed $string)`: Escribe contenido y retorna el total de bytes escritos; o `false` en error.
 - `read(int $length)`: Lee el *stream*.
-- `getContents()`: Recupera el contenido restante del *stream* desde la posición actual del puntero.
+- `getContents()`: Recupera el contenido _string_ restante del *stream* desde la posición actual del puntero.
 - `detach()`: Libera y devuelve el flujo actual.
 - `getSize()`: Devuelve el tamaño en bytes del *stream*.
 - `tell()`: Devuelve la posición actual del puntero de lectura/escritura del *stream*.
@@ -616,9 +637,9 @@ $db = DbConnection::create([
 
 ## Middleware
 
-El *middleware* `Route::before` ejecuta una o varias acciones previas al controlador de una ruta. 
+El método `Route::before` permite registrar _middlewares_ a nivel de router, de grupos y de rutas. 
 
-`Route::before` Recibe uno o varios objetos `callable` (función, método de objeto o método estático) donde se definen las acciones a ejecutar, este objeto a su vez recibe los mismos parámetros que los controladores: obligatoriamente un objeto `Request` y en orden de prioridad, `Services` y `Variables` según hayan sido definidos. Y además recibe como último argumento una función que representa el siguiente middleware en la cadena o, finalmente, el controlador. Para continuar el flujo, el middleware debe invocarse con los mismos argumentos que reciben los controladores. Ej: `return $next($request, $services, ...)`.
+Recibe un objeto que debe implementar la _interface_ `MiddlewareInterface`. Cada middleware recibe un objeto `Request` y un `Closure` que encapcula el siguiente middleware en la cadena o, en última instancia, el controlador. Para continuar el flujo, el middleware debe invocarse con el argumento `Request`.
 
 Los middlewares de grupo se heredan, pero los definidos en rutas individuales tienen prioridad y no son sobreescritos.
 
@@ -629,31 +650,33 @@ use rguezque\{Group, Katya, Request, Response, Session};
 
 $router = new Katya;
 
-$router->get('/', function(Request $request) {
-    $data = $request->getParams();
-    $username = $data->get('@middleware_data');
-    return new Response(sprintf('The actual user is: %s', $username));
-})->before(function(Request $request, $next) {
-    $session = Session::select('mi_sesion');
-    if(!$session->has('logged')) {
-        // Ejecuta el response y detiene el router
-        Katya::halt(new Response(headers: ['location' => '/login']));
+class CustomMiddleware implements MiddlewareInterface {
+    public function __invoke(Request $request, callable $next) {
+        $session = Session::withNamespace('mi_sesion');
+        if(!$session->has('logged')) {
+            // Ejecuta el response y detiene el router
+            Katya::halt(new RedirectResponse('/login'));
+        }
+        
+        return $next();
     }
-    // Puedes pasar datos al controlador usando parámetros
-    $request->setParams(['@middleware_data' => $session->get('username')]);
-    
-    return $next($request);
-});
+}
+
+$router->get('/user/{name}', function(Request $request) {
+    $data = $request->getParams();
+    $username = $data->get('name')
+    return new Response(sprintf('The actual user is: %s', $username));
+})->before(new CustomMiddleware);
 ```
 
 >[!NOTE]
->- Los middlewares se ejecutan en orden inverso de definición (LIFO) y cada uno debe invocar `$next` para continuar la cadena.
->- Los middlewares de grupo se heredan, pero los definidos en rutas individuales tienen prioridad y no son sobreescritos.
->- Si el middleware es una instancia de clase, esta clase debe definir las acciones del propio middlewae en el método `__invoke()`
+>- El _stack_ de middlewares se ejecuta en orden inverso (LIFO) debido a su estructura en capas.
+>- Los middlewares a nivel de router se ejecutan primero, luego los de grupo y finalmente los de la ruta.
+>- Los middlewares a nivel de router se heredan a grupos y rutas; así como los middleware de grupo se heredan a sus rutas.
 
 ## CORS
 
-*(Cross-Origin Resource Sharing)*. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, los métodos de petición permitidos para cada *origen* así como los encabezados http aceptados, el tiempo en segundos para la *cache* de las *preflight requests* y soporte para credenciales de acceso.
+*(Cross-Origin Resource Sharing)*. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, y configuraciones adicionales. CORS es un ejemplo de middleware a nivel de router.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -665,11 +688,13 @@ $router = new Katya;
 $cors_config = new CorsConfig();
 
 $cors_config->addOrigin(
-    'https://example.com', 
-    ['GET', 'POST'], 
+    'https://example.com', // La URL del origen
+    ['GET', 'POST'], // Métodos permitidos para este origen
     [
-        'allowed_headers' => ['Content-Type', 'Authorization'],
-        'supports_credentials' => true
+        'allowed_headers' => ['Content-Type', 'Authorization'], // Encabezados permitidos recibir de este origen
+        'expose_headers' => ['X-Total-Count', 'X-Token'], // Encabezados personalizados que deben ser mostrados en el frontend al devolver el response
+        'max_age' => 7200, // 2 horas
+        'supports_credentials' => true // Solo cuando se usa encabezados Authorization o Bearer
     ]
 );
 
@@ -677,27 +702,20 @@ $cors_config->addOrigin(
     '(http(s)://)?(www\.)?localhost:4500', // También soporta regex
     ['GET', 'POST', 'DELETE'], 
     [
-        'allowed_headers' => ['Content-Type'],
+        'allowed_headers' => ['Content-Type', 'X-Request-With'],
         'max_age' => 3600 // 1 hora
+        'support_credentials' => false,
     ]
 );
 ```
 
-Los métodos y configuración http son opcionales; por default para todos los origenes todos los métodos son aceptados y la configuración default es la siguiente:
+Asigna la configuración de CORS al middleware predefinido `CorsHandler` que se encargará de gestionar el funcionamiento. Finalmente asignalo a nivel de router.
 
 ```php
-[
-    'allowed_headers' => ['Content-Type', 'Authorization'],
-    'max_age' => 86400, // 24 horas
-    'supports_credentials' => false
-]
-```
-
-Asigna la configuración de CORS con el método `Katya::setCors` y automaticamente se ejecutará al correr el router:
-
-```php
+$cors_handler = new CorsHandler($cors_config);
 // Se asigna al router
-$router->setCors($cors_config);
+$router = new Katya();
+$router->before($cors_handler);
 ```
 
 ## Environment Management
@@ -717,6 +735,16 @@ Environment::register();
 ```php
 // Por ejemplo
 Environment::setLogPath(__DIR__.'/path/to/custom/logs');
+```
+
+Usa `Environment::logError` para registrar manualmente los errores en los `try-catch`.
+
+```php
+try {
+    //Se dispara un Exception
+} catch(\Throwable $e) {
+    Environment::logError($e); // Debe recibir un objeto que descienda de la interface Throwable
+}
 ```
 
 Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de registro de errores.

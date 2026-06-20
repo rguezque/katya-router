@@ -15,8 +15,8 @@ use InvalidArgumentException;
  * 
  * @static Request fromGlobals() Create a Request object from default global params
  * @method Parameters getQuery() Return the $_GET params array
- * @method Parameters getBody() Return the $_POST params array
- * @method Parameters|string getPhpInputStream(int $option = Request::RAW_DATA) Return a read-only stream that allows reading data from the requested body
+ * @method Parameters getParsedBody() Return the $_POST params array
+ * @method Stream getBody() This method returns a Stream object with the content of `php://input`.
  * @method Parameters getServer() Return the $_SERVER params array
  * @method Parameters getCookies() Return the $_COOKIE params array
  * @method Parameters getFiles() Return the $_FILES params array
@@ -51,27 +51,6 @@ class Request {
      * @var int
      */
     const PARAMS_BOTH = 3;
-
-    /**
-     * Value for return raw php input stream data
-     * 
-     * @var int
-     */
-    const RAW_DATA = 4;
-
-    /**
-     * Value for parsed php input stream
-     * 
-     * @var int
-     */
-    const PARSED_STR = 5;
-
-    /**
-     * Value for apply json decode to php input stream
-     * 
-     * @var int
-     */
-    const JSON_DECODED = 6;
 
     /**
      * $_GET params
@@ -181,32 +160,17 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getBody(): Parameters {
+    public function getParsedBody(): Parameters {
         return $this->body_object ??= new Parameters($this->body);
     }
 
     /**
-     * This method allows you to read the raw data from the request body, parse it as a query string, or decode it as JSON.
-     * 
-     * @param int $option Determinate format to return the stream
-     * @return Parameters|string 
-     * @throws InvalidArgumentException When the option is not valid
-     */
-    public function getPhpInputStream(int $option = Request::RAW_DATA): Parameters|string {
-        $phpinputstream = $this->raw_input ??= file_get_contents('php://input');
-
-        switch($option) {
-            case Request::RAW_DATA:
-                return $phpinputstream;
-            case Request::PARSED_STR:
-                $parsed = [];
-                parse_str($phpinputstream, $parsed);
-                return new Parameters($parsed);
-            case Request::JSON_DECODED: 
-                return new Parameters(json_decode($phpinputstream, true));
-            default:
-                throw new InvalidArgumentException(sprintf('Invalid option: %s. Use Request::PARSED_STR, request::JSON_DECODED or Request::RAW_DATA', $option));
-        }
+    * This method returns a Stream object with the content of `php://input`.
+    *
+    * @return Stream
+    */
+    public function getBody(): Stream {
+        return new Stream($this->raw_input ??= file_get_contents('php://input'));
     }
 
     /**

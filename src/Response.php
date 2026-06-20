@@ -17,9 +17,9 @@ namespace rguezque;
  * The headers are stored in an HttpHeaders object, and the status code is set to
  * the provided value or defaults to 200 (HTTP OK).
  * 
- * @method void clear() Reset the initial values for response
  * @method void setStatusCode(int $code) Set the HTTP status code
  * @method int getStatusCode() Get the HTTP status code
+ * @method void clear() Reset the initial values for response
  */
 class Response {
     /**
@@ -65,17 +65,6 @@ class Response {
     }
 
     /**
-     * This method clears the status code, headers, and body of the response.
-     * 
-     * @return void
-     */
-    public function clear(): void {
-        $this->status_code = 200;
-        $this->headers->clear();
-        $this->body = new Stream(fopen('php://memory', 'r+'));
-    }
-
-    /**
      * This method allows you to set the HTTP status code for the response.
      * 
      * @param int $code HTTP status code
@@ -92,6 +81,18 @@ class Response {
      */
     public function getStatusCode(): int {
         return $this->status_code;
+    }
+
+    /**
+     * This method clears the status code, headers, and body of the response.
+     * 
+     * @return void
+     */
+    public function clear(): void {
+        $this->status_code = HttpStatus::HTTP_OK;
+        $this->headers->clear();
+        $this->body->rewind();
+        $this->body->truncate(0);
     }
 
 }

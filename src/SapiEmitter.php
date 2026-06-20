@@ -32,25 +32,27 @@ class SapiEmitter {
      * @return void
      */
     public static function emit(Response $response): void {
-        ob_end_clean(); // Clean the output buffer to prevent any previous output from interfering with the response
-        // Set the HTTP status code
-        $status_code = $response->getStatusCode();
-        
-        // Send the headers
         if(headers_sent($file, $line)) {
             throw new RuntimeException("Headers already sent in $file on line $line.");
         }
+            
+        // Set the HTTP status code
+        $status_code = $response->getStatusCode();
+            
+        // Send the headers
+        http_response_code($status_code);
+
         // If it's a redirection, avoid to emit the body of response and exit
         if($response instanceof RedirectResponse) {
             $location = $response->headers->get('Location');
-            header('Location: ' . $location, true, $status_code);
-            http_response_code($status_code);
-            exit(0);
+            if($location !== null) {
+                header('Location: ' . $location, true, $status_code);
+            }
+            return;
         }
 
-        self::emitHeaders($response->headers, $status_code);
-
-        // Output the body
+        // Send headers and body
+        self::emitHeaders($response->headers);
         self::emitBody($response->body);
     }
 
@@ -58,20 +60,16 @@ class SapiEmitter {
      * Send only HTTP headers with a status code
      * 
      * @param HttpHeaders $headers Object with the headers
-     * @param int $status_code The HTTP status code
      * @return void
      */
-    public static function emitHeaders(HttpHeaders $headers, int $status_code): void {
-        
-        $headers->rewind();
-        while($headers->valid()) {
-            $key = ucwords($headers->key(), '-');
-            $replace = strcasecmp($key, 'Set-Cookie') !== 0;
-            $value = $headers->current();
-            header($key . ':' . $value, $replace, $status_code);
-            $headers->next();
+    public static function emitHeaders(HttpHeaders $headers): void {
+        foreach ($headers as $key => $value) {
+            $key = ucwords($key, '-');
+            // Las cookies no deben sobrescribirse, el resto sí
+            $replace = strcasecmp($key, 'Set-Cookie') !== 0; 
+            
+            header("$key: $value", $replace);
         }
-        http_response_code($status_code);
     }
 
     public static function emitBody(Stream $body) {

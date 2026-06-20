@@ -37,7 +37,7 @@ class CorsHandler implements MiddlewareInterface {
         $this->resolveHeaders($request);
 
         // Apply resolved CORS headers to response
-        $response = $next($request);
+        $response = $next();
         return $this->applyCorsHeaders($response);
     }
 
