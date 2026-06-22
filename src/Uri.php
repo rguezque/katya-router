@@ -57,15 +57,20 @@ class Uri {
         // Determine scheme
         $this->scheme = (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off') ? 'https' : 'http';
 
-        // Determine host and port
-        if (isset($server['HTTP_HOST'])) {
-            $hostData = explode(':', $server['HTTP_HOST']);
-            $this->host = $hostData[0];
-            if (isset($hostData[1])) {
-                $this->port = (int) $hostData[1];
-            }
+        // Fallback para entornos CLI (tests, consola, cron) donde $_SERVER no existe.
+        if (PHP_SAPI === 'cli') {
+            $this->host = 'localhost';
         } else {
-            $this->host = $server['SERVER_NAME'] ?? 'localhost';
+            // Determine host and port
+            if (isset($server['HTTP_HOST'])) {
+                $hostData = explode(':', $server['HTTP_HOST']);
+                $this->host = $hostData[0];
+                if (isset($hostData[1])) {
+                    $this->port = (int) $hostData[1];
+                }
+            } else {
+                $this->host = $server['SERVER_NAME'] ?? 'localhost';
+            }
         }
 
         if ($this->port === null && isset($server['SERVER_PORT'])) {
