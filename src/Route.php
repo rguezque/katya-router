@@ -22,7 +22,8 @@ use rguezque\MiddlewareTrait;
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
  * @method callable getController() Return controller
- * @method Route use(string ...$names) Specify the services to use in this route
+ * @method Route before(MiddlewareInterface $middleware) Add a middleware for the route
+ * @method Route useServices(string ...$names) Specify the services names to use in this route
  */
 class Route {
 
@@ -54,7 +55,7 @@ class Route {
      * 
      * @var string[]
      */
-    private array $services = [];
+    private array $services_names = [];
  
     /**
      * Create route
@@ -102,8 +103,8 @@ class Route {
      * @param string ...$names Service names separated by comma
      * @return Route
      */
-    public function useServices(string ...$names): Route {
-        $this->services = $names;
+    public function useServices(string ...$names): Route{
+        $this->services_names = $names;
         return $this;
     }
 
@@ -113,7 +114,7 @@ class Route {
      * @return string[]
      */
     public function getRouteServices(): array {
-        return $this->services;
+        return $this->services_names;
     }
 
  }

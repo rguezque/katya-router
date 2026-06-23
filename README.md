@@ -21,7 +21,6 @@ A lightweight PHP router
 - [SapiEmitter](#sapiemitter)
 - [Session](#session)
 - [Services](#services)
-- [Variables](#variables)
 - [DB Connection](#db-connection)
   - [Connecting using an URL](#connecting-using-an-url)
   - [Auto connect](#auto-connect)
@@ -246,20 +245,24 @@ $katya->get('/hola/(\w+)/(\w+)/(\d+)', function(Request $request) {
 
 ## Views
 
-Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas en la instancia de la clase `ViewEngine`. 
+Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas y un directorio donde se compilarán las vistas. 
 
 ```php
 use rguezque\View;
 
 // Standalone
 $view = new ViewEngine(
-    __DIR__.'/templates' // Directorio donde se alojan los templates
+    __DIR__.'/views/templates', // Directorio donde se alojan los templates
+    __DIR__.'/views/cache' // Directorio donde se crearán los compilados de las vistas
 );
 
 // Enviandolo como un servicio
 $services = new Services();
 $services->register('view', function() {
-    return new ViewEngine(__DIR__.'/templates');
+    return new ViewEngine(
+        __DIR__.'/views/templates',
+        __DIR__.'/views/cache'
+    );
 });
 $router->setServices($services);
 ```
@@ -267,16 +270,16 @@ $router->setServices($services);
 El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
 
 ```php
-$router->get(Request $request, Services $service): Response {
+$router->get('/home', function(Request $request, Services $service): Response {
     $view = $service->view();
     $data = [
-    	'home': '/',
-    	'about': '/about-us',
-    	'contact': '/contact-us'
+    	'home' => '/',
+    	'about' => '/about-us',
+    	'contact' => '/contact-us'
 	];
 	$template = $view->fetch('menu', $data);
     return new HtmlResponse($template);
-}
+});
 ```
 
 Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
@@ -285,14 +288,26 @@ Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de cód
 //menu.php
 <nav>
     <ul>
-        <li><a href="<?= $home ?>">Home</a></li>
-        <li><a href="<?= $about ?>">About</a></li>
-        <li><a href="<?= $contact ?>">Contact</a></li>
+        <li><a href="{{ home }}">Home</a></li>
+        <li><a href="{{ about }}">About</a></li>
+        <li><a href="{{ contact }}">Contact</a></li>
     </ul>
 </nav>
 ```
 
-Imprime en pantalla el contenido de menu.php guardado previamente con el alias `'menu_lateral'`.
+También es posible agregar fragmentos de vistas, como argumentos para extender una vista principal, con el método `ViewEngine::fetchFragment`, que recibe tres argumentos: el nombre de la plantilla, el nombre con el que se inyectará a la plantilla principal y un array opcional de argumentos para la actual plantilla.
+
+```php
+$router->get('/home', function(Request $request, Services $service): Response {
+    $view = $service->view();
+    // Recibe el
+	$fragment = $view->fetchFragment('top_menu', 'menu_superior');
+    $template = $view->fetch('home');
+    return new HtmlResponse($template);
+});
+```
+
+Imprime en pantalla el contenido de `top_menu.php` guardado previamente con el alias `'menu_superior'`.
 
 ```php
 // index.php
@@ -302,21 +317,21 @@ Imprime en pantalla el contenido de menu.php guardado previamente con el alias `
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?></title>
+    <title>Documento</title>
 </head>
 <body>
-    <?php
-        echo $menu_lateral
-    ?>
+    {{ menu_superior }}
 </body>
 </html>
 ```
-
-Otros métodos para agregar argumentos a la plantilla antes de invocar `fetch`, son:
+Otros métodos disponibles son:
 
 - `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
 - `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
 - `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
+
+>[!IMPORTANT]
+>El método `ViewEngine::fetch` es el último que se debe invocar. Cualquier otro método que se invoque después de este, no tendrá efecto.
 
 ## Request
 
@@ -331,13 +346,16 @@ Los métodos de la clase `Request` que empiezan con `get` devuelven un objeto `P
 - `getFiles()`: Devuelve el array de parámetros `$_FILES`.
 - `getParams(Request::PARAMS_ASSOC)`: Devuelve el array de parámetros nombrados de una ruta solicitada. Dependiendo de la definición de los *wildcards* de una ruta, se puede especificar el formato de datos a devolver (Ver [Wildcards](#wildcards)).
 - `getAllHeaders()`: Devuelve todos los encabezados HTTP recibidos en la actual petición.
+- `getHeaderLine(string $name, ?string $default = null)`: Devuelve el contenido de una cabecera HTTP específica.
 - `getUri()`: Devuelve un objeto `Uri` que representa la URL de la petición actual.
-- `setQuery(array $query)`: Asigna valores a `$_GET`.
-- `setBody(array $body)`: Asigna valores a `$_POST`.
-- `setServer(array $server)`: Asigna valores a `$_SERVER`.
-- `setCookies(array $cookies)`: Asigna valores a `$_COOKIE`.
-- `setFiles(array $files)`: Asigna valores a `$_FILES`.
-- `setParams(array $params)`: Asigna valores al array de parámetros nombrados.
+- `withAddedHeader(string $name, string $value)`: Devuelve un objeto `Request` clonado con la cabecera especificada añadida.
+- `withQuery(array $query)`: Devuelve un objeto `Request` clonado con los nuevos valores `$_GET`.
+- `withBody(array $body)`: Devuelve un objeto `Request` clonado con los nuevos valores `$_POST`.
+- `withServer(array $server)`: Devuelve un objeto `Request` clonado con los nuevos valores `$_SERVER`.
+- `withCookies(array $cookies)`: Devuelve un objeto `Request` clonado con los nuevos valores `$_COOKIE`.
+- `withFiles(array $files)`: Devuelve un objeto `Request` clonado con los nuevos valores `$_FILES`. 
+- `withParams(array $params)`: Devuelve un objeto `Request` clonado con los nuevos valores de los parámetros con nombre.
+- `withAddedParams(array $params)`: Devuelve un objeto `Request` clonado con parámetros añadidos a los parámetros con nombre existentes.
 - `buildQuery(string $uri, array $params)`: Genera y devuelve una cadena de petición `GET` en una URI.
 
 ## Response
@@ -349,6 +367,13 @@ Métodos de la clase `Response`.
 - `getStatusCode()`: Devuelve el actual código de estatus HTTP.
 - `headers`: Atributo público de tipo `HttpHeaders`. Contiene métodos para agregar encabezados HTTP al `Response`.
 - `body`: Atributo público de tipo `Stream`. Contiene métodos para agregar contenido al cuerpo del `Response`.
+
+```php
+$response = new \rguezque\Response();
+$response->headers->set('Content-Type', 'text/html');
+$response->body->write('Not Found. The request URL do not match any route.');
+$response->setStatusCode(\rguezque\HttpStatus::HTTP_NOT_FOUND);
+```
 
 >[!TIP]
 >Utiliza `JsonResponse` para devolver datos de una API en formato `JSON` , `HtmlResponse` para devolver contenido `html` (vistas) y `RedirectResponse` para redirecciones.
@@ -487,48 +512,6 @@ $router->get('/', function(Request $request, Services $service) {
     return new HtmlResponse($view->fetch('home.php'));
 })->useServices('view'); // Solamente recibirá el servicio 'view'
 ```
-
-## Variables
-
-Asigna variables globales dentro de la aplicación con `Katya::setVariables` que recibe como parámetro un objeto `Variables`.
-
-```php
-require __DIR__.'/vendor/autoload.php';
-
-use rguezque\{Katya, Request, Variables};
-
-$router = new Katya;
-$vars = new Variables;
-
-$vars->set('pi', 3.141592654);
-$router->setVariables($vars);
-
-$router->route(Katya::GET, '/', function(Request $request, Variables $vars) {
-    $response->send($vars->get('pi'));
-});
-```
-
-Con `Variables::set` se crea una variable, recibe como parámetros el nombre de la variable y su valor.
-
-```php
-$vars->set('pi', 3.141592654);
-```
-
-Recupera una variable con el método `Variables::get`, recibe como parámetros el nombre de la variable y un valor default en caso de que la variable llamada no exista; este último parámetro es opcional y si no se declara devolverá un valor `null` por default.
-
-```php
-$vars->get('pi'); // Devuelve la variable pi (si no existe devuelve null)
-$vars->get('pi', 3.14) // Devuelve la variable pi (si no existe devuelve por default el valor 3.14)
-```
-
-Para verificar si una variable existe se utiliza el método `Variables::has` que devolverá `true` si la variable existe o `false` en caso contrario.
-
-```php
-$vars->has('pi') // Para este ejemplo devolvería TRUE
-```
-
->[!IMPORTANT]
->Todos los nombres de variables son normalizados a minúsculas y son enviadas siempre como último argumento en cada controlador; solo si se han definido y asignado con `Katya::setVariables`.
 
 ## DB Connection
 

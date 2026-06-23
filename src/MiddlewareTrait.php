@@ -18,7 +18,7 @@ trait MiddlewareTrait {
     private array $before = [];
 
     /**
-     * Add a hook to exec before the route controller
+     * Add a middleware for the route
      * 
      * @param MiddlewareInterface $middleware Middleware object
      * @return self

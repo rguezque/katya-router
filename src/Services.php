@@ -23,7 +23,7 @@ use rguezque\Exceptions\NotFoundException;
  * 
  * @method Services register(string $alias, Closure $closure) Register services
  * @method Services unregister(string ...$alias) Unregister one or multiple services by name
- * @method Services only(array $names) Returns a Services instance filtered with only the defined services
+ * @method Services filter(array $names) Returns a Services instance filtered with only the defined services
  * @method bool has(string $key) Return true if a service exists
  * @method array all() Return all the services array
  * @method array names() Return the key names of availables services
@@ -50,7 +50,7 @@ class Services {
                 throw new InvalidArgumentException('The collection of services must be an associative array, whose keys must be of type string and its values ​​of type Closure.');
             }
             if(!($service instanceof Closure)) {
-                throw new InvalidArgumentException(sprintf('The service with name "%s" must be a Closure, catched %s', $name, gettype($service)));
+                throw new InvalidArgumentException(sprintf('Error processing service registration for "%s". Each service must be defined within a Closure; catched %s', $name, gettype($service)));
             }
         }
 
@@ -128,18 +128,12 @@ class Services {
     }
 
     /**
-     * Returns a Services instance filtered with only the defined services
+     * Returns a new `Services` object with filtered services
      * 
      * @param string[] $names Service names to keep
      */
-    public function only(array $names): Services {
-        $filtered = clone $this;
-        $to_remove = array_diff($this->names(), $names);
-        if(!empty($to_remove)) {
-            $filtered->unregister(...$to_remove);
-        }
-
-        return $filtered;
+    public function filter(array $names): Services {
+        return new self(array_intersect_key($this->services, array_flip($names)));
     }
 
     /**

@@ -14,23 +14,25 @@ use InvalidArgumentException;
  * Represent a server request
  * 
  * @static Request fromGlobals() Create a Request object from default global params
- * @method Parameters getQuery() Return the $_GET params array
- * @method Parameters getParsedBody() Return the $_POST params array
+ * @method Parameters getQuery() Return the `$_GET` params array
+ * @method Parameters getParsedBody() Return the `$_POST` params array
  * @method Stream getBody() This method returns a Stream object with the content of `php://input`.
- * @method Parameters getServer() Return the $_SERVER params array
- * @method Parameters getCookies() Return the $_COOKIE params array
- * @method Parameters getFiles() Return the $_FILES params array
+ * @method Parameters getServer() Return the `$_SERVER` params array
+ * @method Parameters getCookies() Return the `$_COOKIE` params array
+ * @method Parameters getFiles() Return the `$_FILES` params array
  * @method Parameters|array getParams(int $type = Request::PARAMS_ASSOC) Get named parameters from the route
  * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
+ * @method string getHeaderLine(string $name, ?string $default = null) Returns the content of a specific HTTP header
  * @method Uri getUri() Returns the URI object representing the current request URL
- * @method void setQuery(array $query) Set values for $_GET array
- * @method void setBody(array $body) Set values for $_POST array
- * @method void setServer(array $server) Set values for $_SERVER array
- * @method void setCookies(array $cookies) Set values for $_COOKIE array
- * @method void setFiles(array $files) Set values for $_FILES array
- * @method void setParams(array $params) Set values for named params array
- * @method void addParams(array $params) Add parameters to the existing named params array
- * @method string buildQuery(string $uri, array $params) Generate URL-encoded query string
+ * @method Request withAddedHeader(string $name, string $value) Returns a cloned Request with the specified header appended
+ * @method Request withQuery(array $query) Returns a cloned Request with the new `$_GET` values
+ * @method Request withBody(array $body) Returns a cloned Request with the new `$_POST` values
+ * @method Request withServer(array $server) Returns a cloned Request with the new `$_SERVER` values
+ * @method Request withCookies(array $cookies) Returns a cloned Request with the new `$_COOKIE` values
+ * @method Request withFiles(array $files) Returns a cloned Request with the new `$_FILES` values
+ * @method Request withParams(array $params) Returns a cloned Request with the new named params values
+ * @method Request withAddedParams(array $params) Returns a cloned Request with parameters added to the existing named params
+ * @method static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
 class Request {
     /**
@@ -107,11 +109,11 @@ class Request {
     /**
      * This constructor initializes the Request object with the provided parameters.
      * 
-     * @param array $query $_GET params
-     * @param array $body $_POST params
-     * @param array $server $_SERVER params
-     * @param array $cookies $_COOKIE params
-     * @param array $files $_FILES params
+     * @param array $query `$_GET` params
+     * @param array $body `$_POST` params
+     * @param array $server `$_SERVER` params
+     * @param array $cookies `$_COOKIE` params
+     * @param array $files `$_FILES` params
      * @param array $params Route params
      */
     public function __construct(
@@ -147,7 +149,7 @@ class Request {
     }
 
     /**
-     * This method returns the $_GET params encapsulated into a Parameters object.
+     * This method returns the `$_GET` params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -156,7 +158,7 @@ class Request {
     }
 
     /**
-     * This method returns the $_POST params encapsulated into a Parameters object.
+     * This method returns the `$_POST` params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -174,7 +176,7 @@ class Request {
     }
 
     /**
-     * This method returns the $_SERVER params encapsulated into a Parameters object.
+     * This method returns the `$_SERVER` params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -183,7 +185,7 @@ class Request {
     }
 
     /**
-     * This method returns the $_COOKIE params encapsulated into a Parameters object.
+     * This method returns the `$_COOKIE` params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -192,7 +194,7 @@ class Request {
     }
 
     /**
-     * This method returns the $_FILES params encapsulated into a Parameters object.
+     * This method returns the `$_FILES` params encapsulated into a Parameters object.
      * 
      * @return Parameters
      */
@@ -217,12 +219,23 @@ class Request {
     }
 
     /**
-     * This method retrieves all HTTP headers from the current request and returns them as a Parameters object.
+     * Fetches all HTTP headers from the current request
      * 
      * @return Parameters
      */
     public function getAllHeaders(): Parameters {
         return $this->headers_object ??= new Parameters(getallheaders());
+    }
+
+    /**
+     * Returns the content of a specific HTTP header.
+     *
+     * @param string $name The name of the header.
+     * @param string $default The default value to return if the header does not exist.
+     * @return string
+     */
+    public function getHeaderLine(string $name, string $default = ''): string {
+        return $this->getAllHeaders()->get($name, $default);
     }
 
     /**
@@ -233,78 +246,128 @@ class Request {
     }
 
     /**
-     * Set values for $_GET array
-     * 
-     * @param array $query Array values 
-     * @return void
+     * Returns a cloned `Request` with the specified header appended to any existing values.
+     *
+     * If the header already exists, the new value is concatenated to the existing one
+     * using a comma separator (as per HTTP specification for multi-value headers).
+     *
+     * @param string $name The name of the header.
+     * @param string $value The value to append to the header.
+     * @return self A cloned instance of the `Request` with the modified header.
+     * @throws InvalidArgumentException If the header name is empty.
      */
-    public function setQuery(array $query): void {
-        $this->query = $query;
-        $this->query_object = null;
+    public function withAddedHeader(string $name, string $value): self {
+        if ($name === '') {
+            throw new InvalidArgumentException('Header name must be a non-empty string.');
+        }
+
+        $clone = clone $this;
+
+        // Obtain the current headers Parameters object (lazy loaded)
+        $headers = $clone->getAllHeaders();
+
+        // If the header already exists, concatenate the new value with a comma
+        if ($headers->has($name)) {
+            $existing = $headers->get($name);
+            $value = $existing . ', ' . $value;
+        }
+
+        // Update the header in the Parameters object
+        $headers->set($name, $value);
+
+        // Reassign the modified Parameters object to the clone's cache
+        $clone->headers_object = $headers;
+
+        return $clone;
     }
 
     /**
-     * Set values for $_POST array
-     * 
-     * @param array $body Array values 
-     * @return void
+     * Returns a cloned Request with the new `$_GET` values.
+     *
+     * @param array $query Array values
+     * @return self
      */
-    public function setBody(array $body): void {
-        $this->body = $body;
-        $this->body_object = null;
+    public function withQuery(array $query): self {
+        $clone = clone $this;
+        $clone->query = $query;
+        $clone->query_object = null;
+        return $clone;
     }
 
     /**
-     * Set values for $_SERVER array
-     * 
-     * @param array $server Array values 
-     * @return void
+     * Returns a cloned Request with the new `$_POST` values.
+     *
+     * @param array $body Array values
+     * @return self
      */
-    public function setServer(array $server): void {
-        $this->server = $server;
-        $this->server_object = null;
+    public function withBody(array $body): self {
+        $clone = clone $this;
+        $clone->body = $body;
+        $clone->body_object = null;
+        return $clone;
     }
 
     /**
-     * Set values for $_COOKIE array
-     * 
-     * @param array $cookies Array values 
-     * @return void
+     * Returns a cloned Request with the new `$_SERVER` values.
+     *
+     * @param array $server Array values
+     * @return self
      */
-    public function setCookies(array $cookies): void {
-        $this->cookies = $cookies;
-        $this->cookies_object = null;
+    public function withServer(array $server): self {
+        $clone = clone $this;
+        $clone->server = $server;
+        $clone->server_object = null;
+        return $clone;
     }
 
     /**
-     * Set values for $_FILES array
-     * 
-     * @param array $files Array values 
-     * @return void
+     * Returns a cloned Request with the new `$_COOKIE` values.
+     *
+     * @param array $cookies Array values
+     * @return self
      */
-    public function setFiles(array $files): void {
-        $this->files = $files;
-        $this->files_object = null;
+    public function withCookies(array $cookies): self {
+        $clone = clone $this;
+        $clone->cookies = $cookies;
+        $clone->cookies_object = null;
+        return $clone;
     }
 
     /**
-     * Set values for named params array
-     * 
-     * @param array $params Array values 
-     * @return void
+     * Returns a cloned Request with the new `$_FILES` values.
+     *
+     * @param array $files Array values
+     * @return self
      */
-    public function setParams(array $params): void {
-        $this->params = $params;
+    public function withFiles(array $files): self {
+        $clone = clone $this;
+        $clone->files = $files;
+        $clone->files_object = null;
+        return $clone;
     }
 
     /**
-     * This method adds parameters to the existing named params array.
+     * Returns a cloned Request with the new named params values.
+     *
+     * @param array $params Array values
+     * @return self
+     */
+    public function withParams(array $params): self {
+        $clone = clone $this;
+        $clone->params = $params;
+        return $clone;
+    }
+
+    /**
+     * Returns a cloned Request with parameters added to the existing named params.
+     *
      * @param array $params Array of parameters to add
-     * @throws InvalidArgumentException When the provided parameter is not an array
-     * @return void
+     * @return self
      */
-    public function addParams(array $params): void {
-        $this->params = array_merge($this->params, $params);
+    public function withAddedParams(array $params): self {
+        $clone = clone $this;
+        $clone->params = array_merge($clone->params, $params);
+        return $clone;
     }
 
     /**

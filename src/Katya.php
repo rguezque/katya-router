@@ -36,11 +36,9 @@ use function rguezque\functions\str_path;
  * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
  * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
- * @method Katya setCors(CorsConfig $cors_config) Set the CORS configuration
  * @method Katya setServices(Services $services) Set services to use into controllers
- * @method Katya setVariables(Variables $vars) Set variables to use into controllers
  * @method ?Response run(Request $request) Start the router and return the response
- * @method void halt(Response $response) Stop the router and send the response
+ * @method static void halt(Response $response) Stop the router and send the response
  */
 class Katya {
     
@@ -66,9 +64,6 @@ class Katya {
 
     /** Global prefix */
     private string $basepath = '';
-
-    /** Variables collection */
-    private ?Variables $vars = null;
 
     /**
      * Initialize a router instance
@@ -267,18 +262,15 @@ class Katya {
 
             if(preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
                 array_shift($arguments);
-                $request->setParams($arguments);
+                $request = $request->withParams($arguments);
 
                 $services = $this->services;
                 // Filter the services for route
-                if([] !== $route->getRouteServices() && null !== $services) $services = $services->only($route->getRouteServices());
+                if([] !== $route->getRouteServices() && null !== $services) $services = $services->filter($route->getRouteServices());
 
                 $controller_args = [$request];
                 // Add services to route arguments
                 if(null !== $services) $controller_args[] = $services;
-
-                // Add variables to route arguments, if exists
-                if(null !== $this->vars) $controller_args[] = $this->vars;
 
                 // Controller enveloped
                 $next = fn() => call_user_func($route->getController(), ...$controller_args);

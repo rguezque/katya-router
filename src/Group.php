@@ -57,11 +57,11 @@ class Group {
     private Closure $closure;
 
     /**
-     * List of lot of services to use for this routes group
+     * List of services to use for this routes group
      * 
      * @var string[]
      */
-    private array $onlyuse = [];
+    private array $services_names = [];
 
     /**
      * Create route group
@@ -162,7 +162,7 @@ class Group {
      * @return Group
      */
     public function useServices(string ...$names): Group {
-        $this->onlyuse = $names;
+        $this->services_names = $names;
         return $this;
     }
 
@@ -180,14 +180,15 @@ class Group {
      * @return Route The processed Route object
      */
     private function applyGroupSettings(Route $route): Route {
+        // Add group middlewares to route
         if ([] !== $this->before) {
             foreach($this->before as $middleware) {
                 $route->before($middleware);
             }
         }
 
-        if ([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
+        if ([] !== $this->services_names) {
+            $route->useServices(...$this->services_names);
         }
         
         return $route;
