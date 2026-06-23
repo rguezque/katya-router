@@ -180,14 +180,15 @@ class Group {
      * @return Route The processed Route object
      */
     private function applyGroupSettings(Route $route): Route {
-        // Add group middlewares to route
+        // Add group middlewares to routes
         if ([] !== $this->before) {
             foreach($this->before as $middleware) {
                 $route->before($middleware);
             }
         }
 
-        if ([] !== $this->services_names) {
+        // Inherits services assigned from the group to the routes, only if the routes do not have services explicitly assigned
+        if (!empty($this->services_names) && empty($route->getRouteServices())) {
             $route->useServices(...$this->services_names);
         }
         

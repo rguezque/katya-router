@@ -24,6 +24,7 @@ use rguezque\MiddlewareTrait;
  * @method callable getController() Return controller
  * @method Route before(MiddlewareInterface $middleware) Add a middleware for the route
  * @method Route useServices(string ...$names) Specify the services names to use in this route
+ * @method array getRouteServices() Return the list of service names for this route
  */
 class Route {
 

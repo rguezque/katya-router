@@ -478,7 +478,9 @@ La clase `Services` sirve para registrar servicios que se utilizarán en todo el
 
 Para asignarlos al router se envía el objeto `Services` a través del método `Katya::setServices`, a partir de aquí, cada controlador recibirá como tercer argumento la instancia de `Services`. Un servicio es invocado como si fuera un método más de la clase o bien como si fuera un atributo en contexto de objeto. 
 
-Opcionalmente se puede seleccionar que servicios específicamente serán utilizados en determinada ruta o grupo de rutas con `Route::useServices` el cual recibe los nombres de los servicios registrados previamente, separados por comas.
+Opcionalmente se puede filtrar que servicios en específico serán utilizados en una ruta o grupo de rutas con `Route::useServices` y `Group::useServices` respectivamente. Este método recibe los nombres de los servicios, separados por comas.
+
+Si se especifican servicios para un grupo, estos se heredan a sus rutas, excepto en aquellas rutas que tengan explicitamente definidos los servicios que utilizarán.
 
 Para verificar si un servicio existe se usa `Services::has` (se envía como argumento el nombre del servicio) y `Services::names` devuelve un array con los nombres de todos los servicios disponibles.
 
