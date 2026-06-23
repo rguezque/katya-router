@@ -661,7 +661,7 @@ $router->get('/user/{name}', function(Request $request) {
 
 ## CORS
 
-*(Cross-Origin Resource Sharing)*. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los origenes, y configuraciones adicionales. CORS es un ejemplo de middleware a nivel de router.
+*(Cross-Origin Resource Sharing)*. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los orígenes, y configuraciones adicionales. CORS es un ejemplo de middleware a nivel de router.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -701,6 +701,44 @@ $cors_handler = new CorsHandler($cors_config);
 // Se asigna al router
 $router = new Katya();
 $router->before($cors_handler);
+```
+
+Opcionalmente puedes inicializar `CorsConfig` con una configuración total o parcial para todos los orígenes. Si es parcial, será completada con valores default; si es total, reemplazará a la configuración default.
+
+Las claves que no definas en cada configuración con `CorsConfig::addOrigin` serán completadas con la configuración default.
+
+```php
+// Configuración default de la clase CorsConfig
+[
+    'allowed_headers' => ['Content-Type'],
+    'expose_headers'  => [],
+    'max_age' => 86400, // 24 hours
+    'supports_credentials' => false
+];
+```
+
+>[!IMPORTANT]
+>Por razones de seguridad, la especificación de CORS prohíbe el uso del comodín `*` en el encabezado `Access-Control-Allow-Origin` cuando `Access-Control-Allow-Credentials` está configurado en `true`. Los navegadores rechazarán la petición si intentas combinar ambos.
+>Para que una solicitud con credenciales (como cookies o encabezados de autorización) funcione correctamente, debes especificar el dominio exacto del cliente en la respuesta del servidor.
+
+```php
+// Configuración incorrecta
+// Access-Control-Allow-Origin: *
+// Access-Control-Allow-Credentials: true
+$cors_config->addOrigin(
+    '*', 
+    ['GET', 'POST', 'DELETE'], 
+    ['support_credentials' => true]
+);
+
+// Configuración correcta
+// Access-Control-Allow-Origin: https://tuservicio.com
+// Access-Control-Allow-Credentials: true
+$cors_config->addOrigin(
+    'https://tuservicio.com', 
+    ['GET', 'POST', 'DELETE'], 
+    ['support_credentials' => true]
+);
 ```
 
 ## Environment Management

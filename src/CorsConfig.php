@@ -8,6 +8,7 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
 use rguezque\HttpHeaders;
 use rguezque\Request;
 
@@ -21,7 +22,6 @@ use rguezque\Request;
  * 
  * @method CorsConfig addOrigin(string $origin, array $methods = ['*'], array $config = []) Add an origin with specific configuration
  * @method CorsConfig setDefaultConfig(array $config) Set global default configuration for CORS
- * @method bool __invoke(Request $request, Response $response) Handle CORS headers
  */
 class CorsConfig {
     /**
@@ -42,18 +42,36 @@ class CorsConfig {
     ];
 
     /**
+     * Set an optional shared configuration for all origins. If no configuration is defined 
+     * or a key is missing, a default configuration will be assigned.
+     * 
+     * @param array $shared_config Optional shared configuration
+     */
+    public function __construct(array $shared_config = []) {
+        $this->default_config = array_merge($this->default_config, $shared_config);
+    }
+
+    /**
      * Add an origin with specific configuration
      * 
      * @param string $origin Origin URL
      * @param array $methods Allowed HTTP methods for this origin
      * @param array $config Additional CORS configuration for this origin
      * @return CorsConfig
+     * @throws InvalidArgumentException When `origin` is the wildcard `*` and `supports_credentials` is set to `true`
      */
     public function addOrigin(string $origin, array $methods = ['*'], array $config = []): CorsConfig {
-        $this->origins[$origin] = [
+        $origin = trim($origin);
+        $normalized_config = [
             'methods' => array_map(fn($m) => strtoupper(trim($m)), $methods),
             'config' => array_merge($this->default_config, $config)
         ];
+
+        if('*' === $origin && $normalized_config['config']['supports_credentials']) {
+            throw new InvalidArgumentException('For security reasons, the use of the wildcard "*" in the origin definition is prohibited when "supports_credentials" is set to true');
+        }
+
+        $this->origins[$origin] = $normalized_config;
         return $this;
     }
 
