@@ -174,7 +174,7 @@ class Environment {
      * @param Throwable $exception
      * @return void
      */
-    protected static function handleException(Throwable $exception): void {
+    public static function handleException(Throwable $exception): void {
         // Log the error
         self::logError($exception);
 

@@ -224,3 +224,27 @@ if(!function_exists('is_localhost')) {
         return false;
     }
 }
+
+if(!function_exists('foreach_empty')) {
+    /**
+     * Execute a loop over an iterable element or perform a default action if it is empty.
+     * 
+     * This function emulates the behavior of the `@foreach` / `@empty` directives from template 
+     * engines like Blade. If the iterable has elements, it executes the `$each` callback for each one; 
+     * if it's empty, it executes the `$fallback` callback.
+     *
+     * @param iterable $iterable Element to iterate (array or object that implements Traversable).
+     * @param callable $each Function to be executed by each element. e.g.`function($value, $key)`
+     * @param callable $fallback Función a ejecutar si el iterable no tiene elementos. e.g. `function()`
+     * @return void
+     */
+    function foreach_empty(iterable $iterable, callable $each, callable $fallback) {
+        if (!empty($iterable)) {
+            foreach ($iterable as $key => $value) {
+                $each($value, $key);
+            }
+        } else {
+            $fallback();
+        }
+    }
+}

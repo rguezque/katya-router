@@ -57,7 +57,7 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
 
         return $this->has($key) 
         ? (is_array($this->bunch[$key]) ? new Parameters($this->bunch[$key]) : $this->bunch[$key]) 
-        : $default ;
+        : $default;
     }
 
     /**
