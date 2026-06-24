@@ -99,13 +99,13 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Return the type of a parameter
+     * Return the type or object name of a parameter
      * 
      * @param string $key Parameter name
      * @return string
      */
     public function gettype(string $key): string {
-        return gettype($this->get($key));
+        return get_debug_type($this->get($key));
     }
 
     /**

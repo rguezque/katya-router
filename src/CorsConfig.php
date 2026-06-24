@@ -20,8 +20,7 @@ use rguezque\Request;
  * settings. It can handle preflight requests and set appropriate CORS headers
  * for incoming requests based on the origin and request method.
  * 
- * @method CorsConfig addOrigin(string $origin, array $methods = ['*'], array $config = []) Add an origin with specific configuration
- * @method CorsConfig setDefaultConfig(array $config) Set global default configuration for CORS
+ * @method CorsConfig addOrigin(string $origin, array $methods = ["*"], array $config = []) Add an origin with specific configuration
  */
 class CorsConfig {
     /**
@@ -72,17 +71,6 @@ class CorsConfig {
         }
 
         $this->origins[$origin] = $normalized_config;
-        return $this;
-    }
-
-    /**
-     * Set global default configuration
-     * 
-     * @param array $config Default CORS configuration
-     * @return CorsConfig
-     */
-    public function setDefaultConfig(array $config): CorsConfig {
-        $this->default_config = array_merge($this->default_config, $config);
         return $this;
     }
 
