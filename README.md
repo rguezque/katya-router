@@ -245,7 +245,7 @@ $katya->get('/hola/(\w+)/(\w+)/(\d+)', function(Request $request) {
 
 ## Views
 
-Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas y un directorio donde se compilarán las vistas. 
+Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas. 
 
 ```php
 use rguezque\View;
@@ -253,21 +253,19 @@ use rguezque\View;
 // Standalone
 $view = new ViewEngine(
     __DIR__.'/views/templates', // Directorio donde se alojan los templates
-    __DIR__.'/views/cache' // Directorio donde se crearán los compilados de las vistas
 );
 
 // Enviandolo como un servicio
 $services = new Services();
 $services->register('view', function() {
     return new ViewEngine(
-        __DIR__.'/views/templates',
-        __DIR__.'/views/cache'
+        __DIR__.'/views/templates'
     );
 });
 $router->setServices($services);
 ```
 
-El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse la terminación del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con la terminación `.view.php`.
+El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse el sufijo del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con el sufijo y extensión `*.view.php`.
 
 ```php
 $router->get('/home', function(Request $request, Services $service): Response {
@@ -288,9 +286,9 @@ Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de cód
 //menu.php
 <nav>
     <ul>
-        <li><a href="{{ home }}">Home</a></li>
-        <li><a href="{{ about }}">About</a></li>
-        <li><a href="{{ contact }}">Contact</a></li>
+        <li><a href="<?= $home ?>">Home</a></li>
+        <li><a href="<?= $about ?>">About</a></li>
+        <li><a href="<?= $contact ?>">Contact</a></li>
     </ul>
 </nav>
 ```
@@ -320,7 +318,7 @@ Imprime en pantalla el contenido de `top_menu.php` guardado previamente con el a
     <title>Documento</title>
 </head>
 <body>
-    {{ menu_superior }}
+    <?= $menu_superior ?>
 </body>
 </html>
 ```
