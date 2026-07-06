@@ -12,8 +12,6 @@ use InvalidArgumentException;
 use rguezque\Interfaces\ArgumentsInterface;
 use rguezque\Interfaces\BagInterface;
 
-use function rguezque\functions\env;
-
 /**
  * Represents a PHP session.
  * 
@@ -40,6 +38,13 @@ use function rguezque\functions\env;
  * @method bool destroy() Destroy the active session
  */
 class Session implements BagInterface, ArgumentsInterface {
+    /**
+     * Default session vars namespace, in this case the default PHP session name
+     * 
+     * @var string
+     */
+    const DEFAULT_NAMESPACE = 'PHPSESSID';
+    
     /**
      * Custom session vars namespace
      * 
@@ -86,6 +91,15 @@ class Session implements BagInterface, ArgumentsInterface {
         }
 
         return self::$instances[$session_namespace];
+    }
+
+    /**
+     * Create or return an instance of `Session` with the default PHP session name 'PHPSESSID'.
+     * 
+     * @return Session
+     */
+    public static function withDefault(): Session {
+        return self::withNamespace(self::DEFAULT_NAMESPACE);
     }
 
     /**
@@ -249,10 +263,10 @@ class Session implements BagInterface, ArgumentsInterface {
     }
 
     /**
-     * Destroy the active session
+     * Destroy the active session and session cookies if PHP sessions are configured to use cookies (session.use_cookies).
      * 
-     * This method will clear all session variables,
-     * remove the session cookie if it exists, and destroy the session.
+     * Check the server configuration (php.ini) to see if PHP sessions are configured to use cookies (session.use_cookies). 
+     * If it's enabled (which is usually the case), delete it.
      * 
      * @return bool True on success or false on failure
      */

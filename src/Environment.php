@@ -156,7 +156,7 @@ class Environment {
         $log_message = sprintf(
             "[%s] %s.%d: %s in %s on line %d\n%s\n\n",
             $date,
-            self::getSeverityName($exception->getCode()),
+            self::getSeverityName((int)$exception->getCode()),
             $exception->getCode(),
             $exception->getMessage(),
             $exception->getFile(),
