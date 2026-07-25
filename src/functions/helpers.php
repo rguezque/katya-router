@@ -1,4 +1,6 @@
-<?php declare(strict_types = 1);
+<?php
+
+declare(strict_types=1);
 
 /**
  * @author    Luis Arturo Rodríguez
@@ -11,7 +13,7 @@ namespace rguezque\functions;
 
 use rguezque\Exceptions\FileNotFoundException;
 
-if(!function_exists('env')) {
+if (!function_exists('env')) {
     /**
      * Get an environment variable
      * * This function retrieves the value of an environment variable. If the variable is not set, it returns a default value.
@@ -20,13 +22,14 @@ if(!function_exists('env')) {
      * @param mixed $default The default value to return if the environment variable is not set
      * @return mixed The value of the environment variable or the default value
      */
-    function env(string $key, mixed $default = null): mixed {
+    function env(string $key, mixed $default = null): mixed
+    {
         $value = $_ENV[$key] ?? null;
         return isset($value) ? $value : $default;
     }
 }
 
-if(!function_exists('add_trailing_slash')) {
+if (!function_exists('add_trailing_slash')) {
     /**
      * Add a trailing slash
      * * This function adds a trailing slash to a string, ensuring that the string ends with a slash.
@@ -34,12 +37,13 @@ if(!function_exists('add_trailing_slash')) {
      * @param string $str A string
      * @return string
      */
-    function add_trailing_slash(string $str): string {
+    function add_trailing_slash(string $str): string
+    {
         return sprintf('%s/', remove_trailing_slash($str));
     }
 }
 
-if(!function_exists('remove_trailing_slash')) {
+if (!function_exists('remove_trailing_slash')) {
     /**
      * Remove trailing slashes
      * * This function removes trailing slashes from a string, ensuring that the string does not end with a slash or backslash.
@@ -47,12 +51,13 @@ if(!function_exists('remove_trailing_slash')) {
      * @param string $str A string
      * @return string
      */
-    function remove_trailing_slash(string $str): string {
+    function remove_trailing_slash(string $str): string
+    {
         return rtrim($str, '/\\');
     }
 }
 
-if(!function_exists('add_leading_slash')) {
+if (!function_exists('add_leading_slash')) {
     /**
      * Add a leading slash
      * * This function adds a leading slash to a string, ensuring that the string starts with a slash.
@@ -60,12 +65,13 @@ if(!function_exists('add_leading_slash')) {
      * @param string $str A string
      * @return string
      */
-    function add_leading_slash(string $str): string {
+    function add_leading_slash(string $str): string
+    {
         return sprintf('/%s', remove_leading_slash($str));
     }
 }
 
-if(!function_exists('remove_leading_slash')) {
+if (!function_exists('remove_leading_slash')) {
     /**
      * Remove leading slashes
      * * * This function removes leading slashes from a string, ensuring that the string does not start with a slash or backslash.
@@ -73,12 +79,13 @@ if(!function_exists('remove_leading_slash')) {
      * @param string $str A string
      * @return string
      */
-    function remove_leading_slash(string $str): string {
+    function remove_leading_slash(string $str): string
+    {
         return ltrim($str, '/\\');
     }
 }
 
-if(!function_exists('namespace_format')) {
+if (!function_exists('namespace_format')) {
     /**
      * Return a string like namespace format slashes
      * * This function ensures that the namespace string is properly formatted with a trailing backslash.
@@ -86,25 +93,27 @@ if(!function_exists('namespace_format')) {
      * @param string $namespace String namespace
      * @return string
      */
-    function namespace_format(string $namespace): string {
-        return trim($namespace, '\\').'\\';
+    function namespace_format(string $namespace): string
+    {
+        return trim($namespace, '\\') . '\\';
     }
 }
 
-if(!function_exists('str_prepend')) {
+if (!function_exists('str_prepend')) {
     /**
      * Prepend strings to subject string
      * * This function prepends one or more strings to the beginning of a subject string.
      * 
      * @param string $subject String subject
-     * @param string $prepend String to prepend (first declared, first prepended)
+     * @param string ...$prepend Strings to prepend (first declared, first prepended)
      */
-    function str_prepend(string $subject, string ...$prepend): string {
-        return implode('', array_reverse($prepend)).$subject;
+    function str_prepend(string $subject, string ...$prepend): string
+    {
+        return implode('', array_reverse($prepend)) . $subject;
     }
 }
 
-if(!function_exists('str_append')) {
+if (!function_exists('str_append')) {
     /**
      * Append strings to subject string
      * * This function appends one or more strings to the end of a subject string.
@@ -112,12 +121,13 @@ if(!function_exists('str_append')) {
      * @param string $subject String subject
      * @param string $append String to append
      */
-    function str_append(string $subject, string ...$append): string {
-        return $subject.implode('', $append);
+    function str_append(string $subject, string ...$append): string
+    {
+        return $subject . implode('', $append);
     }
 }
 
-if(!function_exists('str_path')) {
+if (!function_exists('str_path')) {
     /**
      * Clean and prepare a string path
      * * This function ensures that the path starts with a leading slash and does not end with a trailing slash.
@@ -125,12 +135,13 @@ if(!function_exists('str_path')) {
      * @param string $path String path
      * @return string
      */
-    function str_path(string $path): string {
+    function str_path(string $path): string
+    {
         return add_leading_slash(remove_trailing_slash($path));
     }
 }
 
-if(!function_exists('is_assoc_array')) {
+if (!function_exists('is_assoc_array')) {
     /**
      * Return true if the evaluated array is associative
      * * An associative array is an array where the keys are not sequential integers starting from 0.
@@ -138,13 +149,14 @@ if(!function_exists('is_assoc_array')) {
      * @param array $arr Array to evaluate
      * @return bool
      */
-    function is_assoc_array(array $arr): bool {
+    function is_assoc_array(array $arr): bool
+    {
         if ([] === $arr) return false;
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
 }
 
-if(!function_exists('json_file_get_contents')) {
+if (!function_exists('json_file_get_contents')) {
     /**
      * Reads entire json file into an associative array
      * * This function reads a JSON file and decodes its contents into an associative array.
@@ -153,8 +165,9 @@ if(!function_exists('json_file_get_contents')) {
      * @return array
      * @throws FileNotFoundException
      */
-    function json_file_get_contents(string $file): array {
-        if(!file_exists($file)) {
+    function json_file_get_contents(string $file): array
+    {
+        if (!file_exists($file)) {
             throw new FileNotFoundException(sprintf('The file %s wasn\'t found.', $file));
         }
 
@@ -163,20 +176,67 @@ if(!function_exists('json_file_get_contents')) {
     }
 }
 
-if(!function_exists('unsetcookie')) {
+if (!function_exists('set_secure_cookie')) {
     /**
-     * Delete a cookie
-     * * This function sets the cookie with an expiration time in the past, effectively deleting it.
-     * 
+     * Create a cookie with advanced security options.
+     *
      * @param string $name Cookie name
-     * @return bool True on success, otherwise false
+     * @param string $value Value to be stored
+     * @param int $expiration_seconds Seconds until expiration (default: 86400 = 1 day)
+     * @param string $path Path (default: '/')
+     * @param string $domain Available domain
+     * @param string $same_site CSRF restriction: 'Strict', 'Lax', or 'None'
+     * @return bool `true` if the header was sent successfully
      */
-    function unsetcookie(string $name): bool {
-        return setcookie($name, '', time()-3600);
+    function set_secure_cookie(
+        string $name,
+        string $value,
+        int $expiration_seconds = 86400,
+        string $path = '/',
+        string $domain = '',
+        string $same_site = 'Strict'
+    ): bool {
+        return setcookie($name, $value, [
+            'expires'  => time() + $expiration_seconds,
+            'path'     => $path,
+            'domain'   => $domain,
+            'secure'   => true, // It is only transmitted over HTTPS
+            'httponly' => true, // Inaccessible from JavaScript (XSS mitigation)
+            'samesite' => $same_site // Mitigates CSRF attacks
+        ]);
     }
 }
 
-if(!function_exists('getcookie')) {
+if (!function_exists('unset_secure_cookie')) {
+    /**
+     * Secure delete for a cookie
+     *
+     * @param string $name Name of the cookie to delete
+     * @param string $path Path where the cookie is located
+     * @param string $domain Domain of the cookie
+     * @param string $same_site CSRF restriction: 'Strict', 'Lax', or 'None'
+     * @return bool `true` if the header was sent successfully, false otherwise
+     */
+    function unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Strict'): bool
+    {
+        if (!isset($_COOKIE[$name])) {
+            return false;
+        }
+
+        unset($_COOKIE[$name]);
+
+        return setcookie($name, '', [
+            'expires'  => time() - 86400, // 1 day ago (date in the past)
+            'path'     => $path,
+            'domain'   => $domain,
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => $same_site
+        ]);
+    }
+}
+
+if (!function_exists('getcookie')) {
     /**
      * Get a cookie value
      * * This function retrieves the value of a cookie by its name. If the cookie does not exist, it returns a default value.
@@ -184,12 +244,13 @@ if(!function_exists('getcookie')) {
      * @param string $name Cookie name
      * @return ?string
      */
-    function getcookie(string $name, $default = null): ?string {
+    function getcookie(string $name, $default = null): ?string
+    {
         return $_COOKIE[$name] ?? $default;
     }
 }
 
-if(!function_exists('equals')) {
+if (!function_exists('equals')) {
     /**
      * Returns true if two strings are equals, otherwise false
      * * This function uses `strcmp` to compare the two strings.
@@ -198,23 +259,41 @@ if(!function_exists('equals')) {
      * @param string $str_two Second string
      * @return bool
      */
-    function equals(string $str_one, string $str_two): bool {
+    function equals(string $str_one, string $str_two): bool
+    {
         return strcmp($str_one, $str_two) === 0;
     }
 }
 
-if(!function_exists('is_localhost')) {
+if(!function_exists('pipe')) {
+    /**
+     * Returns the result of executing a sequence of pipelined functions on a specific value.
+     * Eg. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` will return 'John Doe'
+     * 
+     * @param array<\Closure|string> $fns List of functions to execute on the value
+     * @return mixed 
+     */
+    function pipe(...$fns) {
+        return fn($initial_value) => 
+            array_reduce($fns, function($accumulator, $func) {
+                return call_user_func($func, $accumulator);
+            }, $initial_value);
+    }
+}
+
+if (!function_exists('is_localhost')) {
     /**
      * Returns `true` if the client IP is in localhost, `false` en caso contrario.
      * 
      * @return bool
      */
-    function is_localhost(): bool {
+    function is_localhost(): bool
+    {
         // List of IPs that correspond to localhost
-        $white_list = array(
+        $white_list = [
             '127.0.0.1', // IPv4
             '::1'        // IPv6
-        );
+        ];
 
         // It checks if the client's IP is in the list or the server name is localhost
         if (in_array($_SERVER['REMOTE_ADDR'], $white_list) || $_SERVER['SERVER_NAME'] === 'localhost') {
@@ -225,7 +304,7 @@ if(!function_exists('is_localhost')) {
     }
 }
 
-if(!function_exists('foreach_empty')) {
+if (!function_exists('foreach_empty')) {
     /**
      * Execute a loop over an iterable element or perform a default action if it is empty.
      * 
@@ -238,7 +317,8 @@ if(!function_exists('foreach_empty')) {
      * @param callable $fallback Función a ejecutar si el iterable no tiene elementos. e.g. `function()`
      * @return void
      */
-    function foreach_empty(iterable $iterable, callable $each, callable $fallback) {
+    function foreach_empty(iterable $iterable, callable $each, callable $fallback): void
+    {
         if (!empty($iterable)) {
             foreach ($iterable as $key => $value) {
                 $each($value, $key);

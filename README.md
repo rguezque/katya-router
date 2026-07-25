@@ -26,7 +26,7 @@ A lightweight PHP router
   - [Auto connect](#auto-connect)
   - [Create new instances](#create-new-instances)
   - [SQLite connection](#sqlite-connection)
-- [Middleware](#middleware)
+- [Middlewares](#middlewares)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
 - [helpers*](#helpers)
@@ -283,7 +283,7 @@ $router->get('/home', function(Request $request, Services $service): Response {
 Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
 
 ```php
-//menu.php
+//menu.view.php
 <nav>
     <ul>
         <li><a href="<?= $home ?>">Home</a></li>
@@ -308,7 +308,7 @@ $router->get('/home', function(Request $request, Services $service): Response {
 Imprime en pantalla el contenido de `top_menu.php` guardado previamente con el alias `'menu_superior'`.
 
 ```php
-// index.php
+// index.view.php
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -322,11 +322,32 @@ Imprime en pantalla el contenido de `top_menu.php` guardado previamente con el a
 </body>
 </html>
 ```
+
+O bien, directamente desde una plantilla con `ViewEngine::insert`:
+
+```php
+// index.view.php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento</title>
+</head>
+<body>
+    <?= $this->insert('sidebar.view.php'); ?>
+</body>
+</html>
+```
+
 Otros métodos disponibles son:
 
 - `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
 - `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
 - `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
+- `e(?string $string)`: Dentro de una plantilla, escapa una cadena de texto para una salida segura en HTML.
+- `asset(string $path)`: Dentro de una plantilla, genera una URL absoluta o relativa para un recurso (CSS, JS, imágenes) agregando una marca de tiempo para invalidar la caché del navegador _(Cache Busting)_.
 
 >[!IMPORTANT]
 >El método `ViewEngine::fetch` es el último que se debe invocar. Cualquier otro método que se invoque después de este, no tendrá efecto.
@@ -618,7 +639,7 @@ $db = DbConnection::create([
 >En MySQL, el charset `utf8` es una implementación defectuosa que solo soporta 3 bytes (no soporta emojis ni algunos caracteres asiáticos).
 >Considera usar `utf8mb4`, que es el verdadero `UTF-8` de 4 bytes.
 
-## Middleware
+## Middlewares
 
 El método `Route::before` permite registrar _middlewares_ a nivel de router, de grupos y de rutas. 
 
@@ -775,13 +796,17 @@ Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de reg
 
 ## helpers
 
-Se incluye también algunas funciones extras bajo el namespace `\rguezque\functions\`:
+Se incluyen también algunas funciones extras bajo el namespace `\rguezque\functions\`:
 
 - `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado. 
 
-- `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve si `true` si son iguales; `false` en caso contrario.
+- `equals(string $str_one, string $str_two)`: Compara dos cadenas de texto y devuelve `true` si son iguales; `false` en caso contrario.
 
-- `unsetcookie(string $name)`: Elimina una cookie.
+- `pipe(...$fns)`: Devuelve el resultado de ejecutar una secuencia de funciones en pipeline sobre un valor específico. Ej. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` devuelve 'John Doe'.
+
+- `set_secure_cookie(string $name, string $value, int $expiration_seconds = 86400, string $path = '/', string $domain = '', string $same_site = 'Strict')`: Crea una cookie segura.
+
+- `unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Strict')`: Elimina una cookie de forma segura.
 
 - `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
 
@@ -800,3 +825,5 @@ Se incluye también algunas funciones extras bajo el namespace `\rguezque\functi
 - `str_prepend(string $subject, string ...$prepend)`: Concatena una o más cadenas de texto al inicio de una cadena de texto original. Los elementos se concatenan siguiendo el orden **FIFO** (el primero que se define es el primero que se concatena al inicio y así sucesivamente). Ej: `str_prepend("foo", "bar", "baz")` daría como resultado `"bazbarfoo"`.
 
 - `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
+
+- `foreach_empty(iterable $iterable, callable $each, callable $fallback)`: Permite iterar un array de datos y definir un fallback en caso de que el array esté vacío.

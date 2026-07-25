@@ -1,16 +1,21 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 /**
-* @author    Luis Arturo Rodríguez
-* @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
-* @link      https://github.com/rguezque
-* @license   https://opensource.org/licenses/MIT    MIT License
-*/
+ * @author    Luis Arturo Rodríguez
+ * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
+ * @link      https://github.com/rguezque
+ * @license   https://opensource.org/licenses/MIT    MIT License
+ */
+
 namespace rguezque;
 
 use InvalidArgumentException;
 use rguezque\Exceptions\FileNotFoundException;
 use rguezque\Exceptions\NotFoundException;
 use rguezque\Exceptions\PermissionException;
+use SplFileInfo;
+
 use function rguezque\functions\is_assoc_array;
 
 /**
@@ -21,8 +26,12 @@ use function rguezque\functions\is_assoc_array;
  * @method ViewEngine addArgument(string $key, mixed $value) Add an argument to be used in templates
  * @method ViewEngine addArguments(array $data) Add arguments to be used in templates
  * @method ViewEngine setArguments(array $data) Set the arguments to be used in templates
+ * @method void insert(string $partial, array $data = []) Allow insert a template fragment directly into a view template
+ * @method string e(?string $string) Escape strings for secure HTML output
+ * @method string asset(string $path) Generates an absolute or relative URL for a resource (CSS, JS, images) by adding a timestamp to break the browser cache (Cache Busting).
  */
-class ViewEngine {
+class ViewEngine
+{
     /**
      * Templates directory
      *
@@ -41,16 +50,18 @@ class ViewEngine {
      * Initialize the template engine
      *
      * @param string $templates_dir Templates directory
-     * @param string|null $cache_dir Compilation cache directory (optional)
      * @throws NotFoundException When the templates directory does not exist or cache cannot be created
      * @throws PermissionException When directories are not readable/writable
      */
-    public function __construct(string $templates_dir) {
+    public function __construct(string $templates_dir)
+    {
         $templates_dir = rtrim($templates_dir, '/\\') . DIRECTORY_SEPARATOR;
-        if (!is_dir($templates_dir)) {
+        $spl_file_info = new SplFileInfo($templates_dir);
+        
+        if (!$spl_file_info->isDir()) {
             throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $templates_dir));
         }
-        if (!is_readable($templates_dir)) {
+        if (!$spl_file_info->isReadable()) {
             throw new PermissionException(sprintf('The templates directory "%s" is not readable', $templates_dir));
         }
         $this->templates_dir = $templates_dir;
@@ -65,7 +76,8 @@ class ViewEngine {
      * @throws FileNotFoundException When the file template is not found
      * @throws InvalidArgumentException When the data are not an associative array
      */
-    public function fetch(string $view, array $data = []): string {
+    public function fetch(string $view, array $data = []): string
+    {
         $view = trim($view, '/\\ ');
         if (!str_ends_with($view, '.view.php')) {
             $view .= '.view.php';
@@ -74,7 +86,7 @@ class ViewEngine {
         $template_file = $this->templates_dir . $view;
 
         if (!file_exists($template_file)) {
-            throw new FileNotFoundException(sprintf('The template "%s" is not found', $view));
+            throw new FileNotFoundException(sprintf('The template "%s" was not found', $view));
         }
 
         $data = array_merge($this->arguments, $data);
@@ -93,7 +105,8 @@ class ViewEngine {
      * @param array $data Arguments to send for template fetched
      * @return ViewEngine
      */
-    public function fetchFragment(string $template, string $name, array $data = []): ViewEngine {
+    public function fetchFragment(string $template, string $name, array $data = []): ViewEngine
+    {
         $fetched = $this->fetch($template, $data);
         $this->addArgument($name, $fetched);
 
@@ -106,7 +119,8 @@ class ViewEngine {
      * @param string $key Argument key
      * @param mixed $value Argument value
      */
-    public function addArgument(string $key, mixed $value): ViewEngine {
+    public function addArgument(string $key, mixed $value): ViewEngine
+    {
         $this->arguments[trim($key)] = $value; // Add the argument to the
         return $this;
     }
@@ -117,8 +131,9 @@ class ViewEngine {
      * @param array $data Arguments to add
      * @throws InvalidArgumentException When the arguments are not an associative array
      */
-    public function addArguments(array $data): ViewEngine {
-        if(!is_assoc_array($data)) {
+    public function addArguments(array $data): ViewEngine
+    {
+        if (!is_assoc_array($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
 
@@ -132,8 +147,9 @@ class ViewEngine {
      * @param array $data Arguments to set
      * @throws InvalidArgumentException When the arguments are not an associative array
      */
-    public function setArguments(array $data): ViewEngine {
-        if(!is_assoc_array($data)) {
+    public function setArguments(array $data): ViewEngine
+    {
+        if (!is_assoc_array($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
 
@@ -141,4 +157,50 @@ class ViewEngine {
         return $this;
     }
 
+    /**
+     * Allow insert a template fragment directly into a view template
+     * 
+     * @param string $partial The template fragment to render
+     * @param array $data Arguments to send for partial
+     * @return void
+     */
+    public function insert(string $partial, array $data = []): void
+    {
+        $partial = $this->fetch($partial, $data);
+        echo $partial;
+    }
+
+    /**
+     * Escape a string for safe output in HTML
+     *
+     * @param string|null $string Text to escape
+     * @return string Secured formatted text for HTML
+     */
+    public function e(?string $string): string
+    {
+        return htmlspecialchars($string ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Generates an absolute or relative URL for a resource (CSS, JS, images) 
+     * by adding a timestamp to break the browser cache (Cache Busting).
+     * 
+     * @param string $path Asset path
+     * @return string
+     * @throws FileNotFoundException When the asset do not exists
+     */
+    function asset(string $path): string
+    {
+        $path = '/' . ltrim($path, '/\\');
+        $asset_file = $_SERVER['DOCUMENT_ROOT'] . $path;
+
+        if (!file_exists($asset_file)) {
+            throw new FileNotFoundException(sprintf('The asset "%s" was not found', $asset_file));
+        }
+
+        $version = filemtime($asset_file);
+        $cached_path = $path . '?v=' . $version;
+
+        return $cached_path;
+    }
 }
