@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace rguezque\Interfaces;
+namespace rguezque\Interface;
 
 use rguezque\Request;
 use rguezque\Response;

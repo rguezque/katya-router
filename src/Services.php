@@ -10,9 +10,9 @@ namespace rguezque;
 
 use Closure;
 use InvalidArgumentException;
-use rguezque\Exceptions\DuplicityException;
-use rguezque\Exceptions\BadNameException;
-use rguezque\Exceptions\NotFoundException;
+use rguezque\Exception\DuplicityException;
+use rguezque\Exception\BadNameException;
+use rguezque\Exception\NotFoundException;
 
 /**
  * Services provider.

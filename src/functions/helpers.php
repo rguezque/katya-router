@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace rguezque\functions;
 
-use rguezque\Exceptions\FileNotFoundException;
+use rguezque\Exception\FileNotFoundException;
 
 if (!function_exists('env')) {
     /**

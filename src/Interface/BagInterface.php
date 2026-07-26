@@ -6,7 +6,7 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Interfaces;
+namespace rguezque\Interface;
 
 /**
  * Contain a parameters array.

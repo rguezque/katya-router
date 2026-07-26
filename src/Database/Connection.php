@@ -8,14 +8,15 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque;
+namespace rguezque\Database;
 
 use InvalidArgumentException;
 use mysqli_sql_exception;
 use mysqli;
 use PDO;
 use PDOException;
-use rguezque\Exceptions\PermissionException;
+use rguezque\Exception\PermissionException;
+use SplFileInfo;
 use Throwable;
 use function rguezque\functions\env;
 
@@ -26,7 +27,7 @@ use function rguezque\functions\env;
  * using either the PDO or mysqli driver. It acts as a Multiton/Registry to allow 
  * multiple simultaneous connections to different databases/drivers.
  */
-class DbConnection {
+class Connection {
     /** @var array<string, PDO|mysqli> Registry of connections */
     private static array $connections = [];
 
@@ -39,17 +40,16 @@ class DbConnection {
     private static string $charset = 'utf8mb4';
 
     /** @var array<string> Supported drivers for connection */
-    private static array $supported_drivers = ['pdomysql', 'mysqli', 'pdo_sqlite'];
+    private static array $supported_drivers = ['pdomysql', 'mysqli', 'pdosqlite'];
 
     /**
-     * Return a registered PDO (mysql|sqlite) or mysqli connection.
-     * If it doesn't exist, it creates and registers it.
+     * Return a registered PDO (mysql|sqlite) or mysqli connection (Multiton). If it doesn't exist, it creates and registers it.
      *
      * @param array $params
-     * @return PDO|mysqli
+     * @return PDOConnection|mysqli
      * @throws Throwable if the connection fails.
      */
-    public static function getConnection(array $params): PDO|mysqli {
+    public static function getConnection(array $params): PDOConnection|mysqli {
         $key = self::generateConnectionKey($params);
 
         if (!isset(self::$connections[$key])) {
@@ -63,30 +63,30 @@ class DbConnection {
      * Create a new PDO (mysql|sqlite) or mysqli connection.
      *
      * @param array $params
-     * @return PDO|mysqli
+     * @return PDOConnection|mysqli
      * @throws InvalidArgumentException if the driver is not supported.
      */
-    public static function create(array $params): PDO|mysqli {
+    public static function create(array $params): PDOConnection|mysqli {
         $driver = $params['driver'] ?? 'pdomysql';
 
         if (!in_array($driver, self::$supported_drivers, true)) {
-            throw new InvalidArgumentException('Invalid driver, must be: "pdomysql", "pdo_sqlite" or "mysqli".');
+            throw new InvalidArgumentException('Invalid driver, must be: "pdomysql", "mysqli" or "pdosqlite".');
         }
 
         return match ($driver) {
             'pdomysql'   => self::connectPDOMysql($params),
             'mysqli'     => self::connectMysqli($params),
-            'pdo_sqlite' => self::connectPDOSqlite($params),
+            'pdosqlite' => self::connectPDOSqlite($params),
         };
     }
 
     /**
-     * Return a MySQL connection from .env params (dotenv library).
+     * Return a MySQL connection from `.env` params (dotenv library).
      *
-     * @return PDO|mysqli
+     * @return PDOConnection|mysqli
      * @throws Throwable if the connection fails.
      */
-    public static function autoConnect(): PDO|mysqli {
+    public static function autoConnect(): PDOConnection|mysqli {
         $params = [
             'driver'  => env('DB_DRIVER', 'pdomysql'),
             'host'    => env('DB_HOST', '127.0.0.1'),
@@ -102,7 +102,7 @@ class DbConnection {
     }
 
     /**
-     * Parse a database URL into an associative array.
+     * Parse a database URL into an associative array. Only for `pdomysql` or `mysqli`
      * 
      * @param string $url
      * @return array
@@ -140,10 +140,10 @@ class DbConnection {
      * Establish a connection to a MySQL database using PDO.
      *
      * @param array $params Connection params
-     * @return PDO
+     * @return PDOConnection
      * @throws PDOException if the connection fails.
      */
-    private static function connectPDOMysql(array $params): PDO {
+    private static function connectPDOMysql(array $params): PDOConnection {
         $charset = $params['charset'] ?? self::$charset;
 
         $dsn = isset($params['socket']) && trim((string)$params['socket']) !== ''
@@ -152,7 +152,7 @@ class DbConnection {
 
         $options = array_replace(self::$default_pdo_options, $params['options'] ?? []);
 
-        return new PDO($dsn, $params['user'] ?? '', $params['pass'] ?? '', $options);
+        return new PDOConnection($dsn, $params['user'] ?? '', $params['pass'] ?? '', $options);
     }
 
     /**
@@ -219,18 +219,30 @@ class DbConnection {
      */
     private static function tryCreateSqlite(string $db_file): void {
         $dir = dirname($db_file);
+        $spl_file_info = new SplFileInfo($dir);
 
-        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-            throw new PermissionException("Failed to create directory for SQLite: $dir");
+        // Try to create the directory if not exists
+        if (!$spl_file_info->isDir() && !mkdir($dir, 0755, true)) {
+            throw new PermissionException('Failed to create directory for SQLite: '.$dir);
         }
 
+        // Verify permissions read/write
+        if(!$spl_file_info->isReadable()) {
+            throw new PermissionException('The directory "'.$dir.'" is not readable.');
+        }
+
+        if(!$spl_file_info->isWritable()) {
+            throw new PermissionException('The directory "'.$dir.'" is not writable.');
+        }
+
+        // Create the .sqlite file
         if (!touch($db_file)) {
-            throw new PermissionException("Failed to create SQLite file: $db_file");
+            throw new PermissionException('Failed to create SQLite file: '.$db_file);
         }
 
         // 0644 is the correct permission for a database file (Read/Write for owner, Read for others)
         if (!chmod($db_file, 0644)) {
-            throw new PermissionException("Failed to set permissions on SQLite file: $db_file");
+            throw new PermissionException('Failed to set permissions on SQLite file: '.$db_file);
         }
     }
 

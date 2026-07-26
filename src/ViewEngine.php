@@ -11,9 +11,9 @@ declare(strict_types=1);
 namespace rguezque;
 
 use InvalidArgumentException;
-use rguezque\Exceptions\FileNotFoundException;
-use rguezque\Exceptions\NotFoundException;
-use rguezque\Exceptions\PermissionException;
+use rguezque\Exception\FileNotFoundException;
+use rguezque\Exception\NotFoundException;
+use rguezque\Exception\PermissionException;
 use SplFileInfo;
 
 use function rguezque\functions\is_assoc_array;

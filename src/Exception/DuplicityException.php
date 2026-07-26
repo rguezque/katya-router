@@ -6,16 +6,16 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Exceptions;
+namespace rguezque\Exception;
 
 use Exception;
 use rguezque\HttpStatus;
 use Throwable;
 
 /**
- * Throws a exception when an argument don't exists or wasn't found
+ * Throws an exception when exists a duplicate symbol declaration
  */
-class MissingArgumentException extends Exception {
+class DuplicityException extends Exception {
     public function __construct(string $message, int $code = HttpStatus::HTTP_INTERNAL_SERVER_ERROR, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }

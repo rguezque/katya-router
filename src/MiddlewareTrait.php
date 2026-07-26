@@ -2,7 +2,7 @@
 
 namespace rguezque;
 
-use rguezque\Interfaces\MiddlewareInterface;
+use rguezque\Interface\MiddlewareInterface;
 
 /**
  * @method self before(MiddlewareInterface $middleware) Add a hook to exec before the route controller

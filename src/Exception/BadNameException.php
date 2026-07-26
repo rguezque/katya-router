@@ -6,7 +6,7 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Exceptions;
+namespace rguezque\Exception;
 
 use Exception;
 use rguezque\HttpStatus;

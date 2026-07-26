@@ -6,17 +6,16 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Exceptions;
+namespace rguezque\Exception;
 
-use Exception;
 use rguezque\HttpStatus;
 use Throwable;
 
 /**
- * Throws an exception when exists a duplicate symbol declaration
+ * Throws a exception when a file isn't found or not exists.
  */
-class DuplicityException extends Exception {
-    public function __construct(string $message, int $code = HttpStatus::HTTP_INTERNAL_SERVER_ERROR, ?Throwable $previous = null) {
+class FileNotFoundException extends NotFoundException {
+    public function __construct(string $message, int $code = HttpStatus::HTTP_NOT_FOUND, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }

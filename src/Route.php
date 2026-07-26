@@ -8,7 +8,7 @@
 
 namespace rguezque;
 
-use rguezque\Interfaces\MiddlewareInterface;
+use rguezque\Interface\MiddlewareInterface;
 use rguezque\MiddlewareTrait;
 
 /**

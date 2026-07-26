@@ -9,7 +9,7 @@
 namespace rguezque;
 
 use Closure;
-use rguezque\Exceptions\{
+use rguezque\Exception\{
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };

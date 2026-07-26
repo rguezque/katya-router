@@ -9,8 +9,8 @@
 namespace rguezque;
 
 use Closure;
-use rguezque\Exceptions\UnsupportedRequestMethodException;
-use rguezque\Interfaces\MiddlewareInterface;
+use rguezque\Exception\UnsupportedRequestMethodException;
+use rguezque\Interface\MiddlewareInterface;
 use rguezque\MiddlewareTrait;
 
 use function rguezque\functions\str_path;
