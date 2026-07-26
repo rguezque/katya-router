@@ -659,7 +659,7 @@ class CustomMiddleware implements MiddlewareInterface {
             Katya::halt(new RedirectResponse('/login'));
         }
 
-        return $next();
+        return $next($request);
     }
 }
 
