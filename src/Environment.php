@@ -249,7 +249,7 @@ class Environment {
             self::$display_errors = true;
         } else {
             // In production, log errors but don't display them
-            error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+            error_reporting(E_ALL & ~E_DEPRECATED);
             ini_set('display_errors', '0');
             ini_set('display_startup_errors', '0');
             ini_set('log_errors', '1');
@@ -276,7 +276,7 @@ class Environment {
             E_USER_ERROR => 'E_USER_ERROR',
             E_USER_WARNING => 'E_USER_WARNING',
             E_USER_NOTICE => 'E_USER_NOTICE',
-            E_STRICT => 'E_STRICT',
+            2048 => 'E_STRICT',
             E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
             E_DEPRECATED => 'E_DEPRECATED',
             E_USER_DEPRECATED => 'E_USER_DEPRECATED',
