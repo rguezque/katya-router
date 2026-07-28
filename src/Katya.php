@@ -268,12 +268,12 @@ class Katya {
                 // Filter the services for route
                 if([] !== $route->getRouteServices() && null !== $services) $services = $services->filter($route->getRouteServices());
 
-                $controller_args = [$request];
-                // Add services to route arguments
-                if(null !== $services) $controller_args[] = $services;
-
-                // Controller enveloped
-                $next = fn() => call_user_func($route->getController(), ...$controller_args);
+                // Controller wrapped
+                if(!is_null($services)) {
+                    $next = fn($request) => call_user_func($route->getController(), $request, $services);
+                } else {
+                    $next = fn($request) => call_user_func($route->getController(), $request);
+                }
 
                 // Global middlewares (at the router level) are merged with route middlewares
                 // Due to the reverse execution of the layered structure, the global middlewares are merged at the end.
@@ -281,11 +281,11 @@ class Katya {
 
                 // Build the layered structure (onion) where each new layer envelops the previous one.
                 foreach($global_middlewares as $middleware) {
-                    $next = fn() => call_user_func($middleware, $request, $next);
+                    $next = fn($request) => call_user_func($middleware, $request, $next);
                 }
 
                 // Triggers the reverse execution of the middlewares and finally the controller
-                $result = call_user_func($next);
+                $result = call_user_func($next, $request);
 
                 if(!$result instanceof Response) {
                     throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
