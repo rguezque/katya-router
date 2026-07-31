@@ -672,7 +672,7 @@ $router->get('/user/{name}', function(Request $request) {
 
 > [!NOTE]
 >
-> - El _stack_ de middlewares se ejecuta en orden inverso (LIFO) debido a su estructura en capas.
+> - El _stack_ de middlewares se ejecuta en orden inverso (LIFO) debido a su estructura en capas (_onion_). De ahí que el método se llame `before`; internamente es algo así como _"Ejecuta el controlador, pero antes ejecuta esto, pero antes esto otro..."_.
 > - Los middlewares a nivel de router se ejecutan primero, luego los de grupo y finalmente los de la ruta.
 > - Los middlewares a nivel de router se heredan a grupos y rutas; así como los middleware de grupo se heredan a sus rutas.
 
