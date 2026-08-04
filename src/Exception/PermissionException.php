@@ -15,7 +15,7 @@ use Throwable;
  * Throws an exception when a permission is denied.
  */
 class PermissionException extends Exception {
-    public function __construct(string $message, int $code = 0, ?Throwable $previous = null) {
+    public function __construct(string $message, int $code = 403, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }

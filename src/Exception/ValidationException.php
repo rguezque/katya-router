@@ -12,9 +12,9 @@ use Exception;
 use Throwable;
 
 /**
- * Throws a exception when an argument don't exists or wasn't found.
+ * Throws an exception when a validation fails.
  */
-class MissingArgumentException extends Exception {
+class ValidationException extends Exception {
     public function __construct(string $message, int $code = 422, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
