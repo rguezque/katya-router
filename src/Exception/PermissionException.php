@@ -9,14 +9,13 @@
 namespace rguezque\Exception;
 
 use Exception;
-use rguezque\HttpStatus;
 use Throwable;
 
 /**
  * Throws an exception when a permission is denied.
  */
 class PermissionException extends Exception {
-    public function __construct(string $message, int $code = HttpStatus::HTTP_FORBIDDEN, ?Throwable $previous = null) {
+    public function __construct(string $message, int $code = 0, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }

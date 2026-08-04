@@ -9,14 +9,13 @@
 namespace rguezque\Exception;
 
 use Exception;
-use rguezque\HttpStatus;
 use Throwable;
 
 /**
  * Throws a exception when a resource don't exists or wasn't found
  */
 class NotFoundException extends Exception {
-    public function __construct(string $message, int $code = HttpStatus::HTTP_NOT_FOUND, ?Throwable $previous = null) {
+    public function __construct(string $message, int $code = 0, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }
