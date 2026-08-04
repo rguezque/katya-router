@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -11,259 +12,271 @@ declare(strict_types=1);
 namespace rguezque\Database;
 
 use InvalidArgumentException;
-use mysqli_sql_exception;
 use mysqli;
+use mysqli_sql_exception;
 use PDO;
 use PDOException;
-use rguezque\Exception\PermissionException;
-use SplFileInfo;
-use Throwable;
-use function rguezque\functions\env;
+use rguezque\Exception\MissingArgumentException;
 
-/**
- * Represents a MySQL/SQLite connection factory and registry.
- *
- * This class provides methods to establish a connection to a MySQL/SQLite database
- * using either the PDO or mysqli driver. It acts as a Multiton/Registry to allow 
- * multiple simultaneous connections to different databases/drivers.
- */
-class Connection {
-    /** @var array<string, PDO|mysqli> Registry of connections */
-    private static array $connections = [];
+use function rguezque\functions\{
+    env,
+    normalize_port,
+    string_or_default,
+    trimmed_string_or_default,
+    trimmed_string_or_null,
+};
 
-    /** @var array Default options */
-    private static array $default_pdo_options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+final class Connection
+{
+    /** @var string */
+    public const DEFAULT_CHARSET = 'utf8mb4';
+
+    /** @var int */
+    public const DEFAULT_PORT = 3306;
+
+    /** @var string */
+    public const DEFAULT_HOST = '127.0.0.1';
+
+    /** @var array<string> */
+    private const SUPPORTED_DRIVERS = [
+        'pdomysql',
+        'mysqli',
     ];
 
-    /** @var string Default charset for connection (utf8mb4 is the real UTF-8) */
-    private static string $charset = 'utf8mb4';
+    /** @var PDO|mysqli|null */
+    private static PDO|mysqli|null $auto_connection = null;
 
-    /** @var array<string> Supported drivers for connection */
-    private static array $supported_drivers = ['pdomysql', 'mysqli', 'pdosqlite'];
-
-    /**
-     * Return a registered PDO (mysql|sqlite) or mysqli connection (Multiton). If it doesn't exist, it creates and registers it.
-     *
-     * @param array $params
-     * @return PDOConnection|mysqli
-     * @throws Throwable if the connection fails.
-     */
-    public static function getConnection(array $params): PDOConnection|mysqli {
-        $key = self::generateConnectionKey($params);
-
-        if (!isset(self::$connections[$key])) {
-            self::$connections[$key] = self::create($params);
-        }
-
-        return self::$connections[$key];
-    }
+    private function __construct() {}
 
     /**
-     * Create a new PDO (mysql|sqlite) or mysqli connection.
+     * Create a new PDO MySQL or MySQLi connection.
      *
-     * @param array $params
-     * @return PDOConnection|mysqli
-     * @throws InvalidArgumentException if the driver is not supported.
+     * @param array<string, mixed> $params Parameters for the connection.
+     * @return PDO|mysqli
+     * @throws MissingArgumentException
+     * @throws InvalidArgumentException
+     * @throws PDOException
+     * @throws mysqli_sql_exception
      */
-    public static function create(array $params): PDOConnection|mysqli {
-        $driver = $params['driver'] ?? 'pdomysql';
+    public static function create(array $params): PDO|mysqli
+    {
+        $params = self::normalizeParams($params);
 
-        if (!in_array($driver, self::$supported_drivers, true)) {
-            throw new InvalidArgumentException('Invalid driver, must be: "pdomysql", "mysqli" or "pdosqlite".');
-        }
-
-        return match ($driver) {
-            'pdomysql'   => self::connectPDOMysql($params),
-            'mysqli'     => self::connectMysqli($params),
-            'pdosqlite' => self::connectPDOSqlite($params),
+        return match ($params['driver']) {
+            'pdomysql' => self::connectPDOMysql($params),
+            'mysqli'   => self::connectMysqli($params),
         };
     }
 
     /**
-     * Return a MySQL connection from `.env` params (dotenv library).
+     * Return a MySQL connection from environment params.
      *
-     * @return PDOConnection|mysqli
-     * @throws Throwable if the connection fails.
+     * If DB_URL or DATABASE_URL is present, the URL is parsed and cached.
+     *
+     * @return PDO|mysqli
      */
-    public static function autoConnect(): PDOConnection|mysqli {
+    public static function autoConnect(): PDO|mysqli
+    {
+        if (self::$auto_connection !== null) {
+            return self::$auto_connection;
+        }
+
+        $url = env('DB_URL');
+
+        if (!is_string($url) || trim($url) === '') {
+            $url = env('DATABASE_URL');
+        }
+
+        if (is_string($url) && trim($url) !== '') {
+            return self::$auto_connection = self::create(DsnParser::parse($url));
+        }
+
         $params = [
-            'driver'  => env('DB_DRIVER', 'pdomysql'),
-            'host'    => env('DB_HOST', '127.0.0.1'),
-            'port'    => env('DB_PORT', 3306),
-            'db_name' => env('DB_NAME', ''),
-            'charset' => env('DB_CHARSET', self::$charset),
-            'user'    => env('DB_USER', ''),
-            'pass'    => env('DB_PASS', ''),
-            'socket'  => env('DB_SOCKET')
+            'driver'   => env('DB_DRIVER'),
+            'host'     => env('DB_HOST'),
+            'port'     => env('DB_PORT'),
+            'db_name'  => env('DB_NAME', ''),
+            'charset'  => env('DB_CHARSET'),
+            'user'     => env('DB_USER', ''),
+            'password' => env('DB_PASS', ''),
+            'socket'   => env('DB_SOCKET'),
         ];
 
-        return self::getConnection($params);
+        return self::$auto_connection = self::create($params);
     }
 
     /**
-     * Parse a database URL into an associative array. Only for `pdomysql` or `mysqli`
-     * 
-     * @param string $url
-     * @return array
-     * @throws InvalidArgumentException if the URL is malformed or scheme is not supported.
+     * Get the list of supported canonical drivers.
+     *
+     * @return array<string>
      */
-    public static function dsnParser(string $url): array {
-        $dsn = parse_url($url);
-
-        if ($dsn === false) {
-            throw new InvalidArgumentException('Malformed database URL.');
-        }
-
-        if (isset($dsn['scheme']) && !in_array($dsn['scheme'], ['pdomysql', 'mysqli'], true)) {
-            throw new InvalidArgumentException('Invalid "scheme" in database URL, must be "pdomysql" or "mysqli".');
-        }
-
-        $segments = [];
-        if (isset($dsn['query'])) {
-            parse_str($dsn['query'], $segments);
-        }
-
-        return [
-            'driver'  => $dsn['scheme'] ?? 'pdomysql',
-            'host'    => $dsn['host'] ?? '127.0.0.1',
-            'port'    => (int)($dsn['port'] ?? 3306),
-            'db_name' => isset($dsn['path']) ? trim($dsn['path'], '/\\') : '',
-            'charset' => $segments['charset'] ?? self::$charset,
-            'user'    => $dsn['user'] ?? '',
-            'pass'    => $dsn['pass'] ?? '',
-            'socket'  => $segments['socket'] ?? null
-        ];
+    public static function getSupportedDrivers(): array
+    {
+        return self::SUPPORTED_DRIVERS;
     }
 
     /**
      * Establish a connection to a MySQL database using PDO.
      *
-     * @param array $params Connection params
-     * @return PDOConnection
-     * @throws PDOException if the connection fails.
+     * @param array<string, mixed> $params Parameters for the PDO connection.
+     * @return PDO
+     * @throws PDOException
      */
-    private static function connectPDOMysql(array $params): PDOConnection {
-        $charset = $params['charset'] ?? self::$charset;
+    private static function connectPDOMysql(array $params): PDO
+    {
+        $options = array_replace(
+            [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => true,
+                PDO::ATTR_STRINGIFY_FETCHES  => false,
+            ],
+            $params['options']
+        );
 
-        $dsn = isset($params['socket']) && trim((string)$params['socket']) !== ''
-            ? sprintf('mysql:unix_socket=%s;dbname=%s;charset=%s;', $params['socket'], $params['db_name'] ?? '', $charset)
-            : sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s;', $params['host'] ?? '127.0.0.1', (int)($params['port'] ?? 3306), $params['db_name'] ?? '', $charset);
+        $dsn = $params['socket'] !== null
+            ? sprintf(
+                'mysql:unix_socket=%s;dbname=%s;charset=%s',
+                $params['socket'],
+                $params['db_name'],
+                $params['charset']
+            )
+            : sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                $params['host'],
+                $params['port'],
+                $params['db_name'],
+                $params['charset']
+            );
 
-        $options = array_replace(self::$default_pdo_options, $params['options'] ?? []);
-
-        return new PDOConnection($dsn, $params['user'] ?? '', $params['pass'] ?? '', $options);
+        return new PDO(
+            $dsn,
+            $params['user'],
+            $params['password'],
+            $options
+        );
     }
 
     /**
-     * Establish a connection to a MySQL database using mysqli.
+     * Establish a connection to a MySQL database using MySQLi.
      *
-     * @param array $params Connection params
+     * @param array<string, mixed> $params Parameters for the MySQLi connection.
      * @return mysqli
-     * @throws mysqli_sql_exception if the connection fails.
+     * @throws mysqli_sql_exception
      */
-    private static function connectMysqli(array $params): mysqli {
+    private static function connectMysqli(array $params): mysqli
+    {
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-        $mysqli = new mysqli(
-            $params['host'] ?? '127.0.0.1',
-            $params['user'] ?? '',
-            $params['pass'] ?? '',
-            $params['db_name'] ?? '',
-            (int)($params['port'] ?? 3306),
-            $params['socket'] ?? null
+        // Previously normalized params, so charset is guaranteed to be a non-empty string.
+        $charset = $params['charset'];
+
+        if ([] !== $params['options']) {
+            // If MYSQLI_SET_CHARSET_NAME is set in options, use it as charset 
+            // and unset this option from the array to avoid conflicts with mysqli::set_charset.
+            if(isset($params['options'][MYSQLI_SET_CHARSET_NAME])) {
+                $charset = $params['options'][MYSQLI_SET_CHARSET_NAME];
+                unset($params['options'][MYSQLI_SET_CHARSET_NAME]);
+            }
+
+            $mysqli = mysqli_init();
+            
+            foreach ($params['options'] as $option => $value) {
+                $mysqli->options($option, $value);
+            }
+
+            $mysqli->real_connect(
+                $params['host'],
+                $params['user'],
+                $params['password'],
+                $params['db_name'],
+                $params['port'],
+                $params['socket']
+            );
+        } else {
+            $mysqli = new mysqli(
+                $params['host'],
+                $params['user'],
+                $params['password'],
+                $params['db_name'],
+                $params['port'],
+                $params['socket']
+            );
+        }
+
+        $mysqli->connect_errno && throw new mysqli_sql_exception(
+            sprintf(
+                'MySQLi connection error (%d): %s',
+                $mysqli->connect_errno,
+                $mysqli->connect_error
+            ),
+            500
         );
 
-        // Note: The connect_errno check is removed because MYSQLI_REPORT_STRICT 
-        // already throws a mysqli_sql_exception on failure.
-
-        $charset = $params['charset'] ?? self::$charset;
+        // mysqli::set_charset is the standard, safe, and immediate method. 
+        // It modifies the driver's character-escaping behavior. 
+        // It is executed after opening the connection.
         if (!$mysqli->set_charset($charset)) {
-            throw new mysqli_sql_exception("Error loading charset $charset: " . $mysqli->error);
+            throw new mysqli_sql_exception(
+                sprintf(
+                    'Error loading charset "%s": %s',
+                    $charset,
+                    $mysqli->error
+                ),
+                500
+            );
         }
 
         return $mysqli;
     }
 
     /**
-     * Establish a connection to a SQLite database using PDO.
+     * Normalize and validate connection params.
      *
-     * @param array $params Connection params
-     * @return PDO
-     * @throws PDOException|PermissionException if the connection or file creation fails.
+     * @param array<string, mixed> $params Parameters to normalize and validate.
+     * @return array<string, mixed>
+     * @throws MissingArgumentException
+     * @throws InvalidArgumentException
      */
-    private static function connectPDOSqlite(array $params): PDO {
-        $db_file = $params['db_file'] ?? ':memory:';
+    private static function normalizeParams(array $params): array
+    {
+        $driver = trimmed_string_or_null($params['driver'] ?? '');
 
-        if ($db_file !== ':memory:' && !file_exists($db_file)) {
-            self::tryCreateSqlite($db_file);
+        if ($driver === null) {
+            throw new MissingArgumentException(
+                'Missing "driver" parameter. Must be "pdomysql" or "mysqli".',
+                400
+            );
         }
 
-        $dsn = 'sqlite:' . $db_file;
-        $charset = $params['charset'] ?? self::$charset;
-        $options = array_replace(self::$default_pdo_options, $params['options'] ?? []);
-        $fk_support = $params['fk_support'] ?? false;
+        $driver = strtolower($driver);
 
-        $conn = new PDO($dsn, null, null, $options);
-        $conn->exec("PRAGMA encoding = '" . $charset . "';");
-        $conn->exec("PRAGMA foreign_keys = " . ($fk_support ? "ON" : "OFF") . ";");
-
-        return $conn;
-    }
-
-    /**
-     * Try to create the SQLite database file and its directory if they do not exist.
-     *
-     * @param string $db_file
-     * @throws PermissionException if the directory or file cannot be created.
-     */
-    private static function tryCreateSqlite(string $db_file): void {
-        $dir = dirname($db_file);
-        $spl_file_info = new SplFileInfo($dir);
-
-        // Try to create the directory if not exists
-        if (!$spl_file_info->isDir() && !mkdir($dir, 0755, true)) {
-            throw new PermissionException('Failed to create directory for SQLite: '.$dir);
+        if (!in_array($driver, self::SUPPORTED_DRIVERS, true)) {
+            throw new InvalidArgumentException(
+                'Invalid "driver", must be: "pdomysql" or "mysqli".',
+                400
+            );
         }
 
-        // Verify permissions read/write
-        if(!$spl_file_info->isReadable()) {
-            throw new PermissionException('The directory "'.$dir.'" is not readable.');
+        $options = $params['options'] ?? [];
+
+        if (!is_array($options)) {
+            throw new InvalidArgumentException(
+                'Invalid "options" parameter; it must be an array.',
+                400
+            );
         }
 
-        if(!$spl_file_info->isWritable()) {
-            throw new PermissionException('The directory "'.$dir.'" is not writable.');
-        }
-
-        // Create the .sqlite file
-        if (!touch($db_file)) {
-            throw new PermissionException('Failed to create SQLite file: '.$db_file);
-        }
-
-        // 0644 is the correct permission for a database file (Read/Write for owner, Read for others)
-        if (!chmod($db_file, 0644)) {
-            throw new PermissionException('Failed to set permissions on SQLite file: '.$db_file);
-        }
-    }
-
-    /**
-     * Get the list of supported drivers.
-     *
-     * @return array<string>
-     */
-    public static function getSupportedDrivers(): array {
-        return self::$supported_drivers;
-    }
-
-    /**
-     * Generate a unique key for the connection registry based on params.
-     *
-     * @param array $params
-     * @return string
-     */
-    private static function generateConnectionKey(array $params): string {
-        $driver = $params['driver'] ?? 'pdomysql';
-        $db = $params['db_name'] ?? $params['db_file'] ?? 'default';
-        return $driver . '_' . $db;
+        return [
+            'driver'   => $driver,
+            'host'     => trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST),
+            'port'     => normalize_port($params['port'] ?? null, self::DEFAULT_PORT),
+            'db_name'  => trimmed_string_or_default($params['db_name'] ?? null, ''),
+            'charset'  => trimmed_string_or_default($params['charset'] ?? null, self::DEFAULT_CHARSET),
+            'user'     => string_or_default($params['user'] ?? null, ''),
+            'password' => string_or_default($params['password'] ?? null, ''),
+            'socket'   => trimmed_string_or_null($params['socket'] ?? null),
+            'options'  => $options,
+        ];
     }
 }

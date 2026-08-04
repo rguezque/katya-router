@@ -265,7 +265,7 @@ if (!function_exists('equals')) {
     }
 }
 
-if(!function_exists('pipe')) {
+if (!function_exists('pipe')) {
     /**
      * Returns the result of executing a sequence of pipelined functions on a specific value.
      * Eg. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` will return 'John Doe'
@@ -273,11 +273,12 @@ if(!function_exists('pipe')) {
      * @param array<\Closure|string> $fns List of functions to execute on the value
      * @return mixed 
      */
-    function pipe(...$fns) {
-        return fn($initial_value) => 
-            array_reduce($fns, function($accumulator, $func) {
-                return call_user_func($func, $accumulator);
-            }, $initial_value);
+    function pipe(...$fns)
+    {
+        return fn($initial_value) =>
+        array_reduce($fns, function ($accumulator, $func) {
+            return call_user_func($func, $accumulator);
+        }, $initial_value);
     }
 }
 
