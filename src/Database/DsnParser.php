@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace rguezque\Database;
 
 use InvalidArgumentException;
+use rguezque\Exception\DuplicityException;
 
 use function rguezque\functions\{
     decode_component,
@@ -15,35 +16,47 @@ use function rguezque\functions\{
     trimmed_string_or_null,
 };
 
+/**
+ * Parses a database URL (DSN) into an associative array of connection parameters.
+ * 
+ * This class supports various database schemes and allows for key remapping through a provided keymap.
+ * It validates the input URL and ensures that the output keys are unique, throwing exceptions for invalid or duplicate keys.
+ * 
+ * @method __construct(array<string, string> $keymap = []) Constructor that accepts an optional keymap for renaming output keys.
+ * @method array<string, mixed> parse(string $url) Parses a database URL into an associative array of connection parameters.
+ */
 final class DsnParser
 {
-    /** @var array<string, string> */
+    /** @var array<string, string> Aliases for database schemes */
     private const SCHEME_ALIASES = [
-        'pdomysql'  => 'pdomysql',
-        'mysql'     => 'pdomysql',
-        'mysqli'    => 'mysqli',
+        'pdomysql' => 'pdomysql',
+        'mysql'    => 'pdomysql',
+        'mysqli'   => 'mysqli',
     ];
 
-    private function __construct() {}
+    /** @var array<string, string> Map to rename output keys: original key => new key */
+    private array $keymap;
+
+    /** @var array<string, mixed> Parameters parsed from URL */
+    private array $params;
+
+    /**
+     * @param array<string, string> $keymap original key => new key
+     */
+    public function __construct(array $keymap = [])
+    {
+        $this->keymap = $keymap;
+    }
 
     /**
      * Parse a database URL into an associative array.
      *
      * @param string $url
-     * @return array{
-     *     driver: string,
-     *     host: string,
-     *     port: int,
-     *     db_name: string,
-     *     charset: string,
-     *     user: string,
-     *     password: string,
-     *     socket: string|null
-     * }
+     * @return array<string, mixed>
      *
      * @throws InvalidArgumentException
      */
-    public static function parse(string $url): array
+    public function parse(string $url): array
     {
         $url = trim($url);
 
@@ -72,7 +85,7 @@ final class DsnParser
             parse_str($dsn['query'], $segments);
         }
 
-        return [
+        $params = [
             'driver'   => self::SCHEME_ALIASES[$scheme],
             'host'     => normalize_host($dsn['host'] ?? null, Connection::DEFAULT_HOST),
             'port'     => normalize_port($dsn['port'] ?? null, Connection::DEFAULT_PORT),
@@ -82,5 +95,67 @@ final class DsnParser
             'password' => decode_component($dsn['pass'] ?? ''),
             'socket'   => trimmed_string_or_null($segments['socket'] ?? null),
         ];
+
+        $this->params = $this->applyKeyMap($params);
+
+        return $this->params;
+    }
+
+    /**
+     * Applies the keymap defined in the constructor to rename output keys.
+     *
+     * The keymap uses the following convention:
+     *
+     * [
+     *     'original_key' => 'new_key',
+     * ]
+     *
+     * @param array<string, mixed> $params Parameters to apply the keymap to.
+     * @return array<string, mixed> Parameters with keys renamed according to the keymap.
+     *
+     * @throws InvalidArgumentException
+     * @throws DuplicityException
+     */
+    private function applyKeyMap(array $params): array
+    {
+        if ([] === $this->keymap) {
+            return $params;
+        }
+
+        $mapped = [];
+
+        foreach ($params as $key => $value) {
+            $output_key = $key;
+
+            if (array_key_exists($key, $this->keymap)) {
+                $output_key = $this->keymap[$key];
+
+                if (!is_string($output_key) || '' === trim($output_key)) {
+                    throw new InvalidArgumentException(
+                        sprintf(
+                            'Invalid keymap value for "%s". The mapped key must be a non-empty string.',
+                            $key
+                        ),
+                        400
+                    );
+                }
+
+                $output_key = trim($output_key);
+            }
+
+            if (array_key_exists($output_key, $mapped)) {
+                throw new DuplicityException(
+                    sprintf(
+                        'Duplicate mapped key "%s". Review the keymap to avoid collisions.',
+                        $output_key
+                    ),
+                    400
+                );
+            }
+
+            $mapped[$output_key] = $value;
+        }
+
+        return $mapped;
     }
 }

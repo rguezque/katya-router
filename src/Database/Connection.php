@@ -26,6 +26,15 @@ use function rguezque\functions\{
     trimmed_string_or_null,
 };
 
+/**
+ * Represents a database connection factory that can create PDO or MySQLi connections based on provided parameters or environment variables.
+ * 
+ * This class provides methods to create a new connection with specified parameters or automatically connect using environment variables. It also includes methods to retrieve supported drivers and normalize connection parameters.
+ * 
+ * @method static PDO|mysqli create(array<string, mixed> $params) Create a new PDO or MySQLi connection based on provided parameters.
+ * @method static PDO|mysqli autoConnect(array<string, mixed> $driver_options = []) Automatically connect to a database using environment variables, with optional driver-specific options.
+ * @method static array<string> getSupportedDrivers() Get the list of supported canonical drivers.
+ */
 final class Connection
 {
     /** @var string */
@@ -73,9 +82,10 @@ final class Connection
      *
      * If DB_URL or DATABASE_URL is present, the URL is parsed and cached.
      *
+     * @param array<string, mixed> $driver_options Optional driver-specific options.
      * @return PDO|mysqli
      */
-    public static function autoConnect(): PDO|mysqli
+    public static function autoConnect(array $driver_options = []): PDO|mysqli
     {
         if (self::$auto_connection !== null) {
             return self::$auto_connection;
@@ -88,7 +98,7 @@ final class Connection
         }
 
         if (is_string($url) && trim($url) !== '') {
-            return self::$auto_connection = self::create(DsnParser::parse($url));
+            return self::$auto_connection = self::create((new DsnParser)->parse($url));
         }
 
         $params = [
@@ -100,6 +110,7 @@ final class Connection
             'user'     => env('DB_USER', ''),
             'password' => env('DB_PASS', ''),
             'socket'   => env('DB_SOCKET'),
+            'options'  => $driver_options,
         ];
 
         return self::$auto_connection = self::create($params);
