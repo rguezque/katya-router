@@ -53,7 +53,7 @@ final class Transaction
     public function transactional(Closure $callback): mixed
     {
         $this->checkErrorModeEnabled();
-        
+
         $this->begin();
 
         try {
@@ -140,6 +140,8 @@ final class Transaction
 
     /**
      * Rollback a transaction.
+     * 
+     * @throws RuntimeException If rollback fails.
      */
     private function rollback(): void
     {
@@ -169,6 +171,8 @@ final class Transaction
 
     /**
      * Attempt to rollback without hiding the original exception.
+     * 
+     * If rollback fails, the exception will be passed to the fallback if set, and logged using `error_log`.
      */
     private function safeRollback(): void
     {
@@ -176,16 +180,16 @@ final class Transaction
             $this->rollback();
         } catch (Throwable $rollback_exception) {
             // In production, the ideal is to send this to a logger.
-            if($this->fallback) {
+            if ($this->fallback) {
                 call_user_func($this->fallback, $rollback_exception);
-            } else {
-                error_log(
-                    sprintf(
-                        'Transaction rollback failed: %s',
-                        $rollback_exception->getMessage()
-                    )
-                );
             }
+
+            error_log(
+                sprintf(
+                    'Transaction rollback failed: %s',
+                    $rollback_exception->getMessage()
+                )
+            );
         }
     }
 
@@ -198,7 +202,7 @@ final class Transaction
     {
         if ($this->connection instanceof PDO) {
             $use_exceptions = $this->connection->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION;
-            if(!$use_exceptions) {
+            if (!$use_exceptions) {
                 throw new RuntimeException('PDO error mode is not set to throw exceptions. Please set PDO::ATTR_ERRMODE to PDO::ERRMODE_EXCEPTION.');
             }
         } else {

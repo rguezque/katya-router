@@ -23,22 +23,23 @@ use rguezque\Interface\BagInterface;
  * interface for managing session variables.
  * 
  * @method static void configure(?string $session_name = null, array $start_options = []) Configure the session name and options before starting the session
- * @method Session withNamespace(?string $session_name = null) Create or select the specified namespace of the session variables and return an instance of `Session` with the Singleton pattern
- * @method string getNamespace() Return the current session vars namespace
- * @method bool exists(string $namespace) Return `true` if a namespace already exists, otherwise `false`
- * @method void start() Starts or resume a session
+ * @method Session withNamespace(?string $session_name = null) Create or return an instance of `Session` from the specified namespace.
+ * @method Session withDefault() Create or return an instance of `Session` with the default PHP session name 'AppSession.
+ * @method string getNamespace() Return the current session vars namespace.
+ * @method bool exists(string $namespace) Return `true` if a namespace already exists, otherwise `false`.
+ * @method void start() Starts or resume a session.
  * @method void regenerateId(bool $delete_old_session = true) Regenerates the session ID to prevent session fixation attacks.
- * @method bool started() Return true if already exists an active session, otherwise false
- * @method bool disabled() Return true if sessions are disabled, otherwise false
- * @method void set(string $key, mixed $value) Set or overwrite a session var
- * @method void get(string $key, mixed $default = null) If exists, retrieve a session var by name, otherwise returns default
- * @method array all() Retrieve all session vars in the current namespace
- * @method bool has(string $key) Return true if exists a session var by name
- * @method bool valid(string $key) Return true if a session var is not null and is not empty
- * @method int count() Return the count of session vars
- * @method void remove(string $key) Removes a session var by name
- * @method void clear() Removes all session vars
- * @method bool destroy() Destroy the active session
+ * @method bool started() Return true if already exists an active session, otherwise false.
+ * @method bool disabled() Return true if sessions are disabled, otherwise false.
+ * @method void set(string $key, mixed $value) Set or overwrite a session var.
+ * @method void get(string $key, mixed $default = null) If exists, retrieve a session var by name, otherwise returns default.
+ * @method array all() Retrieve all session vars in the current namespace.
+ * @method bool has(string $key) Return true if exists a session var by name.
+ * @method bool valid(string $key) Return true if a session var is not null and is not empty.
+ * @method int count() Return the count of session vars.
+ * @method void remove(string $key) Removes a session var by name.
+ * @method void clear() Removes all session vars.
+ * @method bool destroy() Destroy the active session.
  */
 final class Session implements BagInterface, ArgumentsInterface, Countable
 {
@@ -131,7 +132,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return `true` if a namespace already exists, otherwise `false`
+     * Return `true` if a namespace already exists, otherwise `false`.
      * 
      * @param string $namespace The session vars namespace to check if it already exists
      * @return bool
@@ -142,7 +143,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return the current session vars namespace
+     * Return the current session vars namespace.
      * 
      * @return string
      */
@@ -152,7 +153,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Starts or resume a session
+     * Starts or resume a session.
      * 
      * @return void
      * @throws RuntimeException If the session cannot be started or headers have already been sent
@@ -198,7 +199,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return true if already exists an active session, otherwise false
+     * Return `true` if already exists an active session, otherwise `false`.
      * 
      * @return bool
      */
@@ -208,7 +209,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return true if sessions are disabled, otherwise false
+     * Return `true` if sessions are disabled, otherwise `false`.
      * 
      * @return bool
      */
@@ -236,7 +237,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Set or overwrite a session var
+     * Set or overwrite a session var.
      * 
      * @param string $key Variable name
      * @param mixed $value Variable value
@@ -250,7 +251,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * If exists, retrieve a session var by name, otherwise returns default
+     * If exists, retrieve a session var by name, otherwise returns default.
      * 
      * @param string $key Variable name
      * @param mixed $default Default value to return
@@ -270,7 +271,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Retrieve all session vars in the current namespace
+     * Retrieve all session vars in the current namespace.
      * 
      * @return array
      */
@@ -284,7 +285,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return true if exists a session var by name
+     * Return true if exists a session var by name.
      * 
      * @param string $key Variable name
      * @return bool
@@ -299,7 +300,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return true if a session var is not null and is not empty
+     * Return true if a session var is not null and is not empty.
      * 
      * @param string $key Variable name
      * @return bool
@@ -311,7 +312,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return the count of session vars
+     * Return the count of session vars.
      * 
      * @return int
      */
@@ -325,7 +326,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Remove a session var by name
+     * Remove a session var by name.
      * 
      * @param string $key Variable name
      * @return void
@@ -338,7 +339,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Removes all session vars from current namespace
+     * Removes all session vars from current namespace.
      * 
      * @return void
      */
@@ -394,7 +395,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Set or overwrite a session var in object context
+     * Set or overwrite a session var in object context.
      * 
      * @param string $key Variable name
      * @param mixed $value Variable value
@@ -406,7 +407,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Retrieve a session var by name in object context
+     * Retrieve a session var by name in object context.
      * 
      * @param string $key Variable name
      * @return mixed
@@ -417,7 +418,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Return true if a session var is set in object context
+     * Return true if a session var is set in object context.
      * 
      * @param string $key Variable name
      * @return bool
@@ -428,7 +429,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Unset a session var by name in object context
+     * Unset a session var by name in object context.
      * 
      * @param string $key Variable name
      * @return void
@@ -439,7 +440,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Assert that the session name is valid
+     * Assert that the session name is valid.
      * 
      * @param string $name The session name to validate
      * @return void
@@ -455,7 +456,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
     }
 
     /**
-     * Check if the current request is using HTTPS
+     * Check if the current request is using HTTPS.
      * 
      * @return bool
      */
