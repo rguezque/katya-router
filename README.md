@@ -25,7 +25,6 @@ A lightweight PHP router
     - [Connecting using an URL](#connecting-using-an-url)
     - [Auto connect](#auto-connect)
     - [Create new instances](#create-new-instances)
-    - [SQLite connection](#sqlite-connection)
 - [Middlewares](#middlewares)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
@@ -534,13 +533,12 @@ $router->get('/', function(Request $request, Services $service) {
 
 ## DB Connection
 
-La clase `Connection` proporciona el medio para crear conexiones a MySQL a través del driver `PDO` o la clase `mysqli`; o bien, SQLite [Ver SQLite connection](#sqlite-connection). El método estático `Connection::getConnection` implementa los patrones Factory+Multiton, de tal forma que cada conexión creada es un _Singleton_. Los valores posibles para `driver` son: `pdomysql`, `mysqli` o `pdosqlite`.
+La clase `Connection` proporciona el medio para crear conexiones a MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `Connection::create` funciona como un _factory_, y crea nuevas instancias de conexión. Los valores posibles para el `driver` de conexión son: `pdomysql` o `mysqli`.
 
 ```php
 use rguezque\Database\Connection;
 
-// Internamente se guarda con el identificador "pdomysql_mydatabase"
-$db = Connection::getConnection([
+$db = Connection::create([
     'driver' => 'pdomysql',
     'host' => 'localhost',
     'port' => 3306,
@@ -548,17 +546,6 @@ $db = Connection::getConnection([
     'pass' => 'mypassword',
     'db_name' => 'mydatabase'
     'charset' => 'utf8mb4'
-]);
-
-// Internamente se guarda con el identificador "mysqli_mydatabase"
-$db = Connection::getConnection([
-    'driver' => 'mysqli',
-    'host' => 'localhost',
-    'port' => 3306,
-    'user' => 'root',
-    'pass' => 'mypassword',
-    'db_name' => 'mydatabase'
-    'charset' => 'utf8mb4',
 ]);
 ```
 
@@ -569,7 +556,7 @@ $db = Connection::getConnection([
 
 ### Connecting using an URL
 
-Otra alternativa es usar una _database URL_ como parámetro de conexión, a través del método estático `Connection::dsnParser`; este recibe una URL y la procesa para ser enviada a `Connection::getConnection` de la siguiente forma:
+Otra alternativa es usar una _database URL_ como parámetro de conexión, a través del método `DsnParser::parse`; este recibe una URL y la procesa para ser enviada a `Connection::create` de la siguiente forma:
 
 ```php
 use rguezque\Database\Connection;
@@ -577,13 +564,13 @@ use rguezque\Database\Connection;
 // Con mysqli
 // 'mysqli://root:mypassword@127.0.0.1/mydatabase?charset=utf8'
 // Con PDO
-$connection_params = Connection::dsnParser('pdomysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
-$db = Connection::getConnection($connection_params);
+$params = (new DsnParser)->parse('pdomysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
+$db = Connection::create($params);
 ```
 
 ### Auto connect
 
-Si solo necesitas una conexión, el método estático `Connection::autoConnect` crea y devuelve una conexión singleton a MySQL tomando automáticamente los parámetros definidos en un archivo `.env`. Solo aplica para `pdomysql` y `mysqli`.
+Si solo necesitas una conexión, el método estático `Connection::autoConnect` crea y devuelve una conexión singleton MySQL tomando automáticamente los parámetros definidos en un archivo `.env`.
 
 ```php
 use rguezque\Database\Connection;
@@ -591,7 +578,7 @@ use rguezque\Database\Connection;
 $db = Connection::autoConnect();
 ```
 
-El archivo `.env` debería verse mas o menos así:
+Las variables en el archivo `.env` debería verse así:
 
 ```
 DB_DRIVER="mysqli"
@@ -603,38 +590,75 @@ DB_PASS="mypassword"
 DB_CHARSET="utf8mb4"
 ```
 
+Se pueden definir opciones de conexión de manera directa, ya que por su naturaleza de _array_ no se pueden definir en el `.env`.
+
+```php
+// Para este caso se utiliza PDO, definido previamente en la variable DB_DRIVER en el .env
+$db = rguezque\Database\Connection::autoConnect([
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => true,
+])
+    
+// Ejemplo con mysqli
+$db = rguezque\Database\Connection::autoConnect([
+    MYSQLI_OPT_CONNECT_TIMEOUT => 30
+])
+```
+
 > [!NOTE]
 > Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
 
-### Create new instances
+### Transactions
 
-Para crear nuevas instancias de conexión `PDO` o `mysqli` utiliza el método `Connection::create()`, este devolverá una nueva instancia de conexión cada vez que se invoque. Este método recibe los mismos parámetros que `Connection::getConnection()`.
-
-### SQLite connection
-
-Para crear una conexión sqlite debes definir el parámetro `driver` como `pdosqlite` y definir el parámetro `db_file` con la ruta completa al archivo `.sqlite`. Si el archivo no existe, se intentará crear automáticamente y se le aplicarán los permisos de lectura/escritura correspondientes (`0644`).
+Por lo regular, una transacción se ve más o menos así:
 
 ```php
-// Singleton
-Connection::getConnection([
-    'driver' => 'pdosqlite',
-    'db_file' => __DIR__.'/storage/database.sqlite',
-    'charset' => 'utf8mb4'
-]);
-
-//Nueva instancia
-$db = Connection::create([
-    'driver' => 'pdosqlite',
-    'db_file' => __DIR__.'/storage/database2.sqlite',
-    'charset' => 'utf8mb4'
-]);
+// Ejemplo con PDO
+$conn->beginTransaction();
+try{
+    // Aqui van las consultas
+    $conn->commit();
+} catch (\Throwable $e) {
+    $conn->rollBack();
+    throw $e;
+}
 ```
 
-Si se omite el parámetro `db_file` se creará una conexión en memoria `:memory:` automáticamente.
+La clase `Transaction` provee una manera de simplificar este proceso. Se puede utilizar para que el código sea más conciso y para asegurar que nunca se olvide revertir la transacción en caso de una excepción. El siguiente fragmento de código es funcionalmente equivalente al anterior:
 
-> [!IMPORTANT]
-> En MySQL, el charset `utf8` es una implementación defectuosa que solo soporta 3 bytes (no soporta emojis ni algunos caracteres asiáticos).
-> Considera usar `utf8mb4`, que es el verdadero `UTF-8` de 4 bytes.
+```php
+$db = rguezque\Database\Connection::autoConnect();
+
+// Debe recibir un objeto de conexión, ya sea PDo o mysqli
+$transaction = new \rguezque\Database\Transaction($db);
+$result = $transaction->transactional(function(PDO $pdo) {
+    // Aqui van las consultas
+    // Si algo sale mal se debe lanzar una excepción
+    throw new Exception('Algo salió mal');
+});
+```
+
+El callback puede o no devolver un valor. Pero lo importante es que en caso de que algo salga mal dentro del callback, se debe lanzar una excepción, de lo contrario el _rollback_ no se disparará. Toda excepción lanzada dentro del callback es relanzada después del _rollback_ por lo cual se debe manejar dentro de un bloque `try-catch`.
+
+```php
+$db = rguezque\Database\Connection::autoConnect();
+
+$transaction = new \rguezque\Database\Transaction($db);
+try {
+    $result = $transaction->transactional(function(mysqli $db) {
+    	$users = $db->query('SELECT name FROM users')->fetch_all(MYSQLI_ASSOC);
+        if(!$users) {
+            // Se aplica rollback automático
+            throw new Exception('Sin usuarios registrados');
+        }
+        // Se aplica commit automático
+        return $users;
+	});
+} catch(\Throwable $t) {
+    // Hacer algo aquí con la excepción atrapada
+}
+
+```
 
 ## Middlewares
 
@@ -655,8 +679,9 @@ class CustomMiddleware implements MiddlewareInterface {
     public function __invoke(Request $request, callable $next) {
         $session = Session::withNamespace('mi_sesion');
         if(!$session->has('logged')) {
-            // Ejecuta el response y detiene el router
-            Katya::halt(new RedirectResponse('/login'));
+            $session->destroy();
+            // Devuelve una redireccionamiento
+            return new RedirectResponse('/login');
         }
 
         return $next($request);
