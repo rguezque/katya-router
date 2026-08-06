@@ -22,9 +22,11 @@ A lightweight PHP router
 - [Session](#session)
 - [Services](#services)
 - [DB Connection](#db-connection)
-    - [Connecting using an URL](#connecting-using-an-url)
+    - [Connecting using a Database URL](#connecting-using-a-database-url)
+    - [Using a unix socket](#using-a-unix-socket)
     - [Auto connect](#auto-connect)
     - [Create new instances](#create-new-instances)
+    - [Transactions](#transactions)
 - [Middlewares](#middlewares)
 - [CORS](#cors)
 - [Environment Management](#environment-management)
@@ -544,7 +546,7 @@ $db = Connection::create([
     'port' => 3306,
     'user' => 'root',
     'pass' => 'mypassword',
-    'db_name' => 'mydatabase'
+    'dbname' => 'mydatabase'
     'charset' => 'utf8mb4'
 ]);
 ```
@@ -554,7 +556,7 @@ $db = Connection::create([
 >
 > Para conexiones con `mysqli` el parámetro `socket` determinará el tipo de conexión aunque se haya definido `host`.
 
-### Connecting using an URL
+### Connecting using a Database URL
 
 Otra alternativa es usar una _database URL_ como parámetro de conexión, a través del método `DsnParser::parse`; este recibe una URL y la procesa para ser enviada a `Connection::create` de la siguiente forma:
 
@@ -564,7 +566,75 @@ use rguezque\Database\Connection;
 // Con mysqli
 // 'mysqli://root:mypassword@127.0.0.1/mydatabase?charset=utf8'
 // Con PDO
-$params = (new DsnParser)->parse('pdomysql://root:mypassword@127.0.0.1/mydatabase?charset=utf8');
+$params = (new DsnParser)->parse('pdomysql://root:mypassword@127.0.0.1:3456/mydatabase?charset=utf8');
+$db = Connection::create($params);
+```
+
+Esto devolverá: 
+
+```php
+[
+    'driver' => 'pdomysql',
+    'user' => 'root',
+    'password' => 'mypassword',
+    'host' => '127.0.0.1',
+    'port' => 3456, // Valor default 3306 si no se especifica en la URL
+    'dbname' => 'mydatabase',
+    'charset' => 'utf8' // Valor default utf8mb4 si no se especifica
+]
+```
+
+Si necesitas renombrar los nombres de las claves para utilizar en alguna otra librería, puedes mapearlas en el constructor:
+
+```php
+$params = new DsnParser([
+    'driver' => 'scheme'
+    'dbname' => 'db_nme',
+    'user' => 'username'
+]);
+$params->parse('pdomysql://root:mypassword@127.0.0.1:3456/mydatabase?charset=utf8');
+```
+
+De esta forma la salida será la siguiente:
+
+```php
+[
+    'scheme' => 'pdomysql',
+    'username' => 'root',
+    'password' => 'mypassword',
+    'host' => '127.0.0.1',
+    'port' => 3456,
+    'db_name' => 'mydatabase',
+    'charset' => 'utf8'
+]
+```
+
+### Using a unix socket
+
+Si se define un _unix socket_ se le da prioridad en la conexión. Para conectarse especificando **parámetros** de conexión se hace de la siguiente forma:
+
+```php
+$params = [
+    'driver' => 'pdomysql',
+    'user' => 'root',
+    'password' => 'mypassword',
+    'dbname' => 'mydatabase',
+    'socket' => '/var/run/mysqld/mysqld.sock',
+    'charset' => 'utf8'
+];
+
+$db = Connection::create($params);
+```
+
+Los parámetros `host` y `port` pueden ser omitidos ya que al normalizarse antes de la conexión son asignados por default como `localhost` y `3306` por default. 
+
+Para el caso de `PDO` estos son ignorados completamente aunque se definan en los parámetros o variables de entorno ya que se le da prioridad al parámetro `"socket"`. En el caso de `mysqli` que si necesita especificar el _host_ como `localhost` funciona bien dejar que se asignen por default.
+
+Utilizando una URL, el puerto puede ser omitido. Pero recordando el caso especial de `mysqli`, se debe especificar estrictamente el _host_ como `localhost`, además de que no puede omitirse o lanzará un `InvalidArgumentException` por la URL mal formada:
+
+```php
+$url = getenv('DB_URL') ?: 'mysqli://admin_user:bar123@localhost/mydatabase?socket=/var/run/mysqld/mysqld.sock&charset=utf8mb4';
+$dsn = (new DsnParser)->parse($url);
 $db = Connection::create($params);
 ```
 

@@ -21,7 +21,6 @@ use rguezque\Exception\MissingArgumentException;
 use function rguezque\functions\{
     env,
     normalize_port,
-    string_or_default,
     trimmed_string_or_default,
     trimmed_string_or_null,
 };
@@ -44,7 +43,7 @@ final class Connection
     public const DEFAULT_PORT = 3306;
 
     /** @var string */
-    public const DEFAULT_HOST = '127.0.0.1';
+    public const DEFAULT_HOST = 'localhost';
 
     /** @var array<string> */
     private const SUPPORTED_DRIVERS = [
@@ -58,7 +57,7 @@ final class Connection
     private function __construct() {}
 
     /**
-     * Create a new PDO MySQL or MySQLi connection.
+     * Create a new PDO MySQL or MySQLi connection. If a unix socket was defined, it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the connection.
      * @return PDO|mysqli
@@ -105,7 +104,7 @@ final class Connection
             'driver'   => env('DB_DRIVER'),
             'host'     => env('DB_HOST'),
             'port'     => env('DB_PORT'),
-            'db_name'  => env('DB_NAME', ''),
+            'dbname'  => env('DB_NAME', ''),
             'charset'  => env('DB_CHARSET'),
             'user'     => env('DB_USER', ''),
             'password' => env('DB_PASS', ''),
@@ -149,14 +148,14 @@ final class Connection
             ? sprintf(
                 'mysql:unix_socket=%s;dbname=%s;charset=%s',
                 $params['socket'],
-                $params['db_name'],
+                $params['dbname'],
                 $params['charset']
             )
             : sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                 $params['host'],
                 $params['port'],
-                $params['db_name'],
+                $params['dbname'],
                 $params['charset']
             );
 
@@ -169,7 +168,7 @@ final class Connection
     }
 
     /**
-     * Establish a connection to a MySQL database using MySQLi.
+     * Establish a connection to a MySQL database using MySQLi. If a unix socket was defined, it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the MySQLi connection.
      * @return mysqli
@@ -200,7 +199,7 @@ final class Connection
                 $params['host'],
                 $params['user'],
                 $params['password'],
-                $params['db_name'],
+                $params['dbname'],
                 $params['port'],
                 $params['socket']
             );
@@ -209,7 +208,7 @@ final class Connection
                 $params['host'],
                 $params['user'],
                 $params['password'],
-                $params['db_name'],
+                $params['dbname'],
                 $params['port'],
                 $params['socket']
             );
@@ -278,15 +277,19 @@ final class Connection
             );
         }
 
+        $socket = trimmed_string_or_null($params['socket'] ?? null);
+        // "host" is normalized in case a socket has been defined, since mysqli requires the host to be "localhost", while PDO ignores it completely
+        $host = ($socket !== null && $driver === 'mysqli') ? self::DEFAULT_HOST : trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST);
+
         return [
             'driver'   => $driver,
-            'host'     => trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST),
+            'host'     => $host,
             'port'     => normalize_port($params['port'] ?? null, self::DEFAULT_PORT),
-            'db_name'  => trimmed_string_or_default($params['db_name'] ?? null, ''),
+            'dbname'  => trimmed_string_or_default($params['dbname'] ?? null, ''),
             'charset'  => trimmed_string_or_default($params['charset'] ?? null, self::DEFAULT_CHARSET),
-            'user'     => string_or_default($params['user'] ?? null, ''),
-            'password' => string_or_default($params['password'] ?? null, ''),
-            'socket'   => trimmed_string_or_null($params['socket'] ?? null),
+            'user'     => trimmed_string_or_default($params['user'] ?? null, ''),
+            'password' => trimmed_string_or_default($params['password'] ?? null, ''),
+            'socket'   => $socket,
             'options'  => $options,
         ];
     }

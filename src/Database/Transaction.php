@@ -70,7 +70,7 @@ final class Transaction
 
     /**
      * Assigns a fallback to execute in case the safe rollback fails. Must be set before calling `transactional()`. 
-     * The exception will be passed to the fallback as an argument. If no fallback is set, the exception will 
+     * The exception will be passed to the fallback as an argument. If no fallback is set, the exception only will 
      * be logged using `error_log`.
      *
      * @param Closure $fallback Fallback for the rollback.
