@@ -136,7 +136,7 @@ if (!function_exists('normalize_path')) {
             return '';
         }
 
-        return trim(rawurldecode($path));
+        return trim(rawurldecode($path), '/\\ ');
     }
 }
 

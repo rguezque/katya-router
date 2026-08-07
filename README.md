@@ -552,9 +552,9 @@ $db = Connection::create([
 ```
 
 > [!NOTE]
-> Para el caso de conexiones con `PDO`, si se utiliza un _socket_ define el parámetro `socket` que por lo regular es `/var/run/mysqld/mysqld.sock` o en el caso de XAMPP es `/opt/lampp/var/mysql/mysql.sock`; los parámetros `host` y `port` serán ignorados aunque hayan sido definidos.
+> Para el caso de conexiones con `PDO`, si se utiliza un _unix socket_ define el parámetro `unix_socket` que por lo regular en Linux es `/var/run/mysqld/mysqld.sock` o en el caso de XAMPP es `/opt/lampp/var/mysql/mysql.sock`; los parámetros `host` y `port` serán ignorados aunque hayan sido definidos.
 >
-> Para conexiones con `mysqli` el parámetro `socket` determinará el tipo de conexión aunque se haya definido `host`.
+> Para conexiones con `mysqli` el parámetro `unix_socket` determinará el tipo de conexión aunque se haya definido `host`.
 
 ### Connecting using a Database URL
 
@@ -579,7 +579,7 @@ Esto devolverá:
     'password' => 'mypassword',
     'host' => '127.0.0.1',
     'port' => 3456, // Valor default 3306 si no se especifica en la URL
-    'dbname' => 'mydatabase',
+    'db_name' => 'mydatabase',
     'charset' => 'utf8' // Valor default utf8mb4 si no se especifica
 ]
 ```
@@ -589,7 +589,7 @@ Si necesitas renombrar los nombres de las claves para utilizar en alguna otra li
 ```php
 $params = new DsnParser([
     'driver' => 'scheme'
-    'dbname' => 'db_nme',
+    'db_name' => 'db_nme',
     'user' => 'username'
 ]);
 $params->parse('pdomysql://root:mypassword@127.0.0.1:3456/mydatabase?charset=utf8');
@@ -618,8 +618,8 @@ $params = [
     'driver' => 'pdomysql',
     'user' => 'root',
     'password' => 'mypassword',
-    'dbname' => 'mydatabase',
-    'socket' => '/var/run/mysqld/mysqld.sock',
+    'db_name' => 'mydatabase',
+    'unix_socket' => '/var/run/mysqld/mysqld.sock',
     'charset' => 'utf8'
 ];
 
@@ -628,12 +628,12 @@ $db = Connection::create($params);
 
 Los parámetros `host` y `port` pueden ser omitidos ya que al normalizarse antes de la conexión son asignados por default como `localhost` y `3306` por default. 
 
-Para el caso de `PDO` estos son ignorados completamente aunque se definan en los parámetros o variables de entorno ya que se le da prioridad al parámetro `"socket"`. En el caso de `mysqli` que si necesita especificar el _host_ como `localhost` funciona bien dejar que se asignen por default.
+Para el caso de `PDO` estos son ignorados completamente aunque se definan en los parámetros o variables de entorno ya que se le da prioridad al parámetro `"unix_socket"`. En el caso de `mysqli` que si necesita especificar el _host_ como `localhost` funciona bien dejar que se asignen por default.
 
 Utilizando una URL, el puerto puede ser omitido. Pero recordando el caso especial de `mysqli`, se debe especificar estrictamente el _host_ como `localhost`, además de que no puede omitirse o lanzará un `InvalidArgumentException` por la URL mal formada:
 
 ```php
-$url = getenv('DB_URL') ?: 'mysqli://admin_user:bar123@localhost/mydatabase?socket=/var/run/mysqld/mysqld.sock&charset=utf8mb4';
+$url = getenv('DB_URL') ?: 'mysqli://admin_user:bar123@localhost/mydatabase?unix_socket=/var/run/mysqld/mysqld.sock&charset=utf8mb4';
 $dsn = (new DsnParser)->parse($url);
 $db = Connection::create($params);
 ```

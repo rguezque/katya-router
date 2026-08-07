@@ -100,7 +100,7 @@ final class DsnParser
             'charset'  => trimmed_string_or_default($segments['charset'] ?? null, Connection::DEFAULT_CHARSET),
             'user'     => decode_component($dsn['user'] ?? ''),
             'password' => decode_component($dsn['pass'] ?? ''),
-            'socket'   => trimmed_string_or_null($segments['socket'] ?? null),
+            'unix_socket'   => trimmed_string_or_null($segments['unix_socket'] ?? null),
         ];
 
         $this->params = $this->applyKeyMap($params);

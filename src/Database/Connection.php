@@ -104,11 +104,11 @@ final class Connection
             'driver'   => env('DB_DRIVER'),
             'host'     => env('DB_HOST'),
             'port'     => env('DB_PORT'),
-            'dbname'  => env('DB_NAME', ''),
+            'db_name'  => env('DB_NAME', ''),
             'charset'  => env('DB_CHARSET'),
             'user'     => env('DB_USER', ''),
             'password' => env('DB_PASS', ''),
-            'socket'   => env('DB_SOCKET'),
+            'unix_socket'   => env('DB_SOCKET'),
             'options'  => $driver_options,
         ];
 
@@ -144,18 +144,18 @@ final class Connection
             $params['options']
         );
 
-        $dsn = $params['socket'] !== null
+        $dsn = $params['unix_socket'] !== null
             ? sprintf(
                 'mysql:unix_socket=%s;dbname=%s;charset=%s',
-                $params['socket'],
-                $params['dbname'],
+                $params['unix_socket'],
+                $params['db_name'],
                 $params['charset']
             )
             : sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                 $params['host'],
                 $params['port'],
-                $params['dbname'],
+                $params['db_name'],
                 $params['charset']
             );
 
@@ -199,18 +199,18 @@ final class Connection
                 $params['host'],
                 $params['user'],
                 $params['password'],
-                $params['dbname'],
+                $params['db_name'],
                 $params['port'],
-                $params['socket']
+                $params['unix_socket']
             );
         } else {
             $mysqli = new mysqli(
                 $params['host'],
                 $params['user'],
                 $params['password'],
-                $params['dbname'],
+                $params['db_name'],
                 $params['port'],
-                $params['socket']
+                $params['unix_socket']
             );
         }
 
@@ -277,19 +277,23 @@ final class Connection
             );
         }
 
-        $socket = trimmed_string_or_null($params['socket'] ?? null);
-        // "host" is normalized in case a socket has been defined, since mysqli requires the host to be "localhost", while PDO ignores it completely
-        $host = ($socket !== null && $driver === 'mysqli') ? self::DEFAULT_HOST : trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST);
+        $socket = trimmed_string_or_null($params['unix_socket'] ?? null);
+        $host = trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST);
+
+        // Evaluates whether a unix socket is used and that the "host" is "localhost" in the case of a mysqli connection
+        if($socket !== null && $driver === 'mysqli' && $host !== 'localhost') {
+            throw new InvalidArgumentException('The "host" parameter must be "localhost" when a unix socket is used.');
+        }
 
         return [
             'driver'   => $driver,
             'host'     => $host,
             'port'     => normalize_port($params['port'] ?? null, self::DEFAULT_PORT),
-            'dbname'  => trimmed_string_or_default($params['dbname'] ?? null, ''),
+            'db_name'  => trimmed_string_or_default($params['db_name'] ?? null, ''),
             'charset'  => trimmed_string_or_default($params['charset'] ?? null, self::DEFAULT_CHARSET),
             'user'     => trimmed_string_or_default($params['user'] ?? null, ''),
             'password' => trimmed_string_or_default($params['password'] ?? null, ''),
-            'socket'   => $socket,
+            'unix_socket'   => $socket,
             'options'  => $options,
         ];
     }
