@@ -282,7 +282,7 @@ final class Connection
 
         // Evaluates whether a unix socket is used and that the "host" is "localhost" in the case of a mysqli connection
         if($socket !== null && $driver === 'mysqli' && $host !== 'localhost') {
-            throw new InvalidArgumentException('The "host" parameter must be "localhost" when a unix socket is used.');
+            throw new InvalidArgumentException('The "host" parameter must be "localhost" when a unix socket is used in mysqli connection.');
         }
 
         return [
