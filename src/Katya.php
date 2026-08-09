@@ -13,6 +13,7 @@ namespace rguezque;
 use Closure;
 use rguezque\Exception\{
     DuplicityException,
+    HaltException,
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
@@ -32,29 +33,37 @@ use function rguezque\functions\str_path;
  * and variables to be used in controllers. See the documentation for more details.
  * 
  * @see https://github.com/rguezque/katya-router
- * @method Route route(string $verb, string $path, callable $controller) Route definition
- * @method Route get(string $path, callable $controller) Shortcut to add route with GET method
- * @method Route post(string $path, callable $controller) Shortcut to add route with POST method
- * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method
- * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method
- * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method
- * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix
- * @method Katya setServices(Services $services) Set services to use into controllers
- * @method ?Response run(Request $request) Start the router and return the response
- * @method static void halt(Response $response) Stop the router and send the response
+ * @method Route route(string $verb, string $path, callable $controller) Add a route to router.
+ * @method Route get(string $path, callable $controller) Shortcut to add route with GET method.
+ * @method Route post(string $path, callable $controller) Shortcut to add route with POST method.
+ * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method.
+ * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method.
+ * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method.
+ * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix.
+ * @method Katya setServices(Services $services) Set services to use into controllers.
+ * @method ?Response run(Request $request) Start the router and return the response.
+ * @method static never halt(Response $response) Stop the router and send a response. Throw a special exception containing a Response object.
  */
 class Katya
 {
-
     use MiddlewareTrait;
 
     /** @var string[] Supported HTTP request methods */
     private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
+    /** @var string "GET" http method */
     const GET = 'GET';
+
+    /** @var string "POST" http method */
     const POST = 'POST';
+
+    /** @var string "PUT" http method */
     const PUT = 'PUT';
+
+    /** @var string "PATCH" http method */
     const PATCH = 'PATCH';
+
+    /** @var string "DELETE" http method */
     const DELETE = 'DELETE';
 
     /** @var array<string, array<string, Route>> Routes collection */
@@ -63,10 +72,10 @@ class Katya
     /** @var Group[] Route groups collection */
     private array $groups = [];
 
-    /** Services collection */
+    /** @var Services Services collection */
     private ?Services $services = null;
 
-    /** Global prefix */
+    /** @var string Global prefix */
     private string $basepath = '';
 
     /**
@@ -85,7 +94,7 @@ class Katya
     }
 
     /**
-     * Set services to use into controllers
+     * Set services to use into controllers.
      * 
      * @param Services $services Service object
      * @return Katya
@@ -97,7 +106,7 @@ class Katya
     }
 
     /**
-     * Shortcut to add route with GET method
+     * Shortcut to add route with GET method.
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -110,7 +119,7 @@ class Katya
     }
 
     /**
-     * Shortcut to add route with POST method
+     * Shortcut to add route with POST method.
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -123,7 +132,7 @@ class Katya
     }
 
     /**
-     * Shortcut to add route with PUT method
+     * Shortcut to add route with PUT method.
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -136,7 +145,7 @@ class Katya
     }
 
     /**
-     * Shortcut to add route with PATCH method
+     * Shortcut to add route with PATCH method.
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -149,7 +158,7 @@ class Katya
     }
 
     /**
-     * Shortcut to add route with DELETE method
+     * Shortcut to add route with DELETE method.
      * 
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -162,7 +171,7 @@ class Katya
     }
 
     /**
-     * Route definition
+     * Add a route to router.
      * 
      * @param string $verb The allowed route http method
      * @param string $path The route path
@@ -186,7 +195,7 @@ class Katya
     }
 
     /**
-     * Routes group definition under a common prefix
+     * Routes group definition under a common prefix.
      * 
      * @param string $prefix Prefix for routes group
      * @param Closure $closure The routes definition
@@ -201,7 +210,7 @@ class Katya
     }
 
     /**
-     * Process the route groups before routing
+     * Process the route groups before routing.
      * 
      * @return void
      */
@@ -213,10 +222,10 @@ class Katya
     }
 
     /**
-     * Start the router
+     * Start the router.
      * 
      * @param Request $request The Request object with global params
-     * @return ?Response The controller response, or null if it has already been executed previously
+     * @return ?Response The response from the controller, or null if the router has already been executed
      * @throws UnsupportedRequestMethodException When request method isn't supported
      * @throws UnexpectedValueException When the controller return an invalid result
      * @throws RouteNotFoundException When request uri don't match any route
@@ -237,7 +246,7 @@ class Katya
     }
 
     /**
-     * Handle the request uri and start router
+     * Handle the request uri and start router.
      * 
      * @param Request $request The Request object with global params
      * @return Response The controller response
@@ -261,9 +270,8 @@ class Katya
             ]);
         }
 
-        $server = $request->getServer();
-        $request_uri = self::filterRequestUri($server->get('REQUEST_URI'));
-        $request_method = $server->get('REQUEST_METHOD');
+        $request_uri = rawurldecode(strtok($request->getRequestUri(), '?'));
+        $request_method = $request->getRequestMethod();
 
         if (!in_array($request_method, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t supported by router.', $request_method));
@@ -319,18 +327,19 @@ class Katya
     }
 
     /**
-     * Stop the router
+     * Stop the router and send a Response. Throw a special exception containing a Response object.
      * 
      * @param Response $response Response object
+     * @return never
+     * @throws HaltException Exception is always thrown to stop router flow
      */
-    public static function halt(Response $response): void
+    public static function halt(Response $response): never
     {
-        SapiEmitter::emit($response);
-        exit(0);
+        throw new HaltException($response);
     }
 
     /**
-     * Return the regex pattern for a string path
+     * Return the regex pattern for a string path.
      * 
      * @param string $path String path
      * @return string
@@ -355,17 +364,6 @@ class Katya
         );
 
         return '#^' . $pattern . '$#';
-    }
-
-    /**
-     * Filter a URI with GET params
-     * 
-     * @param string $uri The URI
-     * @return string
-     */
-    private static function filterRequestUri(string $uri): string
-    {
-        return rawurldecode(strtok($uri, '?'));
     }
 
     /**

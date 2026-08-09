@@ -57,7 +57,7 @@ class Response {
     public function __construct(string $content = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
         $this->status_code = $status_code;
         $this->headers = new HttpHeaders($headers);
-        $stream = new Stream(fopen('php://memory', 'r+'));
+        $stream = new Stream(fopen('php://temp/maxmemory:2097152', 'r+b'));
         if('' !== trim($content)) {
             $stream->write($content);
         }

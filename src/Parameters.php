@@ -9,8 +9,8 @@
 namespace rguezque;
 
 use JsonSerializable;
-use rguezque\Interface\ArgumentsInterface;
-use rguezque\Interface\BagInterface;
+use rguezque\Contract\ArgumentsInterface;
+use rguezque\Contract\BagInterface;
 
 /**
  * Contain a parameters array.

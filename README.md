@@ -92,10 +92,15 @@ composer dump-autoload -o
 
 ## Routing
 
+Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
+
+Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto `Request`.
+
 ```php
 require __DIR__.'/vendor/autoload.php';
 
 use rguezque\{
+    HtmlResponse,
     HttpStatus,
     Katya,
     Request,
@@ -105,6 +110,7 @@ use rguezque\Exception\{
     RouteNotFoundException,
     UnsupportedRequestMethodException
 };
+use UnexpectedValueException;
 
 $router = new Katya;
 
@@ -113,28 +119,74 @@ $router->route(Katya::GET, '/', function(Request $request) {
 });
 
 try {
-    $router->run(Request::fromGlobals());
+    $response = $router->run(Request::fromGlobals());
 } catch(RouteNotFoundException $e) {
     $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, HttpStatus::HTTP_NOT_FOUND))->send();
+    $response = new Response($message, HttpStatus::HTTP_NOT_FOUND);
 } catch(UnsupportedRequestMethodException $e) {
     $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
-    (new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED))->send();
+    $response = $new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED);
+} catch(UnexpectedValueException $e) {
+    $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
+    $response = $new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED);
 }
+
+SapiEmitter::emit($response);
 ```
 
-Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
-
-Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto `Request`.
-
-Si el router se aloja en un subdirectorio, este se puede especificar en el _array_ de opciones al crear la instancia del router. Así mismo, se puede definir el directorio default donde se buscarán los archivos al renderizar una plantilla.
+El router acepta un prefijo global, este se aplica a cada una de las rutas que se definan.
 
 ```php
 $katya = new Katya('/nombre_directorio_base');
 ```
 
-> [!TIP]
-> El router devuelve tres posibles excepciones; `RouteNotFoundException` cuando no se encuentra una ruta, `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router o un `UnexpectedValueException` cuando el controlador no devuelve un tipo `Response`. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo.
+El router devuelve tres posibles excepciones, `RouteNotFoundException` cuando no se encuentra una ruta, `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router o un `UnexpectedValueException` cuando el controlador no devuelve un tipo `Response`. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo anterior.
+
+**Detener el router**
+
+En cualquier momento se puede detener el router, ya sea desde un middleware o desde un controlador. Para esto utiliza el método estático `Katya::halt` el cual recibe como argumento un objeto `Response`. Este método interrumpe el flujo de procesos del router lanzando una excepción `HaltException`. En el bloque `try-catch` atrapa esta excepción y recupera el `Response` para enviarlo al cliente.
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use rguezque\{
+    HtmlResponse,
+    HttpStatus,
+    Katya,
+    Request,
+    Response,
+    SapiEmitter,
+};
+use rguezque\Exception\{
+    RouteNotFoundException,
+    UnsupportedRequestMethodException
+};
+use UnexpectedValueException;
+
+$router = new Katya;
+
+$router->route(Katya::GET, '/', function(Request $request) {
+    $response = new Response('Router detenido');
+    Katya::halt($response);
+});
+
+try {
+    $response = $router->run(Request::fromGlobals());
+} catch(RouteNotFoundException $e) {
+    $message = sprintf('<h1>Not Found</h1><p>%s</p>', $e->getMessage());
+    $response = new HtmlResponse($message, HttpStatus::HTTP_NOT_FOUND);
+} catch(UnsupportedRequestMethodException $e) {
+    $message = sprintf('<h1>Not Allowed</h1><p>%s</p>', $e->getMessage());
+    $response = new HtmlResponse($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED);
+} catch(UnexpectedValueException $e) {
+    $message = sprintf('<h1>Invalid Argument</h1><p>%s</p>', $e->getMessage());
+    $response = new HtmlResponse($message, HttpStatus::HTTP_UNSUPPORTED_MEDIA_TYPE);
+} catch(HaltException $e) {
+    $response = $e->getResponse();
+}
+
+SapiEmitter::emit($response);
+```
 
 ### Shortcuts
 
@@ -155,9 +207,6 @@ $katya->post('/', function(Request $request) {
     return new JsonResponse($data);
 });
 ```
-
-> [!NOTE]
-> Para detener el router en cualquier momento puedes utilizar `Katya::halt` que recibe un objeto `Response` que se envía antes de detener los procesos del router.
 
 ### Controllers
 
@@ -182,7 +231,7 @@ $katya->get('/user', [$user, 'showProfileAction']);
 ```
 
 > [!TIP]
-> Si se usan métodos de un objeto como controladores se recomienda nombrar las clases con el sufijo `Controller` y los métodos con el sufijo `Action` para identificarlos mejor a través del proyecto.
+> Nombra las clases con el sufijo `Controller` y los métodos con el sufijo `Action` para identificarlos mejor.
 
 ## Routes group
 
@@ -225,11 +274,11 @@ El objeto `Parameters` tiene los siguientes métodos:
 - `set(string $key, mixed $value)`: Agrega o sobrescribe un parámetro.
 - `all()`: Devuelve todo el array de parámetros.
 - `has(string $key)`: Devuelve `true` si un parámetro existe, `false` en caso contrario.
-- `valid(string $key)`: Devuelve `true` si un parámetro existe y si no es `null` y no está vacío; `false` en caso de que no cumpla alguna de las condiciones anteriores.
+- `valid(string $key)`: Devuelve `true` si un parámetro existe y si no es `null` y no está vacío; `false` en caso contrario.
 - `remove(string $key)`: Elimina un parámetro por nombre.
 - `clear()`: Elimina todos los parámetros.
-- `keys()`: Devuelve un array lineal con los nombres de todos los parámetros.
-- `gettype(string $key)`: Devuelve el tipo de dato de un parámetro.
+- `keys()`: Devuelve una lista con los nombres de todos los parámetros.
+- `gettype(string $key)`: Devuelve el tipo de dato o nombre de objeto de un parámetro.
 
 Si los _wildcards_ fueron definidos como expresiones regulares puras, envía el argumento `Request::PARAMS_NUM` el cual devuelve un _array_ lineal con los valores de las coincidencias encontradas.
 
@@ -570,7 +619,7 @@ $params = (new DsnParser)->parse('pdomysql://root:mypassword@127.0.0.1:3456/myda
 $db = Connection::create($params);
 ```
 
-Esto devolverá: 
+Esto devolverá:
 
 ```php
 [
@@ -626,7 +675,7 @@ $params = [
 $db = Connection::create($params);
 ```
 
-Los parámetros `host` y `port` pueden ser omitidos ya que al normalizarse antes de la conexión son asignados por default como `localhost` y `3306` por default. 
+Los parámetros `host` y `port` pueden ser omitidos ya que al normalizarse antes de la conexión son asignados por default como `localhost` y `3306` por default.
 
 Para el caso de `PDO` estos son ignorados completamente aunque se definan en los parámetros o variables de entorno ya que se le da prioridad al parámetro `"unix_socket"`. En el caso de `mysqli` que si necesita especificar el _host_ como `localhost` funciona bien dejar que se asignen por default.
 
@@ -668,7 +717,7 @@ $db = rguezque\Database\Connection::autoConnect([
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => true,
 ])
-    
+
 // Ejemplo con mysqli
 $db = rguezque\Database\Connection::autoConnect([
     MYSQLI_OPT_CONNECT_TIMEOUT => 30

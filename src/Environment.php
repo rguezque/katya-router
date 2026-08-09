@@ -10,6 +10,7 @@ namespace rguezque;
 
 use ErrorException;
 use InvalidArgumentException;
+use SplFileInfo;
 use Throwable;
 use function rguezque\functions\env;
 
@@ -37,7 +38,7 @@ class Environment {
     private static string $mode = '';
 
     /**
-     * Log path for error logging
+     * Log file path for error logging
      */
     private static string $log_path = '';
 
@@ -109,15 +110,17 @@ class Environment {
             throw new InvalidArgumentException('Log path cannot be empty');
         }
 
+        $file_info = new SplFileInfo($path);
+
         // Create directory if it doesn't exist
-        if (!is_dir($path)) {
-            if (!mkdir($path, 0755, true) && !is_dir($path)) {
+        if (!$file_info->isDir()) {
+            if (!mkdir($path, 0755, true) && !$file_info->isDir()) {
                 throw new InvalidArgumentException("Failed to create log directory: {$path}");
             }
         }
 
         // Check if directory is writable
-        if (!is_writable($path)) {
+        if (!$file_info->isWritable()) {
             throw new InvalidArgumentException("Log directory is not writable: {$path}");
         }
 
@@ -143,9 +146,11 @@ class Environment {
         $log_path = self::getLogPath();
         $log_dir = dirname($log_path);
 
+        $file_info = new SplFileInfo($log_dir);
+
         // Ensure log directory exists
-        if (!is_dir($log_dir)) {
-            if (!mkdir($log_dir, 0755, true) && !is_dir($log_dir)) {
+        if (!$file_info->isDir()) {
+            if (!mkdir($log_dir, 0755, true) && !$file_info->isDir()) {
                 // Silently fail if we can't create log directory
                 return;
             }
@@ -172,9 +177,9 @@ class Environment {
      * Handle uncaught exceptions
      *
      * @param Throwable $exception
-     * @return void
+     * @return never
      */
-    public static function handleException(Throwable $exception): void {
+    public static function handleException(Throwable $exception): never {
         // Log the error
         self::logError($exception);
 
@@ -198,7 +203,7 @@ class Environment {
         // Send error response
         try {
             $response = new \rguezque\JsonResponse($error_data, $status_code);
-            \rguezque\SapiEmitter::emit($response);
+            (new \rguezque\SapiEmitter)->emit($response);
         } catch (Throwable $e) {
             // Fallback if response sending fails
             http_response_code($status_code);

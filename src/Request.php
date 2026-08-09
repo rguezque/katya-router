@@ -1,4 +1,6 @@
-<?php declare(strict_types = 1);
+<?php
+
+declare(strict_types=1);
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -24,6 +26,8 @@ use InvalidArgumentException;
  * @method Parameters getAllHeaders() Fetches all HTTP headers from the current request
  * @method string getHeaderLine(string $name, ?string $default = null) Returns the content of a specific HTTP header
  * @method Uri getUri() Returns the URI object representing the current request URL
+ * @method string getRequestMethod() Returns the HTTP request method safely.
+ * @method string getRequestUri() Returns the current request URI (path + query string) safely.
  * @method Request withAddedHeader(string $name, string $value) Returns a cloned Request with the specified header appended
  * @method Request withQuery(array $query) Returns a cloned Request with the new `$_GET` values
  * @method Request withBody(array $body) Returns a cloned Request with the new `$_POST` values
@@ -34,19 +38,20 @@ use InvalidArgumentException;
  * @method Request withAddedParams(array $params) Returns a cloned Request with parameters added to the existing named params
  * @method static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
-class Request {
+class Request
+{
     /**
      * Route parameters are returned into the array having the fieldname as the array index and encapsulated into a Parameter object.
      * 
      * @var int
      */
     const PARAMS_ASSOC = 1;
-    
+
     /**
      * Route parameters are returned into the array having an enumerated index.
      */
     const PARAMS_NUM = 2;
-    
+
     /**
      * Route parameters are returned into the array having both a numerical index and the fieldname as the associative index and encapsulated into a Parameter object.
      * 
@@ -117,11 +122,11 @@ class Request {
      * @param array $params Route params
      */
     public function __construct(
-        array $query, 
-        array $body, 
-        array $server, 
-        array $cookies, 
-        array $files, 
+        array $query,
+        array $body,
+        array $server,
+        array $cookies,
+        array $files,
         array $params
     ) {
         $this->query = $query;
@@ -137,13 +142,14 @@ class Request {
      * 
      * @return Request
      */
-    public static function fromGlobals() {
+    public static function fromGlobals()
+    {
         return new Request(
-            $_GET, 
-            $_POST, 
-            $_SERVER, 
-            $_COOKIE, 
-            $_FILES, 
+            $_GET,
+            $_POST,
+            $_SERVER,
+            $_COOKIE,
+            $_FILES,
             []
         );
     }
@@ -153,7 +159,8 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getQuery(): Parameters {
+    public function getQuery(): Parameters
+    {
         return $this->query_object ??= new Parameters($this->query);
     }
 
@@ -162,16 +169,18 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getParsedBody(): Parameters {
+    public function getParsedBody(): Parameters
+    {
         return $this->body_object ??= new Parameters($this->body);
     }
 
     /**
-    * This method returns a Stream object with the content of `php://input`.
-    *
-    * @return Stream
-    */
-    public function getBody(): Stream {
+     * This method returns a Stream object with the content of `php://input`.
+     *
+     * @return Stream
+     */
+    public function getBody(): Stream
+    {
         return new Stream($this->raw_input ??= file_get_contents('php://input'));
     }
 
@@ -180,7 +189,8 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getServer(): Parameters {
+    public function getServer(): Parameters
+    {
         return $this->server_object ??= new Parameters($this->server);
     }
 
@@ -189,7 +199,8 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getCookies(): Parameters {
+    public function getCookies(): Parameters
+    {
         return $this->cookies_object ??= new Parameters($this->cookies);
     }
 
@@ -198,7 +209,8 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getFiles(): Parameters {
+    public function getFiles(): Parameters
+    {
         return $this->files_object ??= new Parameters($this->files);
     }
 
@@ -209,12 +221,13 @@ class Request {
      * @return Parameters|array
      * @throws InvalidArgumentException When the argument is not a valid array type to return
      */
-    public function getParams(int $type = Request::PARAMS_ASSOC): Parameters|array {
-        return match($type) {
+    public function getParams(int $type = Request::PARAMS_ASSOC): Parameters|array
+    {
+        return match ($type) {
             self::PARAMS_ASSOC => new Parameters(array_filter($this->params, fn($key) => !is_numeric($key), ARRAY_FILTER_USE_KEY)),
             self::PARAMS_NUM => array_values(array_filter($this->params, fn($key) => is_int($key), ARRAY_FILTER_USE_KEY)),
             self::PARAMS_BOTH => $this->params,
-            default => throw new InvalidArgumentException('Invalid argument type: '.$type.'. Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.')
+            default => throw new InvalidArgumentException('Invalid argument type: ' . $type . '. Use Request::PARAMS_ASSOC, Request::PARAMS_NUM or Request::PARAMS_BOTH.')
         };
     }
 
@@ -223,7 +236,8 @@ class Request {
      * 
      * @return Parameters
      */
-    public function getAllHeaders(): Parameters {
+    public function getAllHeaders(): Parameters
+    {
         return $this->headers_object ??= new Parameters(getallheaders());
     }
 
@@ -234,15 +248,79 @@ class Request {
      * @param string $default The default value to return if the header does not exist.
      * @return string
      */
-    public function getHeaderLine(string $name, string $default = ''): string {
+    public function getHeaderLine(string $name, string $default = ''): string
+    {
         return $this->getAllHeaders()->get($name, $default);
     }
 
     /**
      * Returns the URI object representing the current request URL
      */
-    public function getUri(): Uri {
+    public function getUri(): Uri
+    {
         return $this->uri_object ??= new Uri($this->server);
+    }
+
+    /**
+     * Returns the current request URI (path + query string) safely.
+     *
+     * Sanitizes the value from `$_SERVER['REQUEST_URI']` to prevent
+     * header injection or malformed URI attacks.
+     *
+     * @return string The sanitized request URI.
+     */
+    public function getRequestUri(): string
+    {
+        $uri = $this->getServer()->get('REQUEST_URI', '/');
+
+        // Strip any null bytes or control characters
+        $uri = preg_replace('/[\x00-\x1f\x7f]/', '', $uri);
+
+        // Ensure it starts with a slash
+        if ($uri === '' || $uri[0] !== '/') {
+            $uri = '/' . ltrim($uri, '/');
+        }
+
+        // Parse and rebuild to validate structure (prevents injection)
+        $parts = parse_url($uri);
+        if ($parts === false) {
+            return '/';
+        }
+
+        $path = $parts['path'] ?? '/';
+        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+
+        return $path . $query;
+    }
+
+    /**
+     * Returns the HTTP request method safely.
+     *
+     * Validates the method against a whitelist of standard HTTP methods.
+     * Defaults to 'GET' if the method is missing or not recognized.
+     *
+     * @return string The uppercase HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS).
+     */
+    public function getRequestMethod(): string
+    {
+        $allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+
+        $method = strtoupper(
+            trim($this->getServer()->get('REQUEST_METHOD', 'GET'))
+        );
+
+        // Support method override via header (common in HTML forms)
+        if ($method === 'POST') {
+            $override = $this->getHeaderLine('X-HTTP-Method-Override', '');
+            if ($override !== '') {
+                $override = strtoupper(trim($override));
+                if (in_array($override, $allowedMethods, true)) {
+                    $method = $override;
+                }
+            }
+        }
+
+        return in_array($method, $allowedMethods, true) ? $method : 'GET';
     }
 
     /**
@@ -256,7 +334,8 @@ class Request {
      * @return self A cloned instance of the `Request` with the modified header.
      * @throws InvalidArgumentException If the header name is empty.
      */
-    public function withAddedHeader(string $name, string $value): self {
+    public function withAddedHeader(string $name, string $value): self
+    {
         if ($name === '') {
             throw new InvalidArgumentException('Header name must be a non-empty string.');
         }
@@ -287,7 +366,8 @@ class Request {
      * @param array $query Array values
      * @return self
      */
-    public function withQuery(array $query): self {
+    public function withQuery(array $query): self
+    {
         $clone = clone $this;
         $clone->query = $query;
         $clone->query_object = null;
@@ -300,7 +380,8 @@ class Request {
      * @param array $body Array values
      * @return self
      */
-    public function withBody(array $body): self {
+    public function withBody(array $body): self
+    {
         $clone = clone $this;
         $clone->body = $body;
         $clone->body_object = null;
@@ -313,7 +394,8 @@ class Request {
      * @param array $server Array values
      * @return self
      */
-    public function withServer(array $server): self {
+    public function withServer(array $server): self
+    {
         $clone = clone $this;
         $clone->server = $server;
         $clone->server_object = null;
@@ -326,7 +408,8 @@ class Request {
      * @param array $cookies Array values
      * @return self
      */
-    public function withCookies(array $cookies): self {
+    public function withCookies(array $cookies): self
+    {
         $clone = clone $this;
         $clone->cookies = $cookies;
         $clone->cookies_object = null;
@@ -339,7 +422,8 @@ class Request {
      * @param array $files Array values
      * @return self
      */
-    public function withFiles(array $files): self {
+    public function withFiles(array $files): self
+    {
         $clone = clone $this;
         $clone->files = $files;
         $clone->files_object = null;
@@ -352,7 +436,8 @@ class Request {
      * @param array $params Array values
      * @return self
      */
-    public function withParams(array $params): self {
+    public function withParams(array $params): self
+    {
         $clone = clone $this;
         $clone->params = $params;
         return $clone;
@@ -364,7 +449,8 @@ class Request {
      * @param array $params Array of parameters to add
      * @return self
      */
-    public function withAddedParams(array $params): self {
+    public function withAddedParams(array $params): self
+    {
         $clone = clone $this;
         $clone->params = array_merge($clone->params, $params);
         return $clone;
@@ -377,9 +463,9 @@ class Request {
      * @param array $params Params to construct query
      * @return string
      */
-    public static function buildQuery(string $uri, array $params): string {
+    public static function buildQuery(string $uri, array $params): string
+    {
         $query = http_build_query($params);
         return $query === '' ? trim($uri) : trim($uri) . '?' . $query;
     }
-
 }

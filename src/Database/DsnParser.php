@@ -13,6 +13,7 @@ namespace rguezque\Database;
 
 use InvalidArgumentException;
 use rguezque\Exception\DuplicityException;
+use Throwable;
 
 use function rguezque\functions\{
     decode_component,
@@ -71,7 +72,7 @@ final class DsnParser
             throw new InvalidArgumentException('Database URL cannot be empty.', 400);
         }
 
-        $dsn = parse_url($url);
+        $dsn = $this->parseDsn($url);
 
         if ($dsn === false) {
             throw new InvalidArgumentException('Malformed database URL.', 400);
@@ -106,6 +107,95 @@ final class DsnParser
         $this->params = $this->applyKeyMap($params);
 
         return $this->params;
+    }
+
+    /**
+     * Parses the URL using `\Uri\Rfc3986\Uri` when available.
+     *
+     * If the class does not exist, does not expose the expected API, or fails to parse the URL,
+     * it falls back to PHP's native `parse_url()`.
+     *
+     * @param string $url The URL to parse
+     * @return array<string, mixed>|false
+     */
+    private function parseDsn(string $url)
+    {
+        $uri_class = \Uri\Rfc3986\Uri::class;
+
+        if (class_exists($uri_class)) {
+            $required_methods = [
+                'getScheme',
+                'getHost',
+                'getPort',
+                'getPath',
+                'getQuery',
+                'getUserInfo',
+            ];
+
+            $is_supported = true;
+
+            foreach ($required_methods as $method) {
+                if (!method_exists($uri_class, $method)) {
+                    $is_supported = false;
+                    break;
+                }
+            }
+
+            if ($is_supported) {
+                try {
+                    /** @var object $uri */
+                    $uri = new $uri_class($url);
+
+                    $dsn = [];
+
+                    $scheme = (string) $uri->getScheme();
+                    if ('' !== $scheme) {
+                        $dsn['scheme'] = $scheme;
+                    }
+
+                    $host = (string) $uri->getHost();
+                    if ('' !== $host) {
+                        $dsn['host'] = $host;
+                    }
+
+                    $port = $uri->getPort();
+                    if (null !== $port) {
+                        $dsn['port'] = (int) $port;
+                    }
+
+                    $path = (string) $uri->getPath();
+                    if ('' !== $path) {
+                        $dsn['path'] = $path;
+                    }
+
+                    $query = (string) $uri->getQuery();
+                    if ('' !== $query) {
+                        $dsn['query'] = $query;
+                    }
+
+                    $user_info = (string) $uri->getUserInfo();
+                    if ('' !== $user_info) {
+                        $parts = explode(':', $user_info, 2);
+                        $user = $parts[0];
+                        $pass = $parts[1] ?? '';
+
+                        if ('' !== $user) {
+                            $dsn['user'] = $user;
+                        }
+
+                        if ('' !== $pass || false !== strpos($user_info, ':')) {
+                            $dsn['pass'] = $pass;
+                        }
+                    }
+
+                    return $dsn;
+                } catch (Throwable $exception) {
+                    // If parsing with \Uri\Rfc3986\Uri fails, fallback to parse_url().
+                }
+            }
+        }
+
+        return parse_url($url);
     }
 
     /**

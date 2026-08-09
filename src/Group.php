@@ -10,7 +10,7 @@ namespace rguezque;
 
 use Closure;
 use rguezque\Exception\UnsupportedRequestMethodException;
-use rguezque\Interface\MiddlewareInterface;
+use rguezque\Contract\MiddlewareInterface;
 use rguezque\MiddlewareTrait;
 
 use function rguezque\functions\str_path;

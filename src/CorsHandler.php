@@ -9,7 +9,7 @@
 
 namespace rguezque;
 
-use rguezque\Interface\MiddlewareInterface;
+use rguezque\Contract\MiddlewareInterface;
 
 /**
  * Handles CORS preflight requests and adds CORS headers to responses

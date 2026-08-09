@@ -11,8 +11,8 @@ namespace rguezque;
 use Countable;
 use InvalidArgumentException;
 use RuntimeException;
-use rguezque\Interface\ArgumentsInterface;
-use rguezque\Interface\BagInterface;
+use rguezque\Contract\ArgumentsInterface;
+use rguezque\Contract\BagInterface;
 
 /**
  * Represents a PHP session.
