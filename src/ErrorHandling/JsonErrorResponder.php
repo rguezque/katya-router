@@ -72,7 +72,7 @@ final class JsonErrorResponder implements ErrorResponderInterface
         $payload = [
             'error' => $config->debug
                 ? $exception->getMessage()
-                : $config->publicMessage,
+                : $config->public_message,
         ];
 
         if (!$config->debug) {

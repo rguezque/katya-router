@@ -20,7 +20,7 @@ use Throwable;
  * for JSON responses. It sets the content type to 'application/json;charset=utf-8'
  * and allows you to specify the data, status code, and headers.
  */
-class JsonResponse extends Response {
+final class JsonResponse extends Response {
     /**
      * Constructor
      *

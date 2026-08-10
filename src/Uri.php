@@ -5,7 +5,7 @@ namespace rguezque;
 /**
  * Represent a URI parsed from the request
  */
-class Uri {
+final class Uri {
     /**
      * The URI scheme (e.g., 'http' or 'https')
      * 

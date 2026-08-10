@@ -23,11 +23,11 @@ final class ErrorHandlerConfig
     private function __construct(
         public readonly EnvironmentMode $mode,
         public readonly bool $debug,
-        public readonly bool $displayErrors,
-        public readonly bool $logErrors,
-        public readonly ?string $logFile,
-        public readonly string $publicMessage,
-        public readonly int $errorReporting,
+        public readonly bool $display_errors,
+        public readonly bool $log_errors,
+        public readonly ?string $log_file,
+        public readonly string $public_message,
+        public readonly int $error_reporting,
     ) {}
 
     /**
@@ -73,11 +73,11 @@ final class ErrorHandlerConfig
         return new self(
             mode: $mode,
             debug: $debug,
-            displayErrors: $displayErrors,
-            logErrors: $logErrors,
-            logFile: self::prepareLogFile($config['log_path'] ?? null),
-            publicMessage: (string) ($config['public_message'] ?? 'Internal Server Error'),
-            errorReporting: $errorReporting,
+            display_errors: $displayErrors,
+            log_errors: $logErrors,
+            log_file: self::prepareLogFile($config['log_path'] ?? null),
+            public_message: (string) ($config['public_message'] ?? 'Internal Server Error'),
+            error_reporting: $errorReporting,
         );
     }
 

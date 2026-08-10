@@ -138,14 +138,14 @@ final class ErrorHandler
      */
     private function applyIniSettings(): void
     {
-        error_reporting($this->config->errorReporting);
+        error_reporting($this->config->error_reporting);
 
-        ini_set('display_errors', $this->config->displayErrors ? '1' : '0');
-        ini_set('display_startup_errors', $this->config->displayErrors ? '1' : '0');
-        ini_set('log_errors', $this->config->logErrors ? '1' : '0');
+        ini_set('display_errors', $this->config->display_errors ? '1' : '0');
+        ini_set('display_startup_errors', $this->config->display_errors ? '1' : '0');
+        ini_set('log_errors', $this->config->log_errors ? '1' : '0');
 
-        if ($this->config->logFile !== null) {
-            ini_set('error_log', $this->config->logFile);
+        if ($this->config->log_file !== null) {
+            ini_set('error_log', $this->config->log_file);
         }
     }
 
@@ -159,7 +159,7 @@ final class ErrorHandler
     {
         $message = $this->config->debug
             ? $error->getMessage()
-            : $this->config->publicMessage;
+            : $this->config->public_message;
 
         if (PHP_SAPI === 'cli') {
             fwrite(STDERR, $message . PHP_EOL);

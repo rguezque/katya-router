@@ -25,20 +25,20 @@ final class FileErrorLogger implements ErrorLoggerInterface
      */
     public function log(Throwable $exception, ErrorHandlerConfig $config): void
     {
-        if (!$config->logErrors) {
+        if (!$config->log_errors) {
             return;
         }
 
         $message = $this->format($exception);
 
-        if ($config->logFile !== null) {
-            $directory = dirname($config->logFile);
+        if ($config->log_file !== null) {
+            $directory = dirname($config->log_file);
 
             if (!is_dir($directory)) {
                 @mkdir($directory, 0755, true);
             }
 
-            if (@file_put_contents($config->logFile, $message, FILE_APPEND | LOCK_EX) !== false) {
+            if (@file_put_contents($config->log_file, $message, FILE_APPEND | LOCK_EX) !== false) {
                 return;
             }
         }
@@ -57,7 +57,7 @@ final class FileErrorLogger implements ErrorLoggerInterface
         [$severityName, $severityCode] = $this->severity($exception);
 
         return sprintf(
-            "[%s] %s.%d: %s: %s in %s on line %d\n%s\n",
+            "[%s] %s.%d: %s: %s in %s on line %d\n%s\n\n",
             date('Y-m-d H:i:s'),
             $severityName,
             $severityCode,

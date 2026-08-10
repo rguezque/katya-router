@@ -28,7 +28,7 @@ namespace rguezque;
  * @method void rewind() Rewind the stream pointer at beginning
  * @method void close() Close the stream from writing
  */
-class Stream {
+final class Stream {
     /** @var mixed The PHP stream */
     private mixed $stream;
 
