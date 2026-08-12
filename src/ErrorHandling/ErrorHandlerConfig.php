@@ -43,7 +43,7 @@ final class ErrorHandlerConfig
      * - public_message: ?string
      * - error_reporting: ?int
      *
-     * @param array $config
+     * @param array $config Configuration options for handler
      * @return self
      */
     public static function fromArray(array $config): self
@@ -58,33 +58,33 @@ final class ErrorHandlerConfig
             $config['debug'] ?? env('APP_DEBUG', $isDev ? '1' : '0')
         );
 
-        $displayErrors = self::toBool(
+        $display_errors = self::toBool(
             $config['display_errors'] ?? ($debug ? '1' : '0')
         );
 
-        $logErrors = self::toBool(
+        $log_errors = self::toBool(
             $config['log_errors'] ?? true
         );
 
-        $errorReporting = isset($config['error_reporting'])
+        $error_reporting = isset($config['error_reporting'])
             ? (int) $config['error_reporting']
             : ($isDev ? E_ALL : E_ALL & ~E_DEPRECATED);
 
         return new self(
             mode: $mode,
             debug: $debug,
-            display_errors: $displayErrors,
-            log_errors: $logErrors,
+            display_errors: $display_errors,
+            log_errors: $log_errors,
             log_file: self::prepareLogFile($config['log_path'] ?? null),
             public_message: (string) ($config['public_message'] ?? 'Internal Server Error'),
-            error_reporting: $errorReporting,
+            error_reporting: $error_reporting,
         );
     }
 
     /**
      * Convert mixed values to boolean using filter_var.
      *
-     * @param mixed $value
+     * @param mixed $value Value to cast
      * @return bool
      */
     private static function toBool(mixed $value): bool
@@ -95,7 +95,7 @@ final class ErrorHandlerConfig
     /**
      * Prepare log file path.
      *
-     * @param mixed $path
+     * @param mixed $path Path to log file
      * @return string|null
      * @throws InvalidArgumentException
      */

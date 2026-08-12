@@ -22,8 +22,8 @@ interface ErrorLoggerInterface
     /**
      * Log an exception.
      *
-     * @param Throwable $exception
-     * @param ErrorHandlerConfig $config
+     * @param Throwable $exception The exception to log
+     * @param ErrorHandlerConfig $config Configuration options for handler
      * @return void
      */
     public function log(Throwable $exception, ErrorHandlerConfig $config): void;

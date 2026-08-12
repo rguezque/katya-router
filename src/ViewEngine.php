@@ -198,8 +198,10 @@ class ViewEngine
             throw new FileNotFoundException(sprintf('The asset "%s" was not found', $asset_file));
         }
 
+        // Add the version parameter (keeps previous parameters if they existed)
+        $separator = str_contains($path, '?') ? '&' : '?';
         $version = filemtime($asset_file);
-        $cached_path = $path . '?v=' . $version;
+        $cached_path = $asset_file . $separator . 'v=' . $version;
 
         return $cached_path;
     }

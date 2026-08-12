@@ -20,12 +20,27 @@ use Throwable;
  * Application error handler.
  *
  * Registers error, exception and shutdown handlers.
+ * 
+ * @method void __construct(ErrorHandlerConfig $config, ?ErrorLoggerInterface $logger = null, ?ErrorResponderInterface $responder = null) Inicialization for app error handler.
+ * @method void register() Register all error and exception handlers.
+ * @method never handleException(Throwable $exception) Handle uncaught exceptions.
  */
 final class ErrorHandler
 {
+    /** @var ErrorLoggerInterface Log manager */
     private readonly ErrorLoggerInterface $logger;
+
+    /** @var ErrorResponderInterface Contract for the exception formatter */
     private readonly ErrorResponderInterface $responder;
 
+    /**
+     * Inicialization for app error handler.
+     * 
+     * @param ErrorHandlerConfig $config Configuration for the error handler
+     * @param ErrorLoggerInterface|null $logger The error log manager
+     * @param ?ErrorResponderInterface $responder Exception formatter
+     * @return void
+     */
     public function __construct(
         private readonly ErrorHandlerConfig $config,
         ?ErrorLoggerInterface $logger = null,
@@ -52,7 +67,7 @@ final class ErrorHandler
     /**
      * Handle uncaught exceptions.
      *
-     * @param Throwable $exception
+     * @param Throwable $exception The exception to handle
      * @return never
      */
     public function handleException(Throwable $exception): never
@@ -82,10 +97,10 @@ final class ErrorHandler
     /**
      * Convert PHP errors into exceptions.
      *
-     * @param int $severity
-     * @param string $message
-     * @param string $file
-     * @param int $line
+     * @param int $severity Severity code
+     * @param string $message Message for the exception
+     * @param string $file File where the error occurred
+     * @param int $line Line of the file where the error was thrown
      * @return bool
      * @throws ErrorException
      */
