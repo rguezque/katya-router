@@ -14,7 +14,7 @@ use Throwable;
 /**
  * Throws a exception when an argument don't exists or wasn't found.
  */
-class MissingArgumentException extends Exception {
+final class MissingArgumentException extends Exception {
     public function __construct(string $message, int $code = 422, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }

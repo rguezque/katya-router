@@ -14,7 +14,7 @@ use Throwable;
 /**
  * Throws an exception when exists a duplicate symbol declaration.
  */
-class DuplicityException extends Exception {
+final class DuplicityException extends Exception {
     public function __construct(string $message, int $code = 409, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }

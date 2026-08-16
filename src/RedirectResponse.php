@@ -17,7 +17,7 @@ use InvalidArgumentException;
  *
  * This class extends the Response class to provide a specific implementation for redirects
  */
-class RedirectResponse extends Response
+final class RedirectResponse extends Response
 {
 
     /**

@@ -14,7 +14,7 @@ use Throwable;
 /**
  * Throws an exception when a property doesn't match with a specific nomenclature.
  */
-class BadNameException extends Exception {
+final class BadNameException extends Exception {
     public function __construct(string $message, int $code = 400, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }

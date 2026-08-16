@@ -38,7 +38,7 @@ use InvalidArgumentException;
  * @method Request withAddedParams(array $params) Returns a cloned Request with parameters added to the existing named params
  * @method static string buildQuery(string $uri, array $params) Generate URL-encoded query string
  */
-class Request
+final class Request
 {
     /**
      * Route parameters are returned into the array having the fieldname as the array index and encapsulated into a Parameter object.

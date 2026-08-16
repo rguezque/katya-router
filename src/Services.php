@@ -29,7 +29,7 @@ use rguezque\Exception\NotFoundException;
  * @method array names() Return the key names of availables services
  * @method int count() Return the count of services
  */
-class Services {
+final class Services {
 
     /**
      * Services collection

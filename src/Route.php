@@ -26,7 +26,7 @@ use rguezque\MiddlewareTrait;
  * @method Route useServices(string ...$names) Specify the services names to use in this route
  * @method array getRouteServices() Return the list of service names for this route
  */
-class Route {
+final class Route {
 
     use MiddlewareTrait;
 

@@ -9,7 +9,7 @@
 namespace rguezque\Contract;
 
 /**
- * Contain a parameters array.
+ * Contract for classes with writable methods over a parameters array.
  * 
  * This interface defines methods for managing a collection of parameters.
  * It allows you to set or overwrite a parameter, remove a parameter by name,

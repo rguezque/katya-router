@@ -13,7 +13,7 @@ use Throwable;
 /**
  * Throws a exception when a file isn't found or not exists.
  */
-class FileNotFoundException extends NotFoundException {
+final class FileNotFoundException extends NotFoundException {
     public function __construct(string $message, int $code = 404, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }

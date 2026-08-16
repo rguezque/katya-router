@@ -10,7 +10,7 @@ use rguezque\Response;
 /**
  * Represents an exception for the special case when the router is stopped and a final Response is returned.
  */
-class HaltException extends Exception
+final class HaltException extends Exception
 {
     private Response $response;
 
