@@ -9,6 +9,7 @@ use LogicException;
 use mysqli;
 use mysqli_driver;
 use PDO;
+use rguezque\Contract\ConnectionInterface;
 use RuntimeException;
 use Throwable;
 
@@ -18,14 +19,14 @@ use Throwable;
  * This class provides a method to execute a callback within a transaction, ensuring that the transaction is committed if the callback succeeds or rolled back if it fails.
  * It also allows setting a fallback for rollback failures.
  * 
- * @method __construct(PDO|mysqli $connection) Constructor that accepts a PDO or MySQLi connection.
- * @method mixed transactional(Closure(PDO|mysqli): mixed $callback) Execute a callback within a transaction.
+ * @method __construct(ConnectionInterface $connection) Constructor that accepts a PDO or MySQLi connection.
+ * @method mixed transactional(Closure(ConnectionInterface): mixed $callback) Execute a callback within a transaction.
  * @method void setFallback(Closure $fallback) Assigns a fallback to execute in case the rollback fails.
  */
 final class Transaction
 {
-    /** @var PDO|mysqli Connection to the database. */
-    private PDO|mysqli $connection;
+    /** @var ConnectionInterface Connection to the database. */
+    private ConnectionInterface $connection;
 
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
@@ -36,9 +37,9 @@ final class Transaction
     /**
      * Constructor.
      * 
-     * @param PDO|mysqli $connection Connection to the database.
+     * @param ConnectionInterface $connection Connection to the database.
      */
-    public function __construct(PDO|mysqli $connection)
+    public function __construct(ConnectionInterface $connection)
     {
         $this->connection = $connection;
     }
@@ -46,7 +47,7 @@ final class Transaction
     /**
      * Execute a callback within a transaction.
      *
-     * @param Closure(PDO|mysqli): mixed $callback Callback that receives the connection and returns a value.
+     * @param Closure(ConnectionInterface): mixed $callback Callback that receives the connection and returns a value.
      * @return mixed What the callback returns.
      * @throws Throwable If the callback or commit fails.
      */
@@ -98,7 +99,7 @@ final class Transaction
             if ($this->connection->beginTransaction() === false) {
                 throw new RuntimeException('Failed to start transaction with PDO.');
             }
-        } else {
+        } elseif ($this->connection instanceof mysqli) {
             // mysqli
             if ($this->connection->begin_transaction() === false) {
                 throw new RuntimeException('Failed to start transaction with mysqli.');
@@ -128,7 +129,7 @@ final class Transaction
             if ($this->connection->commit() === false) {
                 throw new RuntimeException('Could not commit with PDO.');
             }
-        } else {
+        } elseif ($this->connection instanceof mysqli) {
             // mysqli
             if ($this->connection->commit() === false) {
                 throw new RuntimeException('Could not commit with mysqli.');
@@ -159,7 +160,7 @@ final class Transaction
             if ($this->connection->rollBack() === false) {
                 throw new RuntimeException('Could not rollback with PDO.');
             }
-        } else {
+        } elseif ($this->connection instanceof mysqli) {
             // mysqli
             if ($this->connection->rollback() === false) {
                 throw new RuntimeException('Could not rollback with mysqli.');
@@ -205,7 +206,7 @@ final class Transaction
             if (!$use_exceptions) {
                 throw new RuntimeException('PDO error mode is not set to throw exceptions. Please set PDO::ATTR_ERRMODE to PDO::ERRMODE_EXCEPTION.');
             }
-        } else {
+        } elseif ($this->connection instanceof mysqli) {
             // mysqli
             $driver = new mysqli_driver();
             $use_exceptions = ($driver->report_mode & MYSQLI_REPORT_STRICT) === MYSQLI_REPORT_STRICT;

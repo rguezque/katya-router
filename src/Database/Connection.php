@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace rguezque\Database;
 
 use InvalidArgumentException;
-use mysqli;
 use mysqli_sql_exception;
 use PDO;
 use PDOException;
+use rguezque\Contract\ConnectionInterface;
 use rguezque\Exception\MissingArgumentException;
 
 use function rguezque\functions\{
@@ -30,8 +30,8 @@ use function rguezque\functions\{
  * 
  * This class provides methods to create a new connection with specified parameters or automatically connect using environment variables. It also includes methods to retrieve supported drivers and normalize connection parameters.
  * 
- * @method static PDO|mysqli create(array<string, mixed> $params) Create a new PDO or MySQLi connection based on provided parameters.
- * @method static PDO|mysqli autoConnect(array<string, mixed> $driver_options = []) Automatically connect to a database using environment variables, with optional driver-specific options.
+ * @method static ConnectionInterface create(array<string, mixed> $params) Create a new PDO or MySQLi connection based on provided parameters.
+ * @method static ConnectionInterface autoConnect(array<string, mixed> $driver_options = []) Automatically connect to a database using environment variables, with optional driver-specific options.
  * @method static array<string> getSupportedDrivers() Get the list of supported canonical drivers.
  */
 final class Connection
@@ -51,8 +51,8 @@ final class Connection
         'mysqli',
     ];
 
-    /** @var PDO|mysqli|null */
-    private static PDO|mysqli|null $auto_connection = null;
+    /** @var ConnectionInterface|null */
+    private static ConnectionInterface|null $auto_connection = null;
 
     private function __construct() {}
 
@@ -60,13 +60,13 @@ final class Connection
      * Create a new PDO MySQL or MySQLi connection. If a unix socket was defined, it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the connection.
-     * @return PDO|mysqli
+     * @return ConnectionInterface
      * @throws MissingArgumentException
      * @throws InvalidArgumentException
      * @throws PDOException
      * @throws mysqli_sql_exception
      */
-    public static function create(array $params): PDO|mysqli
+    public static function create(array $params): ConnectionInterface
     {
         $params = self::normalizeParams($params);
 
@@ -82,9 +82,9 @@ final class Connection
      * If DB_URL or DATABASE_URL is present, the URL is parsed and cached.
      *
      * @param array<string, mixed> $driver_options Optional driver-specific options.
-     * @return PDO|mysqli
+     * @return ConnectionInterface
      */
-    public static function autoConnect(array $driver_options = []): PDO|mysqli
+    public static function autoConnect(array $driver_options = []): ConnectionInterface
     {
         if (self::$auto_connection !== null) {
             return self::$auto_connection;
@@ -129,10 +129,10 @@ final class Connection
      * Establish a connection to a MySQL database using PDO.
      *
      * @param array<string, mixed> $params Parameters for the PDO connection.
-     * @return PDO
+     * @return PDOConnection
      * @throws PDOException
      */
-    private static function connectPDOMysql(array $params): PDO
+    private static function connectPDOMysql(array $params): PDOConnection
     {
         $options = array_replace(
             [
@@ -144,25 +144,14 @@ final class Connection
             $params['options']
         );
 
-        $dsn = $params['unix_socket'] !== null
-            ? sprintf(
-                'mysql:unix_socket=%s;dbname=%s;charset=%s',
-                $params['unix_socket'],
-                $params['db_name'],
-                $params['charset']
-            )
-            : sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $params['host'],
-                $params['port'],
-                $params['db_name'],
-                $params['charset']
-            );
-
-        return new PDO(
-            $dsn,
+        return new PDOConnection(
+            $params['db_name'],
+            $params['host'],
+            $params['port'],
+            $params['unix_socket'],
             $params['user'],
             $params['password'],
+            $params['charset'],
             $options
         );
     }
@@ -171,73 +160,21 @@ final class Connection
      * Establish a connection to a MySQL database using MySQLi. If a unix socket was defined, it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the MySQLi connection.
-     * @return mysqli
+     * @return MysqliConnection
      * @throws mysqli_sql_exception
      */
-    private static function connectMysqli(array $params): mysqli
+    private static function connectMysqli(array $params): MysqliConnection
     {
-        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
-        // Previously normalized params, so charset is guaranteed to be a non-empty string.
-        $charset = $params['charset'];
-
-        if ([] !== $params['options']) {
-            // If MYSQLI_SET_CHARSET_NAME is set in options, use it as charset 
-            // and unset this option from the array to avoid conflicts with mysqli::set_charset.
-            if(isset($params['options'][MYSQLI_SET_CHARSET_NAME])) {
-                $charset = $params['options'][MYSQLI_SET_CHARSET_NAME];
-                unset($params['options'][MYSQLI_SET_CHARSET_NAME]);
-            }
-
-            $mysqli = mysqli_init();
-            
-            foreach ($params['options'] as $option => $value) {
-                $mysqli->options($option, $value);
-            }
-
-            $mysqli->real_connect(
-                $params['host'],
-                $params['user'],
-                $params['password'],
-                $params['db_name'],
-                $params['port'],
-                $params['unix_socket']
-            );
-        } else {
-            $mysqli = new mysqli(
-                $params['host'],
-                $params['user'],
-                $params['password'],
-                $params['db_name'],
-                $params['port'],
-                $params['unix_socket']
-            );
-        }
-
-        $mysqli->connect_errno && throw new mysqli_sql_exception(
-            sprintf(
-                'MySQLi connection error (%d): %s',
-                $mysqli->connect_errno,
-                $mysqli->connect_error
-            ),
-            500
+        return new MysqliConnection(
+            $params['db_name'],
+            $params['host'],
+            $params['port'],
+            $params['unix_socket'],
+            $params['user'],
+            $params['password'],
+            $params['charset'],
+            $params['options'],
         );
-
-        // mysqli::set_charset is the standard, safe, and immediate method. 
-        // It modifies the driver's character-escaping behavior. 
-        // It is executed after opening the connection.
-        if (!$mysqli->set_charset($charset)) {
-            throw new mysqli_sql_exception(
-                sprintf(
-                    'Error loading charset "%s": %s',
-                    $charset,
-                    $mysqli->error
-                ),
-                500
-            );
-        }
-
-        return $mysqli;
     }
 
     /**
@@ -281,7 +218,7 @@ final class Connection
         $host = trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST);
 
         // Evaluates whether a unix socket is used and that the "host" is "localhost" in the case of a mysqli connection
-        if($socket !== null && $driver === 'mysqli' && $host !== 'localhost') {
+        if ($socket !== null && $driver === 'mysqli' && $host !== 'localhost') {
             throw new InvalidArgumentException('The "host" parameter must be "localhost" when a unix socket is used in mysqli connection.');
         }
 
