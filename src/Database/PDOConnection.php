@@ -20,9 +20,6 @@ final class PDOConnection extends PDO implements ConnectionInterface
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
 
-    /** @var Closure|null Fallback for the rollback. */
-    private $fallback;
-
     public function __construct(
         string $db_name,
         string $host = self::DEFAULT_HOST,
@@ -84,19 +81,6 @@ final class PDOConnection extends PDO implements ConnectionInterface
 
             throw $e;
         }
-    }
-
-    /**
-     * Assigns a fallback to execute in case the safe rollback fails. Must be set before calling `transactional()`. 
-     * The exception will be passed to the fallback as an argument. If no fallback is set, the exception only will 
-     * be logged to PHP logger system, using `error_log`.
-     *
-     * @param Closure $fallback Fallback for the rollback.
-     * @return void
-     */
-    public function setFallback(Closure $fallback): void
-    {
-        $this->fallback = $fallback;
     }
 
     /**
@@ -170,23 +154,22 @@ final class PDOConnection extends PDO implements ConnectionInterface
      * Attempt to rollback without hiding the original exception.
      * 
      * If rollback fails, the exception will be passed to the fallback if set, and logged using `error_log`.
+     * 
+     * @throws Throwable Rethrow the exception if there is an error when rolling back.
      */
     private function safeRollback(): void
     {
         try {
             $this->rollbackThis();
         } catch (Throwable $rollback_exception) {
-            // In production, the ideal is to send this to a logger.
-            if ($this->fallback) {
-                call_user_func($this->fallback, $rollback_exception);
-            }
-
             error_log(
                 sprintf(
                     'Transaction rollback failed: %s',
                     $rollback_exception->getMessage()
                 )
             );
+
+            throw $rollback_exception;
         }
     }
 
