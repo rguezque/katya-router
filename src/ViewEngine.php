@@ -15,12 +15,11 @@ use rguezque\Exception\FileNotFoundException;
 use rguezque\Exception\NotFoundException;
 use rguezque\Exception\PermissionException;
 use SplFileInfo;
-
 use function rguezque\functions\is_assoc_array;
 
 /**
  * Simple engine that allows render templates
- * 
+ *
  * @method string fetch(string $view, array $data = []) Fetch the template from buffer and return the result as string to be render after
  * @method ViewEngine fetchFragment(string $template, string $name, array $data = []) Add a template fragment fetched as argument, to extend a main view
  * @method ViewEngine addArgument(string $key, mixed $value) Add an argument to be used in templates
@@ -40,6 +39,13 @@ class ViewEngine
     private string $templates_dir;
 
     /**
+     * Mapped namespaces for extra template directories
+     *
+     * @var array<string, string>
+     */
+    private array $namespaces = [];
+
+    /**
      * Store arguments to be used in templates
      *
      * @var array<string, mixed>
@@ -50,40 +56,71 @@ class ViewEngine
      * Initialize the template engine
      *
      * @param string $templates_dir Templates directory
+     * @param array<string, string> $namespaces Associative array of namespace => directory paths
      * @throws NotFoundException When the templates directory does not exist or cache cannot be created
      * @throws PermissionException When directories are not readable/writable
      */
-    public function __construct(string $templates_dir)
+    public function __construct(string $templates_dir, array $namespaces = [])
     {
         $templates_dir = rtrim($templates_dir, '/\\') . DIRECTORY_SEPARATOR;
         $spl_file_info = new SplFileInfo($templates_dir);
-        
+
         if (!$spl_file_info->isDir()) {
             throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $templates_dir));
         }
         if (!$spl_file_info->isReadable()) {
             throw new PermissionException(sprintf('The templates directory "%s" is not readable', $templates_dir));
         }
+
         $this->templates_dir = $templates_dir;
+
+        // Validate and store extra namespaces
+        foreach ($namespaces as $namespace => $dir) {
+            $dir = rtrim((string)$dir, '/\\') . DIRECTORY_SEPARATOR;
+            $spl_ns_info = new SplFileInfo($dir);
+
+            if (!$spl_ns_info->isDir()) {
+                throw new NotFoundException(sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace));
+            }
+            if (!$spl_ns_info->isReadable()) {
+                throw new PermissionException(sprintf('The namespace directory "%s" for "%s" is not readable', $dir, $namespace));
+            }
+
+            $this->namespaces[$namespace] = $dir;
+        }
     }
 
     /**
      * Fetch the template from buffer and return the result as string to be render after
      *
-     * @param string $view The template to render
+     * @param string $view The template to render (supports "namespace::view" syntax)
      * @param array $data Arguments to send for template
      * @return string
      * @throws FileNotFoundException When the file template is not found
-     * @throws InvalidArgumentException When the data are not an associative array
+     * @throws InvalidArgumentException When the namespace is not registered
      */
     public function fetch(string $view, array $data = []): string
     {
+        $base_dir = $this->templates_dir;
+
+        // Check for namespace syntax (e.g., "admin::dashboard")
+        if (str_contains($view, '::')) {
+            [$namespace, $view] = explode('::', $view, 2);
+
+            if (!isset($this->namespaces[$namespace])) {
+                throw new InvalidArgumentException(sprintf('The namespace "%s" is not registered in the ViewEngine', $namespace));
+            }
+
+            $base_dir = $this->namespaces[$namespace];
+        }
+
         $view = trim($view, '/\\ ');
         if (!str_ends_with($view, '.view.php')) {
             $view .= '.view.php';
         }
         $view = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $view);
-        $template_file = $this->templates_dir . $view;
+
+        $template_file = $base_dir . $view;
 
         if (!file_exists($template_file)) {
             throw new FileNotFoundException(sprintf('The template "%s" was not found', $view));
@@ -99,7 +136,7 @@ class ViewEngine
 
     /**
      * Add a template fragment fetched as argument, to extend a main view
-     * 
+     *
      * @param string $template Template name to fetch
      * @param string $name variable name for the template fetched
      * @param array $data Arguments to send for template fetched
@@ -109,7 +146,6 @@ class ViewEngine
     {
         $fetched = $this->fetch($template, $data);
         $this->addArgument($name, $fetched);
-
         return $this;
     }
 
@@ -136,7 +172,6 @@ class ViewEngine
         if (!is_assoc_array($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
-
         $this->arguments = array_merge($this->arguments, $data); // Merge the arguments with the existing ones
         return $this;
     }
@@ -152,14 +187,13 @@ class ViewEngine
         if (!is_assoc_array($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
-
         $this->arguments = $data; // Set the arguments to the new ones
         return $this;
     }
 
     /**
      * Allow insert a template fragment directly into a view template
-     * 
+     *
      * @param string $partial The template fragment to render
      * @param array $data Arguments to send for partial
      * @return void
@@ -182,14 +216,14 @@ class ViewEngine
     }
 
     /**
-     * Generates an absolute or relative URL for a resource (CSS, JS, images) 
+     * Generates an absolute or relative URL for a resource (CSS, JS, images)
      * by adding a timestamp to break the browser cache (Cache Busting).
-     * 
+     *
      * @param string $path Asset path
      * @return string
      * @throws FileNotFoundException When the asset do not exists
      */
-    function asset(string $path): string
+    public function asset(string $path): string // Nota: Se agregó 'public' que faltaba en el original
     {
         $path = '/' . ltrim($path, '/\\');
         $asset_file = $_SERVER['DOCUMENT_ROOT'] . $path;
