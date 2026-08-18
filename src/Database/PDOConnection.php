@@ -14,8 +14,8 @@ use Throwable;
 final class PDOConnection extends PDO implements ConnectionInterface
 {
     private const DEFAULT_CHARSET = 'utf8mb4';
-    private const DEFAULT_HOST = 'localhost';
-    private const DEFAULT_PORT = 3306;
+    private const DEFAULT_HOST    = 'localhost';
+    private const DEFAULT_PORT    = 3306;
 
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
@@ -31,38 +31,24 @@ final class PDOConnection extends PDO implements ConnectionInterface
         ?array $options = null,
     ) {
         $charset = trim($charset);
-
         if ('' === $charset) {
             $charset = self::DEFAULT_CHARSET;
         }
 
         $dsn = $unix_socket !== null
-            ? sprintf(
-                'mysql:unix_socket=%s;dbname=%s;charset=%s',
-                $unix_socket,
-                $db_name,
-                $charset
-            )
-            : sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $host,
-                $port,
-                $db_name,
-                $charset
-            );
+            ? sprintf('mysql:unix_socket=%s;dbname=%s;charset=%s', $unix_socket, $db_name, $charset)
+            : sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $db_name, $charset);
 
-        parent::__construct(
-            $dsn,
-            $user,
-            $password,
-            $options
-        );
+        $options ??= [];
+        $options[PDO::ATTR_ERRMODE] ??= PDO::ERRMODE_EXCEPTION;
+
+        parent::__construct($dsn, $user, $password, $options);
     }
 
     /**
      * Execute a callback within a transaction.
      *
-     * @param Closure(PDO): mixed $callback Callback that receives the connection and returns a value.
+     * @param  Closure(PDO): mixed $callback
      * @return mixed What the callback returns.
      * @throws Throwable If the callback or commit fails.
      */
@@ -77,8 +63,7 @@ final class PDOConnection extends PDO implements ConnectionInterface
 
             return $result;
         } catch (Throwable $e) {
-            $this->safeRollback();
-
+            $this->safeRollback($e);
             throw $e;
         }
     }
@@ -112,10 +97,8 @@ final class PDOConnection extends PDO implements ConnectionInterface
             return;
         }
 
-        // If for some reason there is no longer an active transaction, we avoid error.
         if (!$this->inTransaction()) {
             $this->in_transaction = false;
-
             return;
         }
 
@@ -128,7 +111,7 @@ final class PDOConnection extends PDO implements ConnectionInterface
 
     /**
      * Rollback a transaction.
-     * 
+     *
      * @throws RuntimeException If rollback fails.
      */
     private function rollbackThis(): void
@@ -139,7 +122,6 @@ final class PDOConnection extends PDO implements ConnectionInterface
 
         if (!$this->inTransaction()) {
             $this->in_transaction = false;
-
             return;
         }
 
@@ -152,37 +134,30 @@ final class PDOConnection extends PDO implements ConnectionInterface
 
     /**
      * Attempt to rollback without hiding the original exception.
-     * 
-     * If rollback fails, the exception will be passed to the fallback if set, and logged using `error_log`.
-     * 
-     * @throws Throwable Rethrow the exception if there is an error when rolling back.
      */
-    private function safeRollback(): void
+    private function safeRollback(Throwable $original): void
     {
         try {
             $this->rollbackThis();
         } catch (Throwable $rollback_exception) {
-            error_log(
-                sprintf(
-                    'Transaction rollback failed: %s',
-                    $rollback_exception->getMessage()
-                )
-            );
-
-            throw $rollback_exception;
+            error_log(sprintf(
+                'Transaction rollback failed after [%s]: %s',
+                $original->getMessage(),
+                $rollback_exception->getMessage()
+            ));
         }
     }
 
     /**
      * Verify that the connection's error mode is set to throw exceptions.
-     * 
-     * @throws RuntimeException If error mode is not set to throw exceptions.
      */
-    private function checkErrorModeEnabled()
+    private function checkErrorModeEnabled(): void
     {
-        $use_exceptions = $this->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION;
-        if (!$use_exceptions) {
-            throw new RuntimeException('PDO error mode is not set to throw exceptions. Please set PDO::ATTR_ERRMODE to PDO::ERRMODE_EXCEPTION.');
+        if ($this->getAttribute(PDO::ATTR_ERRMODE) !== PDO::ERRMODE_EXCEPTION) {
+            throw new RuntimeException(
+                'PDO error mode is not set to throw exceptions. '
+                    . 'Please set PDO::ATTR_ERRMODE to PDO::ERRMODE_EXCEPTION.'
+            );
         }
     }
 }

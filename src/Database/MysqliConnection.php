@@ -16,14 +16,14 @@ use Throwable;
 final class MysqliConnection extends mysqli implements ConnectionInterface
 {
     private const DEFAULT_CHARSET = 'utf8mb4';
-    private const DEFAULT_HOST = 'localhost';
-    private const DEFAULT_PORT = 3306;
+    private const DEFAULT_HOST    = 'localhost';
+    private const DEFAULT_PORT    = 3306;
 
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
 
     /**
-     * @param array<int|string, int|string|bool> $options
+     * @param  array<int|string, int|string|bool> $options
      * @throws mysqli_sql_exception
      */
     public function __construct(
@@ -36,14 +36,15 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
         string $charset = self::DEFAULT_CHARSET,
         array $options = []
     ) {
-        mysqli_report(\MYSQLI_REPORT_ERROR | \MYSQLI_REPORT_STRICT);
+        static $report_configured = false;
+        if (!$report_configured) {
+            mysqli_report(\MYSQLI_REPORT_ERROR | \MYSQLI_REPORT_STRICT);
+            $report_configured = true;
+        }
 
-        // Inicializa el objeto mysqli sin abrir todavía la conexión.
-        // Esto permite aplicar opciones antes de ejecutar real_connect().
         parent::__construct();
 
-        // Evita conflictos con set_charset(), que se ejecuta después de conectar.
-        if (isset($options['MYSQLI_SET_CHARSET_NAME'])) {
+        if (isset($options[\MYSQLI_SET_CHARSET_NAME])) {
             unset($options[\MYSQLI_SET_CHARSET_NAME]);
         }
 
@@ -54,10 +55,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
             if (!$this->options((int) $option, $value)) {
                 throw new mysqli_sql_exception(
-                    sprintf(
-                        'Unable to set MySQLi option "%s".',
-                        (string) $option
-                    ),
+                    sprintf('Unable to set MySQLi option "%s".', (string) $option),
                     500
                 );
             }
@@ -65,28 +63,19 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
         if (!$this->real_connect($host, $user, $password, $db_name, $port, $unix_socket)) {
             throw new mysqli_sql_exception(
-                sprintf(
-                    'MySQLi connection error (%d): %s',
-                    $this->connect_errno,
-                    (string) $this->connect_error
-                ),
+                sprintf('MySQLi connection error (%d): %s', $this->connect_errno, (string) $this->connect_error),
                 $this->connect_errno ?: 500
             );
         }
 
         $charset = trim($charset);
-
         if ('' === $charset) {
             $charset = self::DEFAULT_CHARSET;
         }
 
         if (!$this->set_charset($charset)) {
             throw new mysqli_sql_exception(
-                sprintf(
-                    'Error loading charset "%s": %s',
-                    $charset,
-                    (string) $this->error
-                ),
+                sprintf('Error loading charset "%s": %s', $charset, (string) $this->error),
                 $this->errno ?: 500
             );
         }
@@ -95,7 +84,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
     /**
      * Execute a callback within a transaction.
      *
-     * @param Closure(mysqli): mixed $callback Callback that receives the connection and returns a value.
+     * @param  Closure(mysqli): mixed $callback
      * @return mixed What the callback returns.
      * @throws Throwable If the callback or commit fails.
      */
@@ -110,8 +99,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
             return $result;
         } catch (Throwable $e) {
-            $this->safeRollback();
-
+            $this->safeRollback($e);
             throw $e;
         }
     }
@@ -150,7 +138,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
     /**
      * Rollback a transaction.
-     * 
+     *
      * @throws RuntimeException If rollback fails.
      */
     private function rollbackThis(): void
@@ -168,39 +156,31 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
     /**
      * Attempt to rollback without hiding the original exception.
-     * 
-     * If rollback fails, the exception will be passed to the fallback if set, and logged using `error_log`.
-     * 
-     * @throws Throwable Rethrow the exception if there is an error when rolling back.
      */
-    private function safeRollback(): void
+    private function safeRollback(Throwable $original): void
     {
         try {
             $this->rollbackThis();
         } catch (Throwable $rollback_exception) {
-            error_log(
-                sprintf(
-                    'Transaction rollback failed: %s',
-                    $rollback_exception->getMessage()
-                )
-            );
-
-            throw $rollback_exception;
+            error_log(sprintf(
+                'Transaction rollback failed after [%s]: %s',
+                $original->getMessage(),
+                $rollback_exception->getMessage()
+            ));
         }
     }
 
     /**
      * Verify that the connection's error mode is set to throw exceptions.
-     * 
-     * @throws RuntimeException If error mode is not set to throw exceptions.
      */
-    private function checkErrorModeEnabled()
+    private function checkErrorModeEnabled(): void
     {
         $driver = new mysqli_driver();
-        $use_exceptions = ($driver->report_mode & MYSQLI_REPORT_STRICT) === MYSQLI_REPORT_STRICT;
-
-        if (!$use_exceptions) {
-            throw new RuntimeException('MySQLi error mode is not set to throw exceptions. Please set MYSQLI_REPORT_STRICT.');
+        if (($driver->report_mode & \MYSQLI_REPORT_STRICT) !== \MYSQLI_REPORT_STRICT) {
+            throw new RuntimeException(
+                'MySQLi error mode is not set to throw exceptions. '
+                    . 'Please set MYSQLI_REPORT_STRICT.'
+            );
         }
     }
 }

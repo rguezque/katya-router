@@ -15,13 +15,10 @@ use Throwable;
 
 /**
  * Represents a database transaction that can be used with PDO or MySQLi connections.
- * 
- * This class provides a method to execute a callback within a transaction, ensuring that the transaction is committed if the callback succeeds or rolled back if it fails.
+ *
+ * This class provides a method to execute a callback within a transaction, ensuring 
+ * that the transaction is committed if the callback succeeds or rolled back if it fails.
  * It also allows setting a fallback for rollback failures.
- * 
- * @method __construct(ConnectionInterface $connection) Constructor that accepts a PDO or MySQLi connection.
- * @method mixed transactional(Closure(ConnectionInterface): mixed $callback) Execute a callback within a transaction.
- * @method void setFallback(Closure $fallback) Assigns a fallback to execute in case the rollback fails.
  */
 final class Transaction
 {
@@ -33,7 +30,7 @@ final class Transaction
 
     /**
      * Constructor.
-     * 
+     *
      * @param ConnectionInterface $connection Connection to the database.
      */
     public function __construct(ConnectionInterface $connection)
@@ -51,23 +48,22 @@ final class Transaction
     public function transactional(Closure $callback): mixed
     {
         $this->checkErrorModeEnabled();
-
         $this->begin();
 
         try {
             $result = $callback($this->connection);
             $this->commit();
-
             return $result;
         } catch (Throwable $e) {
-            $this->safeRollback();
-
-            throw $e;
+            $this->safeRollback($e);
+            throw $e; // Rethrow the original business logic exception
         }
     }
 
     /**
      * Start a transaction.
+     *
+     * @throws LogicException|RuntimeException
      */
     private function begin(): void
     {
@@ -79,12 +75,10 @@ final class Transaction
             if ($this->connection->inTransaction()) {
                 throw new LogicException('The PDO connection already has an active transaction.');
             }
-
             if ($this->connection->beginTransaction() === false) {
                 throw new RuntimeException('Failed to start transaction with PDO.');
             }
         } elseif ($this->connection instanceof mysqli) {
-            // mysqli
             if ($this->connection->begin_transaction() === false) {
                 throw new RuntimeException('Failed to start transaction with mysqli.');
             }
@@ -95,6 +89,8 @@ final class Transaction
 
     /**
      * Confirm a transaction.
+     *
+     * @throws RuntimeException
      */
     private function commit(): void
     {
@@ -106,15 +102,12 @@ final class Transaction
             // If for some reason there is no longer an active transaction, we avoid error.
             if (!$this->connection->inTransaction()) {
                 $this->in_transaction = false;
-
                 return;
             }
-
             if ($this->connection->commit() === false) {
                 throw new RuntimeException('Could not commit with PDO.');
             }
         } elseif ($this->connection instanceof mysqli) {
-            // mysqli
             if ($this->connection->commit() === false) {
                 throw new RuntimeException('Could not commit with mysqli.');
             }
@@ -125,7 +118,7 @@ final class Transaction
 
     /**
      * Rollback a transaction.
-     * 
+     *
      * @throws RuntimeException If rollback fails.
      */
     private function rollback(): void
@@ -137,15 +130,12 @@ final class Transaction
         if ($this->connection instanceof PDO) {
             if (!$this->connection->inTransaction()) {
                 $this->in_transaction = false;
-
                 return;
             }
-
             if ($this->connection->rollBack() === false) {
                 throw new RuntimeException('Could not rollback with PDO.');
             }
         } elseif ($this->connection instanceof mysqli) {
-            // mysqli
             if ($this->connection->rollback() === false) {
                 throw new RuntimeException('Could not rollback with mysqli.');
             }
@@ -156,33 +146,30 @@ final class Transaction
 
     /**
      * Attempt to rollback without hiding the original exception.
-     * 
-     * If rollback fails, the exception will be passed to the fallback if set, and logged using `error_log`.
-     * 
-     * @throws Throwable Rethrow the exception if there is an error when rolling back.
+     *
+     * If rollback fails, the exception will be passed to the fallback if set, and logged.
+     *
+     * @param Throwable $original_exception The exception that caused the transaction to fail.
      */
-    private function safeRollback(): void
+    private function safeRollback(Throwable $original_exception): void
     {
         try {
             $this->rollback();
         } catch (Throwable $rollback_exception) {
-            error_log(
-                sprintf(
-                    'Transaction rollback failed: %s',
-                    $rollback_exception->getMessage()
-                )
-            );
-
-            throw $rollback_exception;
+            error_log(sprintf(
+                'Transaction rollback failed after [%s]: %s',
+                $original_exception->getMessage(),
+                $rollback_exception->getMessage()
+            ));
         }
     }
 
     /**
      * Verify that the connection's error mode is set to throw exceptions.
-     * 
+     *
      * @throws RuntimeException If error mode is not set to throw exceptions.
      */
-    private function checkErrorModeEnabled()
+    private function checkErrorModeEnabled(): void
     {
         if ($this->connection instanceof PDO) {
             $use_exceptions = $this->connection->getAttribute(PDO::ATTR_ERRMODE) === PDO::ERRMODE_EXCEPTION;
@@ -190,12 +177,13 @@ final class Transaction
                 throw new RuntimeException('PDO error mode is not set to throw exceptions. Please set PDO::ATTR_ERRMODE to PDO::ERRMODE_EXCEPTION.');
             }
         } elseif ($this->connection instanceof mysqli) {
-            // mysqli
+            // Note: mysqli_driver properties are deprecated in PHP 8.1+. 
+            // We use error suppression (@) to avoid deprecation warnings while checking the mode.
             $driver = new mysqli_driver();
-            $use_exceptions = ($driver->report_mode & MYSQLI_REPORT_STRICT) === MYSQLI_REPORT_STRICT;
+            $use_exceptions = @($driver->report_mode & MYSQLI_REPORT_STRICT) === MYSQLI_REPORT_STRICT;
 
             if (!$use_exceptions) {
-                throw new RuntimeException('MySQLi error mode is not set to throw exceptions. Please set MYSQLI_REPORT_STRICT.');
+                throw new RuntimeException('MySQLi error mode is not set to throw exceptions. Please use mysqli_report(MYSQLI_REPORT_STRICT).');
             }
         }
     }
