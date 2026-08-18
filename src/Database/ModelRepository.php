@@ -6,7 +6,6 @@ namespace rguezque\Database;
 
 use rguezque\Contract\ModelInterface;
 use InvalidArgumentException;
-use PDO;
 use ReflectionClass;
 use ReflectionNamedType;
 use rguezque\Contract\ConnectionInterface;

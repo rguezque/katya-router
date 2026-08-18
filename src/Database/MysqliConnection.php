@@ -15,24 +15,38 @@ use Throwable;
 
 final class MysqliConnection extends mysqli implements ConnectionInterface
 {
+    /** @var string Default charset */
     private const DEFAULT_CHARSET = 'utf8mb4';
-    private const DEFAULT_HOST    = 'localhost';
-    private const DEFAULT_PORT    = 3306;
+
+    /** @var string Default host */
+    private const DEFAULT_HOST = 'localhost';
+
+    /** @var int Default port */
+    private const DEFAULT_PORT = 3306;
 
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
 
     /**
-     * @param  array<int|string, int|string|bool> $options
+     * Initialize a mysqli connection.
+     * 
+     * @param string $db_name Database name for connection.
+     * @param ?string $user Database connection username.
+     * @param ?string $password Database connection password.
+     * @param string $host Database host.
+     * @param int $port Database connection port.
+     * @param ?string $unix_socket Connection socket. If defined, `$host` must be `"localhost"`.
+     * @param string $charset Defines the character encoding that will be used to send and receive data between PHP and the database.
+     * @param array<int|string, int|string|bool> $options Connection options.
      * @throws mysqli_sql_exception
      */
     public function __construct(
         string $db_name,
+        ?string $user = null,
+        ?string $password = null,
         string $host = self::DEFAULT_HOST,
         int $port = self::DEFAULT_PORT,
         ?string $unix_socket = null,
-        ?string $user = null,
-        ?string $password = null,
         string $charset = self::DEFAULT_CHARSET,
         array $options = []
     ) {

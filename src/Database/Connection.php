@@ -146,11 +146,11 @@ final class Connection
 
         return new PDOConnection(
             $params['db_name'],
+            $params['user'],
+            $params['password'],
             $params['host'],
             $params['port'],
             $params['unix_socket'],
-            $params['user'],
-            $params['password'],
             $params['charset'],
             $options
         );
@@ -167,11 +167,11 @@ final class Connection
     {
         return new MysqliConnection(
             $params['db_name'],
+            $params['user'],
+            $params['password'],
             $params['host'],
             $params['port'],
             $params['unix_socket'],
-            $params['user'],
-            $params['password'],
             $params['charset'],
             $params['options'],
         );

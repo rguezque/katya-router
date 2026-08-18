@@ -20,13 +20,25 @@ final class PDOConnection extends PDO implements ConnectionInterface
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
 
+    /**
+     * Initialize a PDO connection.
+     * 
+     * @param string $db_name Database name for connection.
+     * @param ?string $user Database connection username.
+     * @param ?string $password Database connection password.
+     * @param string $host Database host.
+     * @param int $port Database connection port.
+     * @param ?string $unix_socket Connection socket. If defined, `$host` will be ignored.
+     * @param string $charset Defines the character encoding that will be used to send and receive data between PHP and the database.
+     * @param array<int|string, int|string|bool> $options Connection options.
+     */
     public function __construct(
         string $db_name,
+        ?string $user = null,
+        ?string $password = null,
         string $host = self::DEFAULT_HOST,
         int $port = self::DEFAULT_PORT,
         ?string $unix_socket = null,
-        ?string $user = null,
-        ?string $password = null,
         string $charset = self::DEFAULT_CHARSET,
         ?array $options = null,
     ) {
@@ -48,7 +60,7 @@ final class PDOConnection extends PDO implements ConnectionInterface
     /**
      * Execute a callback within a transaction.
      *
-     * @param  Closure(PDO): mixed $callback
+     * @param  Closure(PDO):mixed $callback The callback with the business logic.
      * @return mixed What the callback returns.
      * @throws Throwable If the callback or commit fails.
      */
