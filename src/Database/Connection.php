@@ -1,7 +1,6 @@
 <?php
 
 declare(strict_types=1);
-
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -17,7 +16,6 @@ use PDO;
 use PDOException;
 use rguezque\Contract\ConnectionInterface;
 use rguezque\Exception\MissingArgumentException;
-
 use function rguezque\functions\{
     env,
     normalize_port,
@@ -26,13 +24,18 @@ use function rguezque\functions\{
 };
 
 /**
- * Represents a database connection factory that can create PDO or MySQLi connections based on provided parameters or environment variables.
- * 
- * This class provides methods to create a new connection with specified parameters or automatically connect using environment variables. It also includes methods to retrieve supported drivers and normalize connection parameters.
- * 
+ * Represents a database connection factory that can create PDO or MySQLi connections
+ * based on provided parameters or environment variables.
+ *
+ * This class provides methods to create a new connection with specified parameters
+ * or automatically connect using environment variables. It also includes methods to
+ * retrieve supported drivers and normalize connection parameters.
+ *
  * @method static ConnectionInterface create(array<string, mixed> $params) Create a new PDO or MySQLi connection based on provided parameters.
  * @method static ConnectionInterface autoConnect(array<string, mixed> $driver_options = []) Automatically connect to a database using environment variables, with optional driver-specific options.
  * @method static array<string> getSupportedDrivers() Get the list of supported canonical drivers.
+ * @method static void resetAutoConnection() Reset the cached auto-connection (useful for testing).
+ * @method static void setAutoConnection(ConnectionInterface $connection) Inject a custom connection as the auto-connection (useful for testing).
  */
 final class Connection
 {
@@ -57,7 +60,8 @@ final class Connection
     private function __construct() {}
 
     /**
-     * Create a new PDO MySQL or MySQLi connection. If a unix socket was defined, it is given priority in the connection.
+     * Create a new PDO MySQL or MySQLi connection. If a unix socket was defined,
+     * it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the connection.
      * @return ConnectionInterface
@@ -73,6 +77,10 @@ final class Connection
         return match ($params['driver']) {
             'pdomysql' => self::connectPDOMysql($params),
             'mysqli'   => self::connectMysqli($params),
+            default    => throw new InvalidArgumentException(
+                sprintf('Unsupported driver "%s".', $params['driver']),
+                400
+            ),
         };
     }
 
@@ -80,6 +88,8 @@ final class Connection
      * Return a MySQL connection from environment params.
      *
      * If DB_URL or DATABASE_URL is present, the URL is parsed and cached.
+     * The $driver_options are merged with any options derived from the URL,
+     * giving priority to the explicitly provided options.
      *
      * @param array<string, mixed> $driver_options Optional driver-specific options.
      * @return ConnectionInterface
@@ -91,28 +101,61 @@ final class Connection
         }
 
         $url = env('DB_URL');
-
         if (!is_string($url) || trim($url) === '') {
             $url = env('DATABASE_URL');
         }
 
         if (is_string($url) && trim($url) !== '') {
-            return self::$auto_connection = self::create((new DsnParser)->parse($url));
+            $parsed = (new DsnParser)->parse($url);
+            // Merge driver_options with those from the URL (explicit options win)
+            $parsed['options'] = array_replace(
+                is_array($parsed['options'] ?? null) ? $parsed['options'] : [],
+                $driver_options
+            );
+            return self::$auto_connection = self::create($parsed);
         }
 
         $params = [
-            'driver'   => env('DB_DRIVER'),
-            'host'     => env('DB_HOST'),
-            'port'     => env('DB_PORT'),
-            'db_name'  => env('DB_NAME', ''),
-            'charset'  => env('DB_CHARSET'),
-            'user'     => env('DB_USER', ''),
-            'password' => env('DB_PASS', ''),
-            'unix_socket'   => env('DB_SOCKET'),
-            'options'  => $driver_options,
+            'driver'      => env('DB_DRIVER'),
+            'host'        => env('DB_HOST'),
+            'port'        => env('DB_PORT'),
+            'db_name'     => env('DB_NAME', ''),
+            'charset'     => env('DB_CHARSET'),
+            'user'        => env('DB_USER', ''),
+            'password'    => env('DB_PASS', ''),
+            'unix_socket' => env('DB_SOCKET'),
+            'options'     => $driver_options,
         ];
 
         return self::$auto_connection = self::create($params);
+    }
+
+    /**
+     * Reset the cached auto-connection.
+     *
+     * Useful in testing scenarios where a fresh connection must be established
+     * between tests, or in long-running processes where the connection may have
+     * become stale.
+     *
+     * @return void
+     */
+    public static function resetAutoConnection(): void
+    {
+        self::$auto_connection = null;
+    }
+
+    /**
+     * Inject a custom connection as the auto-connection.
+     *
+     * Useful for testing, allowing a mock or in-memory connection to be used
+     * by code that relies on `autoConnect()`.
+     *
+     * @param ConnectionInterface $connection The connection to inject.
+     * @return void
+     */
+    public static function setAutoConnection(ConnectionInterface $connection): void
+    {
+        self::$auto_connection = $connection;
     }
 
     /**
@@ -157,7 +200,8 @@ final class Connection
     }
 
     /**
-     * Establish a connection to a MySQL database using MySQLi. If a unix socket was defined, it is given priority in the connection.
+     * Establish a connection to a MySQL database using MySQLi.
+     * If a unix socket was defined, it is given priority in the connection.
      *
      * @param array<string, mixed> $params Parameters for the MySQLi connection.
      * @return MysqliConnection
@@ -188,7 +232,6 @@ final class Connection
     private static function normalizeParams(array $params): array
     {
         $driver = trimmed_string_or_null($params['driver'] ?? '');
-
         if ($driver === null) {
             throw new MissingArgumentException(
                 'Missing "driver" parameter. Must be "pdomysql" or "mysqli".',
@@ -197,7 +240,6 @@ final class Connection
         }
 
         $driver = strtolower($driver);
-
         if (!in_array($driver, self::SUPPORTED_DRIVERS, true)) {
             throw new InvalidArgumentException(
                 'Invalid "driver", must be: "pdomysql" or "mysqli".',
@@ -206,7 +248,6 @@ final class Connection
         }
 
         $options = $params['options'] ?? [];
-
         if (!is_array($options)) {
             throw new InvalidArgumentException(
                 'Invalid "options" parameter; it must be an array.',
@@ -217,21 +258,54 @@ final class Connection
         $socket = trimmed_string_or_null($params['unix_socket'] ?? null);
         $host = trimmed_string_or_default($params['host'] ?? null, self::DEFAULT_HOST);
 
-        // Evaluates whether a unix socket is used and that the "host" is "localhost" in the case of a mysqli connection
+        // Evaluates whether a unix socket is used and that the "host" is "localhost"
+        // in the case of a mysqli connection
         if ($socket !== null && $driver === 'mysqli' && $host !== 'localhost') {
-            throw new InvalidArgumentException('The "host" parameter must be "localhost" when a unix socket is used in mysqli connection.');
+            throw new InvalidArgumentException(
+                'The "host" parameter must be "localhost" when a unix socket is used in mysqli connection.',
+                400
+            );
         }
 
+        $db_name = trimmed_string_or_default($params['db_name'] ?? null, '');
+        $charset = trimmed_string_or_default($params['charset'] ?? null, self::DEFAULT_CHARSET);
+
+        self::validateIdentifier($db_name, 'db_name');
+        self::validateIdentifier($charset, 'charset');
+
         return [
-            'driver'   => $driver,
-            'host'     => $host,
-            'port'     => normalize_port($params['port'] ?? null, self::DEFAULT_PORT),
-            'db_name'  => trimmed_string_or_default($params['db_name'] ?? null, ''),
-            'charset'  => trimmed_string_or_default($params['charset'] ?? null, self::DEFAULT_CHARSET),
-            'user'     => trimmed_string_or_default($params['user'] ?? null, ''),
-            'password' => trimmed_string_or_default($params['password'] ?? null, ''),
-            'unix_socket'   => $socket,
-            'options'  => $options,
+            'driver'      => $driver,
+            'host'        => $host,
+            'port'        => normalize_port($params['port'] ?? null, self::DEFAULT_PORT),
+            'db_name'     => $db_name,
+            'charset'     => $charset,
+            'user'        => trimmed_string_or_default($params['user'] ?? null, ''),
+            'password'    => $params['password'] ?? '', // Do NOT trim passwords
+            'unix_socket' => $socket,
+            'options'     => $options,
         ];
+    }
+
+    /**
+     * Validate that a database identifier (db_name, charset) contains only safe characters.
+     *
+     * @param string $value The value to validate.
+     * @param string $field The field name (for error messages).
+     * @throws InvalidArgumentException
+     */
+    private static function validateIdentifier(string $value, string $field): void
+    {
+        if ($value === '') {
+            return;
+        }
+        if (!preg_match('/^[A-Za-z0-9_\-]+$/', $value)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'The "%s" parameter contains invalid characters. Only letters, numbers, underscores and hyphens are allowed.',
+                    $field
+                ),
+                400
+            );
+        }
     }
 }

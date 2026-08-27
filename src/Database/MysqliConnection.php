@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace rguezque\Database;
 
 use Closure;
+use InvalidArgumentException;
 use LogicException;
 use mysqli;
 use mysqli_driver;
@@ -27,9 +28,12 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
     /** @var bool Indicates whether this instance has already started a transaction. */
     private bool $in_transaction = false;
 
+    /** @var bool|null Cached result of error mode check */
+    private ?bool $error_mode_verified = null;
+
     /**
      * Initialize a mysqli connection.
-     * 
+     *
      * @param string $db_name Database name for connection.
      * @param ?string $user Database connection username.
      * @param ?string $password Database connection password.
@@ -39,6 +43,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
      * @param string $charset Defines the character encoding that will be used to send and receive data between PHP and the database.
      * @param array<int|string, int|string|bool> $options Connection options.
      * @throws mysqli_sql_exception
+     * @throws InvalidArgumentException
      */
     public function __construct(
         string $db_name,
@@ -56,6 +61,14 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
             $report_configured = true;
         }
 
+        self::validateIdentifier($db_name, 'db_name');
+
+        $charset = trim($charset);
+        if ('' === $charset) {
+            $charset = self::DEFAULT_CHARSET;
+        }
+        self::validateIdentifier($charset, 'charset');
+
         parent::__construct();
 
         if (isset($options[\MYSQLI_SET_CHARSET_NAME])) {
@@ -66,7 +79,6 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
             if (\is_bool($value)) {
                 $value = (int) $value;
             }
-
             if (!$this->options((int) $option, $value)) {
                 throw new mysqli_sql_exception(
                     sprintf('Unable to set MySQLi option "%s".', (string) $option),
@@ -82,11 +94,6 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
             );
         }
 
-        $charset = trim($charset);
-        if ('' === $charset) {
-            $charset = self::DEFAULT_CHARSET;
-        }
-
         if (!$this->set_charset($charset)) {
             throw new mysqli_sql_exception(
                 sprintf('Error loading charset "%s": %s', $charset, (string) $this->error),
@@ -98,7 +105,7 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
     /**
      * Execute a callback within a transaction.
      *
-     * @param  Closure(mysqli): mixed $callback
+     * @param  Closure(ConnectionInterface): mixed $callback
      * @return mixed What the callback returns.
      * @throws Throwable If the callback or commit fails.
      */
@@ -106,11 +113,9 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
     {
         $this->checkErrorModeEnabled();
         $this->beginThis();
-
         try {
             $result = $callback($this);
             $this->commitThis();
-
             return $result;
         } catch (Throwable $e) {
             $this->safeRollback($e);
@@ -126,11 +131,9 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
         if ($this->in_transaction) {
             throw new LogicException('There is already an active transaction in this instance.');
         }
-
         if ($this->begin_transaction() === false) {
             throw new RuntimeException('Failed to start transaction with mysqli.');
         }
-
         $this->in_transaction = true;
     }
 
@@ -142,11 +145,9 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
         if (!$this->in_transaction) {
             return;
         }
-
         if ($this->commit() === false) {
             throw new RuntimeException('Could not commit with mysqli.');
         }
-
         $this->in_transaction = false;
     }
 
@@ -160,11 +161,9 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
         if (!$this->in_transaction) {
             return;
         }
-
         if ($this->rollback() === false) {
             throw new RuntimeException('Could not rollback with mysqli.');
         }
-
         $this->in_transaction = false;
     }
 
@@ -186,14 +185,46 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
 
     /**
      * Verify that the connection's error mode is set to throw exceptions.
+     *
+     * The result is cached per instance to avoid instantiating mysqli_driver
+     * on every transactional call.
      */
     private function checkErrorModeEnabled(): void
     {
+        if ($this->error_mode_verified === true) {
+            return;
+        }
+
         $driver = new mysqli_driver();
         if (($driver->report_mode & \MYSQLI_REPORT_STRICT) !== \MYSQLI_REPORT_STRICT) {
             throw new RuntimeException(
                 'MySQLi error mode is not set to throw exceptions. '
                     . 'Please set MYSQLI_REPORT_STRICT.'
+            );
+        }
+
+        $this->error_mode_verified = true;
+    }
+
+    /**
+     * Validate that a database identifier contains only safe characters.
+     *
+     * @param string $value The value to validate.
+     * @param string $field The field name (for error messages).
+     * @throws InvalidArgumentException
+     */
+    private static function validateIdentifier(string $value, string $field): void
+    {
+        if ($value === '') {
+            return;
+        }
+        if (!preg_match('/^[A-Za-z0-9_\-]+$/', $value)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'The "%s" parameter contains invalid characters. Only letters, numbers, underscores and hyphens are allowed.',
+                    $field
+                ),
+                400
             );
         }
     }

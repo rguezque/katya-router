@@ -1,7 +1,6 @@
 <?php
 
 declare(strict_types=1);
-
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -12,9 +11,7 @@ declare(strict_types=1);
 namespace rguezque\Database;
 
 use InvalidArgumentException;
-use rguezque\Exception\DuplicityException;
 use Throwable;
-
 use function rguezque\functions\{
     decode_component,
     normalize_host,
@@ -26,35 +23,19 @@ use function rguezque\functions\{
 
 /**
  * Parses a database URL (DSN) into an associative array of connection parameters.
- * 
- * This class supports various database schemes and allows for key remapping through a provided keymap.
- * It validates the input URL and ensures that the output keys are unique, throwing exceptions for invalid or duplicate keys.
- * 
- * @method __construct(array<string, string> $keymap = []) Constructor that accepts an optional keymap for renaming output keys.
- * @method array<string, mixed> parse(string $url) Parses a database URL into an associative array of connection parameters.
  */
 final class DsnParser
 {
     /** @var array<string, string> Aliases for database schemes */
     private const SCHEME_ALIASES = [
-        'pdomysql' => 'pdomysql',
-        'mysql'    => 'pdomysql',
-        'mysqli'   => 'mysqli',
+        'pdomysql'  => 'pdomysql',
+        'pdo_mysql' => 'pdomysql',
+        'mysql'     => 'pdomysql',
+        'mysqli'    => 'mysqli',
     ];
-
-    /** @var array<string, string> Map to rename output keys: original key => new key */
-    private array $keymap;
 
     /** @var array<string, mixed> Parameters parsed from URL */
     private array $params;
-
-    /**
-     * @param array<string, string> $keymap original key => new key
-     */
-    public function __construct(array $keymap = [])
-    {
-        $this->keymap = $keymap;
-    }
 
     /**
      * Parse a database URL into an associative array.
@@ -67,44 +48,41 @@ final class DsnParser
     public function parse(string $url): array
     {
         $url = trim($url);
-
         if ($url === '') {
             throw new InvalidArgumentException('Database URL cannot be empty.', 400);
         }
 
         $dsn = $this->parseDsn($url);
-
         if ($dsn === false) {
             throw new InvalidArgumentException('Malformed database URL.', 400);
         }
 
         $scheme = strtolower(trim($dsn['scheme'] ?? 'pdomysql'));
-
         if (!isset(self::SCHEME_ALIASES[$scheme])) {
             throw new InvalidArgumentException(
-                'Invalid "scheme" in database URL, must be one of: pdomysql, pdo_mysql, mysql, mysqli.',
+                sprintf(
+                    'Invalid "scheme" in database URL, must be one of: %s.',
+                    implode(', ', array_keys(self::SCHEME_ALIASES))
+                ),
                 400
             );
         }
 
         $segments = [];
-
         if (isset($dsn['query'])) {
             parse_str($dsn['query'], $segments);
         }
 
         $params = [
-            'driver'   => self::SCHEME_ALIASES[$scheme],
-            'host'     => normalize_host($dsn['host'] ?? null, Connection::DEFAULT_HOST),
-            'port'     => normalize_port($dsn['port'] ?? null, Connection::DEFAULT_PORT),
-            'db_name'  => normalize_path($dsn['path'] ?? null),
-            'charset'  => trimmed_string_or_default($segments['charset'] ?? null, Connection::DEFAULT_CHARSET),
-            'user'     => decode_component($dsn['user'] ?? ''),
-            'password' => decode_component($dsn['pass'] ?? ''),
-            'unix_socket'   => trimmed_string_or_null($segments['unix_socket'] ?? null),
+            'driver'      => self::SCHEME_ALIASES[$scheme],
+            'host'        => normalize_host($dsn['host'] ?? null, Connection::DEFAULT_HOST),
+            'port'        => normalize_port($dsn['port'] ?? null, Connection::DEFAULT_PORT),
+            'db_name'     => normalize_path($dsn['path'] ?? null),
+            'charset'     => trimmed_string_or_default($segments['charset'] ?? null, Connection::DEFAULT_CHARSET),
+            'user'        => decode_component($dsn['user'] ?? ''),
+            'password'    => decode_component($dsn['pass'] ?? ''), // Do NOT trim passwords
+            'unix_socket' => trimmed_string_or_null($segments['unix_socket'] ?? null),
         ];
-
-        $this->params = $this->applyKeyMap($params);
 
         return $this->params;
     }
@@ -112,8 +90,8 @@ final class DsnParser
     /**
      * Parses the URL using `\Uri\Rfc3986\Uri` when available.
      *
-     * If the class does not exist, does not expose the expected API, or fails to parse the URL,
-     * it falls back to PHP's native `parse_url()`.
+     * If the class does not exist, does not expose the expected API, or fails
+     * to parse the URL, it falls back to PHP's native `parse_url()`.
      *
      * @param string $url The URL to parse
      * @return array<string, mixed>|false
@@ -121,7 +99,6 @@ final class DsnParser
     private function parseDsn(string $url)
     {
         $uri_class = \Uri\Rfc3986\Uri::class;
-
         if (class_exists($uri_class)) {
             $required_methods = [
                 'getScheme',
@@ -131,9 +108,7 @@ final class DsnParser
                 'getQuery',
                 'getUserInfo',
             ];
-
             $is_supported = true;
-
             foreach ($required_methods as $method) {
                 if (!method_exists($uri_class, $method)) {
                     $is_supported = false;
@@ -145,7 +120,6 @@ final class DsnParser
                 try {
                     /** @var object $uri */
                     $uri = new $uri_class($url);
-
                     $dsn = [];
 
                     $scheme = (string) $uri->getScheme();
@@ -178,11 +152,9 @@ final class DsnParser
                         $parts = explode(':', $user_info, 2);
                         $user = $parts[0];
                         $pass = $parts[1] ?? '';
-
                         if ('' !== $user) {
                             $dsn['user'] = $user;
                         }
-
                         if ('' !== $pass || false !== strpos($user_info, ':')) {
                             $dsn['pass'] = $pass;
                         }
@@ -196,63 +168,5 @@ final class DsnParser
         }
 
         return parse_url($url);
-    }
-
-    /**
-     * Applies the keymap defined in the constructor to rename output keys.
-     *
-     * The keymap uses the following convention:
-     *
-     * [
-     *     'original_key' => 'new_key',
-     * ]
-     *
-     * @param array<string, mixed> $params Parameters to apply the keymap to.
-     * @return array<string, mixed> Parameters with keys renamed according to the keymap.
-     *
-     * @throws InvalidArgumentException
-     * @throws DuplicityException
-     */
-    private function applyKeyMap(array $params): array
-    {
-        if ([] === $this->keymap) {
-            return $params;
-        }
-
-        $mapped = [];
-
-        foreach ($params as $key => $value) {
-            $output_key = $key;
-
-            if (array_key_exists($key, $this->keymap)) {
-                $output_key = $this->keymap[$key];
-
-                if (!is_string($output_key) || '' === trim($output_key)) {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            'Invalid keymap value for "%s". The mapped key must be a non-empty string.',
-                            $key
-                        ),
-                        400
-                    );
-                }
-
-                $output_key = trim($output_key);
-            }
-
-            if (array_key_exists($output_key, $mapped)) {
-                throw new DuplicityException(
-                    sprintf(
-                        'Duplicate mapped key "%s". Review the keymap to avoid collisions.',
-                        $output_key
-                    ),
-                    400
-                );
-            }
-
-            $mapped[$output_key] = $value;
-        }
-
-        return $mapped;
     }
 }

@@ -13,16 +13,16 @@ use RuntimeException;
 
 final class ModelRepository
 {
-    /** 
+    /**
      * The shared DB connection object.
-     * 
+     *
      * @var ConnectionInterface
      */
     private ConnectionInterface $connection;
 
     /**
      * Flag for share a unique model instance for each.
-     * 
+     *
      * @var bool
      */
     private bool $share_instances;
@@ -43,7 +43,7 @@ final class ModelRepository
 
     /**
      * Initialize the class.
-     * 
+     *
      * @param ConnectionInterface $connection A DB connection object.
      * @param bool $share_instances Defines whether the repository will only return one shared instance of each model it generates.
      */
@@ -54,10 +54,11 @@ final class ModelRepository
     }
 
     /**
-     * Register a model using its FQCN (Fulli Qualified Class Name).
+     * Register a model using its FQCN (Fully Qualified Class Name).
      *
      * @param class-string $model_class
      * @return ModelRepository
+     * @throws InvalidArgumentException
      */
     public function register(string $model_class): ModelRepository
     {
@@ -73,7 +74,7 @@ final class ModelRepository
 
         if ($reflection->isInterface() || $reflection->isAbstract()) {
             throw new InvalidArgumentException(
-                sprintf('"%s" It cannot be instantiated because it is abstract or interface.', $model_class)
+                sprintf('"%s" cannot be instantiated because it is abstract or an interface.', $model_class)
             );
         }
 
@@ -86,7 +87,8 @@ final class ModelRepository
         if (!$this->constructorAcceptsConnectionInterface($reflection)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'The constructor of "%s" must be public and receive "%s" as the first parameter.',
+                    'The constructor of "%s" must be public, receive "%s" as the first parameter, '
+                        . 'and any additional parameters must have default values.',
                     $model_class,
                     ConnectionInterface::class
                 )
@@ -114,6 +116,22 @@ final class ModelRepository
     }
 
     /**
+     * Unregister a previously registered model.
+     *
+     * Also removes any shared instance associated with the model.
+     *
+     * @param class-string $model_class The FQCN to unregister.
+     * @return ModelRepository
+     */
+    public function unregister(string $model_class): ModelRepository
+    {
+        $model_class = $this->normalizeClassName($model_class);
+        unset($this->models[$model_class], $this->shared_instances[$model_class]);
+
+        return $this;
+    }
+
+    /**
      * Return `true` if a model is registered, `false` otherwise.
      *
      * @param class-string $model_class The FQCN (Fully Qualified Class Name) to search.
@@ -132,6 +150,7 @@ final class ModelRepository
      * @template T of ModelInterface
      * @param class-string<T> $model_class The FQCN (Fully Qualified Class Name).
      * @return T
+     * @throws RuntimeException If the model is not registered.
      */
     public function get(string $model_class): ModelInterface
     {
@@ -148,8 +167,9 @@ final class ModelRepository
             return $this->shared_instances[$model_class];
         }
 
-        /** @var T $model */
+        /** @var ReflectionClass<T> $reflection */
         $reflection = $this->models[$model_class];
+        /** @var T $model */
         $model = $reflection->newInstance($this->connection);
 
         if ($this->share_instances) {
@@ -160,8 +180,31 @@ final class ModelRepository
     }
 
     /**
+     * Get the list of registered model class names.
+     *
+     * @return array<class-string<ModelInterface>>
+     */
+    public function getRegisteredModels(): array
+    {
+        return array_keys($this->models);
+    }
+
+    /**
+     * Clear all shared instances, forcing the repository to create new instances
+     * on subsequent `get()` calls.
+     *
+     * @return ModelRepository
+     */
+    public function clearSharedInstances(): ModelRepository
+    {
+        $this->shared_instances = [];
+
+        return $this;
+    }
+
+    /**
      * Normalize a class name.
-     * 
+     *
      * @param string $class_name The FQCN (Fully Qualified Class Name) to normalize.
      */
     private function normalizeClassName(string $class_name): string
@@ -170,29 +213,41 @@ final class ModelRepository
     }
 
     /**
-     * Return `true` if a class constructor accepts a ConnectionInterface object, `false` otherwise.
-     * 
+     * Return `true` if a class constructor accepts a `ConnectionInterface` object
+     * as its first parameter and any additional parameters have default values.
+     *
      * @param ReflectionClass $reflection The reflection of the class.
      * @return bool
      */
     private function constructorAcceptsConnectionInterface(ReflectionClass $reflection): bool
     {
         $constructor = $reflection->getConstructor();
-
         if ($constructor === null || !$constructor->isPublic()) {
             return false;
         }
 
         $parameters = $constructor->getParameters();
-
         if ($parameters === []) {
             return false;
         }
 
         $type = $parameters[0]->getType();
+        if (
+            !$type instanceof ReflectionNamedType
+            || $type->isBuiltin()
+            || $type->getName() !== ConnectionInterface::class
+        ) {
+            return false;
+        }
 
-        return $type instanceof ReflectionNamedType
-            && !$type->isBuiltin()
-            && $type->getName() === ConnectionInterface::class;
+        // Verify that any additional parameters are optional (have default values)
+        $count = count($parameters);
+        for ($i = 1; $i < $count; $i++) {
+            if (!$parameters[$i]->isOptional()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

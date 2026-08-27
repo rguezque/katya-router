@@ -29,7 +29,7 @@ A lightweight PHP router
     - [Transactions](#transactions)
 - [Middlewares](#middlewares)
 - [CORS](#cors)
-- [Environment Management](#environment-management)
+- [Error Handler](#error-handler)
 - [helpers\*](#helpers)
 
 ## Install
@@ -584,7 +584,7 @@ $router->get('/', function(Request $request, Services $service) {
 
 ## DB Connection
 
-La clase `Connection` proporciona el medio para crear conexiones a MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `Connection::create` funciona como un _factory_, y crea nuevas instancias de conexión. Los valores posibles para el `driver` de conexión son: `pdomysql` o `mysqli`.
+La clase `Connection` proporciona el medio para crear conexiones a MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `Connection::create` funciona como un _factory_, y crea nuevas instancias de conexión devolviendo un objeto `ConnectionInterface`. Los valores posibles para el `driver` de conexión son: `pdomysql` o `mysqli`.
 
 ```php
 use rguezque\Database\Connection;
@@ -603,7 +603,7 @@ $db = Connection::create([
 > [!NOTE]
 > Para el caso de conexiones con `PDO`, si se utiliza un _unix socket_ define el parámetro `unix_socket` que por lo regular en Linux es `/var/run/mysqld/mysqld.sock` o en el caso de XAMPP es `/opt/lampp/var/mysql/mysql.sock`; los parámetros `host` y `port` serán ignorados aunque hayan sido definidos.
 >
-> Para conexiones con `mysqli` el parámetro `unix_socket` determinará el tipo de conexión aunque se haya definido `host`.
+> Para conexiones con `mysqli` si se define el parámetro `unix_socket` el valor de `host` debe ser `localhost`.
 
 ### Connecting using a Database URL
 
@@ -630,31 +630,6 @@ Esto devolverá:
     'port' => 3456, // Valor default 3306 si no se especifica en la URL
     'db_name' => 'mydatabase',
     'charset' => 'utf8' // Valor default utf8mb4 si no se especifica
-]
-```
-
-Si necesitas renombrar los nombres de las claves para utilizar en alguna otra librería, puedes mapearlas en el constructor:
-
-```php
-$params = new DsnParser([
-    'driver' => 'scheme'
-    'db_name' => 'db_nme',
-    'user' => 'username'
-]);
-$params->parse('pdomysql://root:mypassword@127.0.0.1:3456/mydatabase?charset=utf8');
-```
-
-De esta forma la salida será la siguiente:
-
-```php
-[
-    'scheme' => 'pdomysql',
-    'username' => 'root',
-    'password' => 'mypassword',
-    'host' => '127.0.0.1',
-    'port' => 3456,
-    'db_name' => 'mydatabase',
-    'charset' => 'utf8'
 ]
 ```
 
@@ -689,7 +664,7 @@ $db = Connection::create($params);
 
 ### Auto connect
 
-Si solo necesitas una conexión, el método estático `Connection::autoConnect` crea y devuelve una conexión singleton MySQL tomando automáticamente los parámetros definidos en un archivo `.env`.
+Si solo necesitas una conexión, el método estático `Connection::autoConnect` crea y devuelve una conexión singleton tomando automáticamente los parámetros definidos en un archivo `.env`.
 
 ```php
 use rguezque\Database\Connection;
@@ -724,6 +699,8 @@ $db = rguezque\Database\Connection::autoConnect([
 ])
 ```
 
+O bien se puede configurar previamente asignando directamente un objeto `ConnectionInterface` con el método estático `Connection::setAutoConnection`. Limpia esta conexión con `Connection::resetAutoConnection`. 
+
 > [!NOTE]
 > Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
 
@@ -757,7 +734,7 @@ $result = $transaction->transactional(function(PDO $pdo) {
 });
 ```
 
-El callback puede o no devolver un valor. Pero lo importante es que en caso de que algo salga mal dentro del callback, se debe lanzar una excepción, de lo contrario el _rollback_ no se disparará. Toda excepción lanzada dentro del callback es relanzada después del _rollback_ por lo cual se debe manejar dentro de un bloque `try-catch`.
+Toda excepción lanzada dentro del _closure_ es relanzada después del _rollback_ por lo cual se debe manejar dentro de un bloque `try-catch`.
 
 ```php
 $db = rguezque\Database\Connection::autoConnect();
@@ -778,6 +755,22 @@ try {
 }
 
 ```
+
+> [!TIP]
+>
+> Al crear conexiones con `Connect::create` o `Connect::autoConnect` el objeto devuelto ya posee un método `ConnectionInterface::transactional` que se comporta de la misma forma que `Transaction::transactional`.
+
+```php
+$db = rguezque\Database\Connection::autoConnect();
+
+$result = $db->transactional(function(\rguezque\Contract\ConnectionInterface $pdo) {
+    // Aqui van las consultas
+    // Si algo sale mal se debe lanzar una excepción
+    throw new Exception('Algo salió mal');
+});
+```
+
+
 
 ## Middlewares
 
@@ -902,39 +895,37 @@ $cors_config->addOrigin(
 );
 ```
 
-## Environment Management
+## Error Handler
 
-`Environment::register` inicializa el ambiente de desarrollo y puede recibir el argumento `development` o `production`. Si se invoca sin argumento buscará cargar automáticamente desde la variable `APP_ENV` del archivo `.env`; en caso de no encontrarla se tomará por default el modo `development`.
-
-```php
-// Se define directamente el ambiente de desarrollo
-Environment::register('production');
-
-// O busca automáticamente la variable de ambiente APP_ENV
-Environment::register();
-```
-
-`Environment::setLogPath` especifica el directorio (obligatorio) donde se guardará el registro de errores. Todos los errores que ocurran en ambos ambientes de desarrollo se volcarán en un archivo `php_errors.log`.
+Para registro de errores y ambiente de desarrollo se debe configurar `ErrorHandler` el cual recibe un objeto de configuración `ErrorhandlerConfig`
 
 ```php
-// Por ejemplo
-Environment::setLogPath(__DIR__.'/path/to/custom/logs');
+date_default_timezone_set('America/Mexico_City');
+
+$config = \rguezque\ErrorHandling\ErrorHandlerConfig::fromArray([
+    'mode' => env('APP_ENV', 'development'),
+    'debug' => env('APP_DEBUG', true),
+    'log_path' => __DIR__.'/logs',
+    'public_message' => 'Internal Server Error',
+]);
+
+(new \rguezque\ErrorHandling\ErrorHandler($config))->register();
 ```
 
-Usa `Environment::logError` para registrar manualmente los errores en los `try-catch`.
+Donde:
 
-```php
-try {
-    //Se dispara un Exception
-} catch(\Throwable $e) {
-    Environment::logError($e); // Debe recibir un objeto que descienda de la interface Throwable
-}
-```
+- `mode`: Define el ambiente de desarrollo, por default es `production` a menos que se especifique `development`. De esto depende si se muestra o no el *trace* de los posibles errores.
+- `debug`: Habilita el *trace* de las excepciones.
+- `log_path`: Especifica el directorio donde se creara el archivo de registro de errores `.log`.
+- `public_message`: Mensaje público que se mostrará en `production`.
 
-Usa `Environment::getLogPath` para recuperar la ruta completa del archivo de registro de errores.
+Ejecuta `ErrorHandler::register` para iniciar el servicio.
 
-> [!NOTE]
-> Asegurate de definir tu zona horaria previamente con `set_default_timezone_set('America/Mexico_City')` de lo contrario los _logs_ mostrarán la fecha en `GMT` (Greenwich Mean Time) por default.
+Para registrar errores en bloques `try-catch` usa `FileErrorLogger::log` el cual recibe dos argumentos: la excepción a registrar en el archivo `.log` y la configuración definida al inicio.
+
+> [!TIP]
+> - Puedes crear un *Facade* para encapsular una instancia de `FileErrorLogger` y manejar de forma global el registro de errores en bloques `try-catch`.
+> - Asegurate de definir tu zona horaria `set_default_timezone_set('America/Mexico_City')` antes de todo, de lo contrario los _logs_ mostrarán la fecha en `GMT` (Greenwich Mean Time) por default.
 
 ## helpers
 
