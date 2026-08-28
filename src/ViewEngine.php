@@ -22,6 +22,7 @@ use function rguezque\functions\is_assoc_array;
  *
  * @method string fetch(string $view, array $data = []) Fetch the template from buffer and return the result as string to be render after
  * @method ViewEngine fetchFragment(string $template, string $name, array $data = []) Add a template fragment fetched as argument, to extend a main view
+ * @method ViewEngine addDirectory(string $namespace, string $dir_path) Register a directory to search for templates, under a namespace
  * @method ViewEngine addArgument(string $key, mixed $value) Add an argument to be used in templates
  * @method ViewEngine addArguments(array $data) Add arguments to be used in templates
  * @method ViewEngine setArguments(array $data) Set the arguments to be used in templates
@@ -62,32 +63,28 @@ class ViewEngine
      */
     public function __construct(string $templates_dir, array $namespaces = [])
     {
-        $templates_dir = rtrim($templates_dir, '/\\') . DIRECTORY_SEPARATOR;
-        $spl_file_info = new SplFileInfo($templates_dir);
-
-        if (!$spl_file_info->isDir()) {
-            throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $templates_dir));
-        }
-        if (!$spl_file_info->isReadable()) {
-            throw new PermissionException(sprintf('The templates directory "%s" is not readable', $templates_dir));
-        }
-
+        $templates_dir = $this->validateDirectory($templates_dir);
         $this->templates_dir = $templates_dir;
 
         // Validate and store extra namespaces
         foreach ($namespaces as $namespace => $dir) {
-            $dir = rtrim((string)$dir, '/\\') . DIRECTORY_SEPARATOR;
-            $spl_ns_info = new SplFileInfo($dir);
-
-            if (!$spl_ns_info->isDir()) {
-                throw new NotFoundException(sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace));
-            }
-            if (!$spl_ns_info->isReadable()) {
-                throw new PermissionException(sprintf('The namespace directory "%s" for "%s" is not readable', $dir, $namespace));
-            }
-
-            $this->namespaces[$namespace] = $dir;
+            $dir = $this->validateDirectory($namespace, $dir);
+            $this->namespaces[trim($namespace)] = $dir;
         }
+    }
+
+    /**
+     * Register a directory to search for templates, under a namespace
+     * 
+     * @param string $namespace Dicrectory namespace
+     * @param string $dir_path The full path to the templates directory
+     * @return ViewEngine
+     */
+    public function addDirectory(string $namespace, string $dir_path): ViewEngine
+    {
+        $dir_path = $this->validateDirectory($dir_path, $namespace);
+        $this->namespaces[$namespace] = $dir_path;
+        return $this;
     }
 
     /**
@@ -238,5 +235,31 @@ class ViewEngine
         $cached_path = $asset_file . $separator . 'v=' . $version;
 
         return $cached_path;
+    }
+
+    /**
+     * Validates that a directory exists and has read permissions
+     * 
+     * @param string $dir_path Directory to validate
+     * @param string $namespace Directory namespace (optional)
+     * @return string The normalized directory path
+     */
+    private function validateDirectory(string $dir_path, ?string $namespace = null): string
+    {
+        $dir = rtrim((string)$dir_path, '/\\') . DIRECTORY_SEPARATOR;
+        $spl_ns_info = new SplFileInfo($dir);
+
+        if (!$spl_ns_info->isDir()) {
+            (!is_null($namespace))
+                ? throw new NotFoundException(sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace))
+                : throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $dir));;
+        }
+        if (!$spl_ns_info->isReadable()) {
+            (!is_null($namespace))
+                ? throw new PermissionException(sprintf('The namespace directory "%s" for "%s" is not readable', $dir, $namespace))
+                : throw new PermissionException(sprintf('The templates directory "%s" is not readable', $dir));;
+        }
+
+        return $dir;
     }
 }
