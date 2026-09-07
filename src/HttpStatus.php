@@ -16,7 +16,7 @@ namespace rguezque;
  * 
  * @see http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
  */
-class HttpStatus {
+final class HttpStatus {
     // Informative responses
     const HTTP_CONTINUE = 100;
     const HTTP_SWITCHING_PROTOCOLS = 101;

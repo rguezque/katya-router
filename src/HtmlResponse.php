@@ -15,7 +15,7 @@ namespace rguezque;
  * for HTML responses. It sets the content type to 'text/html;charset=utf-8'
  * and allows you to specify the content, status code, and headers.
  */
-class HtmlResponse extends Response {
+final class HtmlResponse extends Response {
     public function __construct(string $content, int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
         parent::__construct($content, $status_code, $headers);
         $this->headers->set('Content-Type', 'text/html;charset=utf-8');

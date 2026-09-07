@@ -14,7 +14,7 @@ use Iterator;
  * Represents a collection of HTTP headers.
  * Provides methods for setting, getting, removing, and iterating over headers.
  */
-class HttpHeaders implements Iterator {
+final class HttpHeaders implements Iterator {
     /**
      * Internal storage for HTTP headers.
      * Keys are stored in lowercase to ensure case-insensitive access.

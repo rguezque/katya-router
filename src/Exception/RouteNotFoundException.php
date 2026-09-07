@@ -6,17 +6,15 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Exceptions;
+namespace rguezque\Exception;
 
-use Exception;
-use rguezque\HttpStatus;
 use Throwable;
 
 /**
- * Throws a exception when a resource don't exists or wasn't found
+ * Throws a exception when a request uri did not match any route.
  */
-class NotFoundException extends Exception {
-    public function __construct(string $message, int $code = HttpStatus::HTTP_NOT_FOUND, ?Throwable $previous = null) {
+final class RouteNotFoundException extends NotFoundException {
+    public function __construct(string $message, int $code = 404, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }

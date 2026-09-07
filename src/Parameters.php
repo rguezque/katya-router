@@ -9,8 +9,8 @@
 namespace rguezque;
 
 use JsonSerializable;
-use rguezque\Interfaces\ArgumentsInterface;
-use rguezque\Interfaces\BagInterface;
+use rguezque\Contract\ArgumentsInterface;
+use rguezque\Contract\BagInterface;
 
 /**
  * Contain a parameters array.
@@ -50,28 +50,18 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Return a parameter by name
-     * 
-     * If the parameter is array, return into a Parameters object
-     * 
-     * @param string $key Parameter name
-     * @param mixed $default Value to return if the parameter isn't found
-     * @return Parameters|mixed
+     * {@inheritdoc}
      */
-    public function get(string $key, mixed $default = null) {
+    public function get(string $key, mixed $default = null): mixed{
         $key = trim($key);
 
         return $this->has($key) 
         ? (is_array($this->bunch[$key]) ? new Parameters($this->bunch[$key]) : $this->bunch[$key]) 
-        : $default ;
+        : $default;
     }
 
     /**
-     * Set or overwrite a parameter by name
-     * 
-     * @param string $key Parameter name
-     * @param mixed $value Parameter value
-     * @param void
+     * {@inheritdoc}
      */
     public function set(string $key, mixed $value): void {
         $key = trim($key);
@@ -79,8 +69,6 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Retrieve all parameters array
-     * 
      * {@inheritdoc}
      */
     public function all(): array {
@@ -88,10 +76,7 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Return true if a parameter exists
-     * 
-     * @param string $key Parameter name
-     * @return bool
+     * {@inheritdoc}
      */
     public function has(string $key): bool {
         $key = trim($key);
@@ -100,18 +85,13 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Return true if a parameter exists and is not empty or null
-     * 
-     * @param string $key Parameter name
-     * @return bool
+     * {@inheritdoc}
      */
     public function valid(string $key): bool {
         return $this->has($key) && !empty($this->bunch[$key]) && !is_null($this->bunch[$key]);
     }
 
     /**
-	 * Return the count of parameters
-	 * 
 	 * {@inheritdoc}
 	 */
     public function count(): int {
@@ -119,38 +99,33 @@ class Parameters implements BagInterface, ArgumentsInterface, JsonSerializable {
     }
 
     /**
-     * Return the type of a parameter
+     * Return the type or object name of a parameter
      * 
      * @param string $key Parameter name
      * @return string
      */
     public function gettype(string $key): string {
-        return gettype($this->get($key));
+        return get_debug_type($this->get($key));
     }
 
     /**
-     * Retrieve all the parameters array keys
+     * Retrieve all the parameters keys
      * 
-     * {@inheritdoc}
+     * @return array
      */
     public function keys(): array {
         return array_keys($this->bunch);
     }
 
     /**
-     * Remove a parameter by name
-     * 
-     * @param string $key Parameter name
-     * @return void
+     * {@inheritdoc}
      */
     public function remove(string $key): void {
         unset($this->bunch[$key]);
     }
 
     /**
-     * Remove all parameters
-     * 
-     * @return void
+     * {@inheritdoc}
      */
     public function clear(): void {
         $this->bunch =[];

@@ -6,10 +6,10 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Interfaces;
+namespace rguezque\Contract;
 
 /**
- * Contain a parameters array.
+ * Contract for classes with readable method over a parameters array.
  * 
  * This interface defines methods for managing a collection of parameters.
  * It allows you to get a parameter by name, retrieve all parameters,

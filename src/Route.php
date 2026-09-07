@@ -8,7 +8,8 @@
 
 namespace rguezque;
 
-use Closure;
+use rguezque\Contract\MiddlewareInterface;
+use rguezque\MiddlewareTrait;
 
 /**
  * Route
@@ -21,12 +22,13 @@ use Closure;
  * @method string getPath() Return the route path
  * @method string getMethod() Return the route method
  * @method callable getController() Return controller
- * @method Route before(callable ...$callable) Add a hook to exec before the route controller
- * @method callable getHookBefore() Return the hook
- * @method bool hasHookBefore() Return true if the route has a hook
- * @method Route use(string ...$names) Specify the services to use in this route
+ * @method Route before(MiddlewareInterface $middleware) Add a middleware for the route
+ * @method Route useServices(string ...$names) Specify the services names to use in this route
+ * @method array getRouteServices() Return the list of service names for this route
  */
-class Route {
+final class Route {
+
+    use MiddlewareTrait;
 
     /**
      * Route method
@@ -50,18 +52,11 @@ class Route {
     private $controller;
 
     /**
-     * Hook before the controller
-     * 
-     * @var array
-     */
-    private array $before = [];
-
-    /**
      * List of lot of services to use for this route
      * 
      * @var string[]
      */
-    private array $services = [];
+    private array $services_names = [];
  
     /**
      * Create route
@@ -104,42 +99,13 @@ class Route {
     }
 
     /**
-     * Add a hook to exec before the route controller
-     * 
-     * @param array<callable> $callable Middleware collection before controller execution
-     * @return Route
-     */
-    public function before(callable ...$callable): Route {
-        $this->before = $callable;
-        return $this;
-    }
-
-    /**
-     * Return the hook
-     * 
-     * @return array
-     */
-    public function getHookBefore(): array {
-        return $this->before;
-    }
-
-    /**
-     * Return true if the route has a hook
-     * 
-     * @return bool
-     */
-    public function hasHookBefore(): bool {
-        return [] !== $this->before;
-    }
-
-    /**
      * Specify the services to use in this route
      * 
      * @param string ...$names Service names separated by comma
      * @return Route
      */
-    public function useServices(string ...$names): Route {
-        $this->services = $names;
+    public function useServices(string ...$names): Route{
+        $this->services_names = $names;
         return $this;
     }
 
@@ -149,7 +115,7 @@ class Route {
      * @return string[]
      */
     public function getRouteServices(): array {
-        return $this->services;
+        return $this->services_names;
     }
 
  }

@@ -17,9 +17,9 @@ namespace rguezque;
  * The headers are stored in an HttpHeaders object, and the status code is set to
  * the provided value or defaults to 200 (HTTP OK).
  * 
- * @method void clear() Reset the initial values for response
  * @method void setStatusCode(int $code) Set the HTTP status code
  * @method int getStatusCode() Get the HTTP status code
+ * @method void clear() Reset the initial values for response
  */
 class Response {
     /**
@@ -57,22 +57,11 @@ class Response {
     public function __construct(string $content = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
         $this->status_code = $status_code;
         $this->headers = new HttpHeaders($headers);
-        $stream = new Stream(fopen('php://memory', 'r+'));
+        $stream = new Stream(fopen('php://temp/maxmemory:2097152', 'r+b'));
         if('' !== trim($content)) {
             $stream->write($content);
         }
         $this->body = $stream;
-    }
-
-    /**
-     * This method clears the status code, headers, and body of the response.
-     * 
-     * @return void
-     */
-    public function clear(): void {
-        $this->status_code = 200;
-        $this->headers->clear();
-        $this->body = new Stream(fopen('php://memory', 'r+'));
     }
 
     /**
@@ -92,6 +81,18 @@ class Response {
      */
     public function getStatusCode(): int {
         return $this->status_code;
+    }
+
+    /**
+     * This method clears the status code, headers, and body of the response.
+     * 
+     * @return void
+     */
+    public function clear(): void {
+        $this->status_code = HttpStatus::HTTP_OK;
+        $this->headers->clear();
+        $this->body->rewind();
+        $this->body->truncate(0);
     }
 
 }

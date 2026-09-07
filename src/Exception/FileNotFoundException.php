@@ -6,17 +6,15 @@
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\Exceptions;
+namespace rguezque\Exception;
 
-use Exception;
-use rguezque\HttpStatus;
 use Throwable;
 
 /**
- * Throws an exception when a permission is denied.
+ * Throws a exception when a file isn't found or not exists.
  */
-class PermissionException extends Exception {
-    public function __construct(string $message, int $code = HttpStatus::HTTP_FORBIDDEN, ?Throwable $previous = null) {
+final class FileNotFoundException extends NotFoundException {
+    public function __construct(string $message, int $code = 404, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }

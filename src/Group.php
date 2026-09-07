@@ -9,6 +9,9 @@
 namespace rguezque;
 
 use Closure;
+use rguezque\Exception\UnsupportedRequestMethodException;
+use rguezque\Contract\MiddlewareInterface;
+use rguezque\MiddlewareTrait;
 
 use function rguezque\functions\str_path;
 
@@ -25,10 +28,13 @@ use function rguezque\functions\str_path;
  * @method Route put(string $path, callable $controller)
  * @method Route patch(string $path, callable $controller)
  * @method Route delete(string $path, callable $controller)
- * @method Group before(callable ...$callable)
+ * @method Group before(MiddlewareInterface $middleware)
  * @method Group useServices(string ...$names)
  */
 class Group {
+
+    use MiddlewareTrait;
+
     /**
      * Router object
      * 
@@ -51,19 +57,11 @@ class Group {
     private Closure $closure;
 
     /**
-     * Middleware before the controller execution into the group
-     * 
-     * @var array
-     */
-    private array $before = [];
-    
-
-    /**
-     * List of lot of services to use for this routes group
+     * List of services to use for this routes group
      * 
      * @var string[]
      */
-    private array $onlyuse = [];
+    private array $services_names = [];
 
     /**
      * Create route group
@@ -158,24 +156,13 @@ class Group {
     }
 
     /**
-     * Add a hook to exec before each route into the group
-     * 
-     * @param array<callable> $callable Middleware collection before each controller execution into the group
-     * @return Group
-     */
-    public function before(callable ...$callable): Group {
-        $this->before = $callable;
-        return $this;
-    }
-
-    /**
      * Specify the services to use in this route
      * 
      * @param string ...$names Service names separated by comma
      * @return Group
      */
     public function useServices(string ...$names): Group {
-        $this->onlyuse = $names;
+        $this->services_names = $names;
         return $this;
     }
 
@@ -188,14 +175,21 @@ class Group {
 
     /**
      * Apply group settings (middleware and services) to a route.
+     * 
+     * @param Route $route The Route object
+     * @return Route The processed Route object
      */
     private function applyGroupSettings(Route $route): Route {
-        if ([] !== $this->before && !$route->hasHookBefore()) {
-            $route->before(...$this->before);
+        // Add group middlewares to routes
+        if ([] !== $this->before) {
+            foreach($this->before as $middleware) {
+                $route->before($middleware);
+            }
         }
 
-        if ([] !== $this->onlyuse) {
-            $route->useServices(...$this->onlyuse);
+        // Inherits services assigned from the group to the routes, only if the routes do not have services explicitly assigned
+        if (!empty($this->services_names) && empty($route->getRouteServices())) {
+            $route->useServices(...$this->services_names);
         }
         
         return $route;
