@@ -699,7 +699,7 @@ $db = rguezque\Database\Connection::autoConnect([
 ])
 ```
 
-O bien se puede configurar previamente asignando directamente un objeto `ConnectionInterface` con el método estático `Connection::setAutoConnection`. Limpia esta conexión con `Connection::resetAutoConnection`. 
+O bien se puede configurar previamente asignando directamente un objeto `ConnectionInterface` con el método estático `Connection::setAutoConnection`. Limpia esta conexión con `Connection::resetAutoConnection`.
 
 > [!NOTE]
 > Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
@@ -769,8 +769,6 @@ $result = $db->transactional(function(\rguezque\Contract\ConnectionInterface $pd
     throw new Exception('Algo salió mal');
 });
 ```
-
-
 
 ## Middlewares
 
@@ -843,7 +841,7 @@ $cors_config->addOrigin(
     [
         'allowed_headers' => ['Content-Type', 'X-Request-With'],
         'max_age' => 3600 // 1 hora
-        'support_credentials' => false,
+        'supports_credentials' => false,
     ]
 );
 ```
@@ -855,6 +853,18 @@ $cors_handler = new CorsHandler($cors_config);
 // Se asigna al router
 $router = new Katya();
 $router->before($cors_handler);
+```
+
+El manejo de CORS está habilitado por defecto. Puedes deshabilitarlo o habilitarlo en cualquier momento con `setEnabled(bool $enabled)`. Cuando está deshabilitado, `CorsHandler` pasa la solicitud al siguiente middleware sin procesar solicitudes preflight ni agregar encabezados CORS. Usa `isEnabled()` para consultar el estado actual:
+
+```php
+// Deshabilitar CORS
+$cors_handler->setEnabled(false);
+$cors_enabled = $cors_handler->isEnabled(); // false
+
+// Volver a habilitar CORS
+$cors_handler->setEnabled(true);
+$cors_enabled = $cors_handler->isEnabled(); // true
 ```
 
 Opcionalmente puedes inicializar `CorsConfig` con una configuración total o parcial para todos los orígenes. Si es parcial, será completada con valores default; si es total, reemplazará a la configuración default.
@@ -882,7 +892,7 @@ Las claves que no definas en cada configuración con `CorsConfig::addOrigin` ser
 $cors_config->addOrigin(
     '*',
     ['GET', 'POST', 'DELETE'],
-    ['support_credentials' => true]
+    ['supports_credentials' => true]
 );
 
 // Configuración correcta
@@ -891,7 +901,7 @@ $cors_config->addOrigin(
 $cors_config->addOrigin(
     'https://tuservicio.com',
     ['GET', 'POST', 'DELETE'],
-    ['support_credentials' => true]
+    ['supports_credentials' => true]
 );
 ```
 
@@ -914,8 +924,8 @@ $config = \rguezque\ErrorHandling\ErrorHandlerConfig::fromArray([
 
 Donde:
 
-- `mode`: Define el ambiente de desarrollo, por default es `production` a menos que se especifique `development`. De esto depende si se muestra o no el *trace* de los posibles errores.
-- `debug`: Habilita el *trace* de las excepciones.
+- `mode`: Define el ambiente de desarrollo, por default es `production` a menos que se especifique `development`. De esto depende si se muestra o no el _trace_ de los posibles errores.
+- `debug`: Habilita el _trace_ de las excepciones.
 - `log_path`: Especifica el directorio donde se creara el archivo de registro de errores `.log`.
 - `public_message`: Mensaje público que se mostrará en `production`.
 
@@ -924,7 +934,8 @@ Ejecuta `ErrorHandler::register` para iniciar el servicio.
 Para registrar errores en bloques `try-catch` usa `FileErrorLogger::log` el cual recibe dos argumentos: la excepción a registrar en el archivo `.log` y la configuración definida al inicio.
 
 > [!TIP]
-> - Puedes crear un *Facade* para encapsular una instancia de `FileErrorLogger` y manejar de forma global el registro de errores en bloques `try-catch`.
+>
+> - Puedes crear un _Facade_ para encapsular una instancia de `FileErrorLogger` y manejar de forma global el registro de errores en bloques `try-catch`.
 > - Asegurate de definir tu zona horaria `set_default_timezone_set('America/Mexico_City')` antes de todo, de lo contrario los _logs_ mostrarán la fecha en `GMT` (Greenwich Mean Time) por default.
 
 ## helpers

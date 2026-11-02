@@ -19,19 +19,18 @@ use rguezque\Exception\{
 };
 use rguezque\MiddlewareTrait;
 use UnexpectedValueException;
-
 use function rguezque\functions\remove_trailing_slash;
 use function rguezque\functions\str_path;
 
 /**
  * Router engine
- * 
+ *
  * This class provides a simple and flexible way to define routes and handle HTTP requests.
  * It allows you to define routes with different HTTP methods (GET, POST, PUT, PATCH, DELETE)
  * and associate them with controllers (callable functions).
  * You can also group routes under a common prefix, set CORS configurations, and manage services
  * and variables to be used in controllers. See the documentation for more details.
- * 
+ *
  * @see https://github.com/rguezque/katya-router
  * @method Route route(string $verb, string $path, callable $controller) Add a route to router.
  * @method Route get(string $path, callable $controller) Shortcut to add route with GET method.
@@ -49,7 +48,7 @@ class Katya
     use MiddlewareTrait;
 
     /** @var string[] Supported HTTP request methods */
-    private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+    private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
     /** @var string "GET" http method */
     const GET = 'GET';
@@ -66,6 +65,9 @@ class Katya
     /** @var string "DELETE" http method */
     const DELETE = 'DELETE';
 
+    /** @var string "OPTIONS" http method */
+    const OPTIONS = 'OPTIONS';
+
     /** @var array<string, array<string, Route>> Routes collection */
     private array $routes = [];
 
@@ -80,9 +82,9 @@ class Katya
 
     /**
      * Initialize a router instance
-     * 
-     * @param ?string $basepath Assigns a global prefix to routes. 
-     * If not defined, the router will automatically detect if it 
+     *
+     * @param ?string $basepath Assigns a global prefix to routes.
+     * If not defined, the router will automatically detect if it
      * is nested in a subdirectory and use that as the prefix.
      */
     public function __construct(?string $basepath = null)
@@ -90,12 +92,12 @@ class Katya
         // Default router basepath
         $this->basepath = isset($basepath)
             ? str_path($basepath)
-            : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'])), '/\\');
+            : rtrim(str_replace(['\\', ' '], ['/', '%20'], dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/\\');
     }
 
     /**
      * Set services to use into controllers.
-     * 
+     *
      * @param Services $services Service object
      * @return Katya
      */
@@ -107,7 +109,7 @@ class Katya
 
     /**
      * Shortcut to add route with GET method.
-     * 
+     *
      * @param string $path The route path
      * @param callable $controller The route controller
      * @return Route
@@ -120,7 +122,7 @@ class Katya
 
     /**
      * Shortcut to add route with POST method.
-     * 
+     *
      * @param string $path The route path
      * @param callable $controller The route controller
      * @return Route
@@ -133,7 +135,7 @@ class Katya
 
     /**
      * Shortcut to add route with PUT method.
-     * 
+     *
      * @param string $path The route path
      * @param callable $controller The route controller
      * @return Route
@@ -146,7 +148,7 @@ class Katya
 
     /**
      * Shortcut to add route with PATCH method.
-     * 
+     *
      * @param string $path The route path
      * @param callable $controller The route controller
      * @return Route
@@ -159,7 +161,7 @@ class Katya
 
     /**
      * Shortcut to add route with DELETE method.
-     * 
+     *
      * @param string $path The route path
      * @param callable $controller The route controller
      * @return Route
@@ -172,7 +174,7 @@ class Katya
 
     /**
      * Add a route to router.
-     * 
+     *
      * @param string $verb The allowed route http method
      * @param string $path The route path
      * @param callable $controller The route controller
@@ -183,20 +185,17 @@ class Katya
     {
         $verb = strtoupper(trim($verb));
         $path = str_path($path);
-
         if (!in_array($verb, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t allowed in route definition "%s".', $verb, $path));
         }
-
         $route = new Route($verb, $path, $controller);
         $this->routes[$verb][] = $route;
-
         return $route;
     }
 
     /**
      * Routes group definition under a common prefix.
-     * 
+     *
      * @param string $prefix Prefix for routes group
      * @param Closure $closure The routes definition
      * @return Group
@@ -205,13 +204,12 @@ class Katya
     {
         $group = new Group(str_path($prefix), $closure, $this);
         $this->groups[] = $group;
-
         return $group;
     }
 
     /**
      * Process the route groups before routing.
-     * 
+     *
      * @return void
      */
     private function processGroups(): void
@@ -223,7 +221,7 @@ class Katya
 
     /**
      * Start the router.
-     * 
+     *
      * @param Request $request The Request object with global params
      * @return ?Response The response from the controller, or null if the router has already been executed
      * @throws UnsupportedRequestMethodException When request method isn't supported
@@ -232,22 +230,14 @@ class Katya
      */
     public function run(Request $request): ?Response
     {
-        static $invoke = false;
-        // Ensures that the router is only invoked the first time
-        if (!$invoke) {
-            $invoke = true;
-
-            $this->processGroups();
-            $this->checkDuplicity();
-            return $this->handleRequest($request);
-        }
-
-        return null;
+        $this->processGroups();
+        $this->checkDuplicity();
+        return $this->handleRequest($request);
     }
 
     /**
      * Handle the request uri and start router.
-     * 
+     *
      * @param Request $request The Request object with global params
      * @return Response The controller response
      * @throws UnsupportedRequestMethodException When the http method isn't allowed by router
@@ -269,66 +259,52 @@ class Katya
                 ]
             ]);
         }
-
         $request_uri = rawurldecode(strtok($request->getRequestUri(), '?'));
         $request_method = $request->getRequestMethod();
-
         if (!in_array($request_method, self::SUPPORTED_VERBS)) {
             throw new UnsupportedRequestMethodException(sprintf('The HTTP method %s isn\'t supported by router.', $request_method));
         }
-
         // Trailing slash no matters
         $request_uri = '/' !== $request_uri ? remove_trailing_slash($request_uri) : $request_uri;
-
         // Select the routes collection according to the http request method
-        $routes = $this->routes[$request_method] ??= [];
-
+        $routes = $this->routes[$request_method] ?? [];
         foreach ($routes as $route) {
             $full_path = $this->basepath . $route->getPath();
-
             if (preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
                 array_shift($arguments);
                 $request = $request->withParams($arguments);
-
                 $services = $this->services;
                 // Filter the services for route
                 if ([] !== $route->getRouteServices() && null !== $services) $services = $services->filter($route->getRouteServices());
-
                 // Controller wrapped
                 if (!is_null($services)) {
                     $next = fn($request) => call_user_func($route->getController(), $request, $services);
                 } else {
                     $next = fn($request) => call_user_func($route->getController(), $request);
                 }
-
                 // Global middlewares (at the router level) are merged with route middlewares
                 // Due to the reverse execution of the layered structure, the global middlewares are merged at the end.
                 $global_middlewares = array_merge($route->getMiddlewares(), $this->getMiddlewares());
-
                 // Build the layered structure (onion) where each new layer envelops the previous one.
                 foreach ($global_middlewares as $middleware) {
                     $next = fn($request) => call_user_func($middleware, $request, $next);
                 }
-
                 // Triggers the reverse execution of the middlewares and finally the controller
                 $result = call_user_func($next, $request);
-
                 if (!$result instanceof Response) {
-                    throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', $result));
+                    throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', get_debug_type($result)));
                 }
-
                 // Early return to end the routing
                 return $result;
             }
         }
-
         // Exception for routes not found
         throw new RouteNotFoundException(sprintf('The request URI "%s" don\'t match any route.', $request_uri));
     }
 
     /**
      * Stop the router and send a Response. Throw a special exception containing a Response object.
-     * 
+     *
      * @param Response $response Response object
      * @return never
      * @throws HaltException Exception is always thrown to stop router flow
@@ -340,7 +316,7 @@ class Katya
 
     /**
      * Return the regex pattern for a string path.
-     * 
+     *
      * @param string $path String path
      * @return string
      */
@@ -348,11 +324,12 @@ class Katya
     {
         // Normalize path
         $path = str_path($path);
-
+        // Escape special regex characters first
+        $escaped_path = preg_quote($path, '#');
         // Replace named wildcards {name[:regex]} with named capture groups.
         // If regex is not provided, use a default that matches any segment except '/'
         $pattern = preg_replace_callback(
-            '#\{([a-zA-Z_][\w\-]*)(?::([^}]+))?\}#',
+            '#\\\{([a-zA-Z_][\w\-]*)(?::([^}]+))?\}#',
             function (array $m): string {
                 $name = $m[1];
                 $regex = isset($m[2]) && '' !== $m[2] ? trim($m[2]) : '[^/]+';
@@ -360,9 +337,8 @@ class Katya
                 $regex = str_replace('#', '\#', $regex);
                 return '(?P<' . $name . '>' . $regex . ')';
             },
-            $path
+            $escaped_path
         );
-
         return '#^' . $pattern . '$#';
     }
 
@@ -378,15 +354,14 @@ class Katya
             $registered_paths = [];
             foreach ($routes as $route) {
                 $path = $route->getPath();
-
-                if (in_array($path, $registered_paths, true)) {
+                if (isset($registered_paths[$path])) {
                     throw new DuplicityException(sprintf(
                         'The route "%s" with method "%s" already exists.',
                         $path,
                         $method
                     ));
                 }
-                $registered_paths[] = $path;
+                $registered_paths[$path] = true;
             }
         }
     }
