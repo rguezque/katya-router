@@ -84,7 +84,7 @@ final class DsnParser
             'unix_socket' => trimmed_string_or_null($segments['unix_socket'] ?? null),
         ];
 
-        return $this->params;
+        return $params;
     }
 
     /**
