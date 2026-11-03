@@ -25,6 +25,7 @@ A lightweight PHP router
     - [Connecting using a Database URL](#connecting-using-a-database-url)
     - [Using a unix socket](#using-a-unix-socket)
     - [Auto connect](#auto-connect)
+    - [Simplified write operations](simplified-write-operations)
     - [Create new instances](#create-new-instances)
     - [Transactions](#transactions)
 - [Middlewares](#middlewares)
@@ -703,6 +704,50 @@ O bien se puede configurar previamente asignando directamente un objeto `Connect
 
 > [!NOTE]
 > Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
+
+### Simplified write operations
+
+Las conexiones creadas con `Connection::create` o `Connection::autoConnect` incluyen los métodos `insert`, `update` y `delete`. Reciben datos y criterios como arreglos asociativos, preparan la consulta y devuelven el número de filas afectadas:
+
+```php
+$db = Connection::autoConnect();
+```
+
+#### Insert records
+
+`insert` recibe el nombre de la tabla, un arreglo con columnas y valores y, opcionalmente, un arreglo con tipos de parámetros:
+
+```php
+$inserted = $db->insert('users', [
+    'name' => 'Ana',
+    'email' => 'ana@example.com',
+]);
+```
+
+#### Update records
+
+`update` recibe el nombre de la tabla, los datos nuevos, los criterios de búsqueda y, opcionalmente, los tipos de parámetros. Los criterios se combinan con `AND`; un valor `null` busca columnas con `IS NULL`.
+
+```php
+$updated = $db->update(
+    'users',
+    ['email' => 'ana.nueva@example.com'],
+    ['id' => 42]
+);
+```
+
+#### Delete records
+
+`delete` recibe el nombre de la tabla, los criterios de búsqueda y, opcionalmente, los tipos de parámetros:
+
+```php
+$deleted = $db->delete('users', ['id' => 42]);
+```
+
+El arreglo opcional de tipos usa el nombre de la columna como clave. Para PDO se pueden usar constantes como `PDO::PARAM_INT`; para MySQLi, las constantes de `MysqliConnection`, por ejemplo `MysqliConnection::PARAM_INT` o `MysqliConnection::PARAM_BOOL`. Si no se indican, los tipos se infieren del valor.
+
+> [!WARNING]
+> Si `criteria` está vacío, `update` afecta todas las filas de la tabla y `delete` las elimina todas. Proporciona criterios cuando quieras limitar la operación a ciertos registros.
 
 ### Transactions
 
