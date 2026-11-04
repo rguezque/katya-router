@@ -243,6 +243,8 @@ class ViewEngine
      * @param string $dir_path Directory to validate
      * @param string $namespace Directory namespace (optional)
      * @return string The normalized directory path
+     * @throws NotFoundException If the directory does not exist
+     * @throws PermissionException If the directory is not readable
      */
     private function validateDirectory(string $dir_path, ?string $namespace = null): string
     {
@@ -250,14 +252,13 @@ class ViewEngine
         $spl_ns_info = new SplFileInfo($dir);
 
         if (!$spl_ns_info->isDir()) {
-            (!is_null($namespace))
-                ? throw new NotFoundException(sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace))
-                : throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $dir));;
+            $message_not_dir = !is_null($namespace) ? sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace) : sprintf('The templates directory "%s" does not exist', $dir);
+            throw new NotFoundException($message_not_dir);
         }
+
         if (!$spl_ns_info->isReadable()) {
-            (!is_null($namespace))
-                ? throw new PermissionException(sprintf('The namespace directory "%s" for "%s" is not readable', $dir, $namespace))
-                : throw new PermissionException(sprintf('The templates directory "%s" is not readable', $dir));;
+            $message_not_readable = !is_null($namespace) ? sprintf('The directory "%s" for is not readable for namespace "%s"', $dir, $namespace) : sprintf('The templates directory "%s" is not readable', $dir);
+            throw new PermissionException($message_not_readable);
         }
 
         return $dir;
