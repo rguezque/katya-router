@@ -9,8 +9,6 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\functions;
-
 use rguezque\Exception\FileNotFoundException;
 
 if (!function_exists('env')) {
@@ -141,21 +139,6 @@ if (!function_exists('str_path')) {
     }
 }
 
-if (!function_exists('is_assoc_array')) {
-    /**
-     * Return true if the evaluated array is associative
-     * * An associative array is an array where the keys are not sequential integers starting from 0.
-     * 
-     * @param array $arr Array to evaluate
-     * @return bool
-     */
-    function is_assoc_array(array $arr): bool
-    {
-        if ([] === $arr) return false;
-        return array_keys($arr) !== range(0, count($arr) - 1);
-    }
-}
-
 if (!function_exists('json_file_get_contents')) {
     /**
      * Reads entire json file into an associative array
@@ -194,7 +177,7 @@ if (!function_exists('set_secure_cookie')) {
         int $expiration_seconds = 86400,
         string $path = '/',
         string $domain = '',
-        string $same_site = 'Strict'
+        string $same_site = 'Lax'
     ): bool {
         return setcookie($name, $value, [
             'expires'  => time() + $expiration_seconds,
@@ -217,7 +200,7 @@ if (!function_exists('unset_secure_cookie')) {
      * @param string $same_site CSRF restriction: 'Strict', 'Lax', or 'None'
      * @return bool `true` if the header was sent successfully, false otherwise
      */
-    function unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Strict'): bool
+    function unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Lax'): bool
     {
         if (!isset($_COOKIE[$name])) {
             return false;

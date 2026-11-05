@@ -9,8 +9,6 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-namespace rguezque\functions;
-
 use InvalidArgumentException;
 
 if (!function_exists('trimmed_string_or_null')) {

@@ -19,8 +19,8 @@ use rguezque\Exception\{
 };
 use rguezque\MiddlewareTrait;
 use UnexpectedValueException;
-use function rguezque\functions\remove_trailing_slash;
-use function rguezque\functions\str_path;
+use function remove_trailing_slash;
+use function str_path;
 
 /**
  * Router engine

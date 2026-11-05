@@ -15,7 +15,6 @@ use rguezque\Exception\FileNotFoundException;
 use rguezque\Exception\NotFoundException;
 use rguezque\Exception\PermissionException;
 use SplFileInfo;
-use function rguezque\functions\is_assoc_array;
 
 /**
  * Simple engine that allows render templates
@@ -47,11 +46,11 @@ class ViewEngine
     private array $namespaces = [];
 
     /**
-     * Store arguments to be used in templates
+     * Store shared arguments to be used in templates
      *
      * @var array<string, mixed>
      */
-    private array $arguments = [];
+    private array $shared_arguments = [];
 
     /**
      * Initialize the template engine
@@ -123,7 +122,7 @@ class ViewEngine
             throw new FileNotFoundException(sprintf('The template "%s" was not found', $view));
         }
 
-        $data = array_merge($this->arguments, $data);
+        $data = array_merge($this->shared_arguments, $data);
         extract($data);
 
         ob_start();
@@ -147,7 +146,7 @@ class ViewEngine
     }
 
     /**
-     * Add an argument to be used in templates
+     * Add a shared argument to be used in templates
      *
      * @param string $key Argument key
      * @param mixed $value Argument value
@@ -155,12 +154,12 @@ class ViewEngine
      */
     public function addArgument(string $key, mixed $value): ViewEngine
     {
-        $this->arguments[trim($key)] = $value; // Add the argument to the
+        $this->shared_arguments[trim($key)] = $value; // Add the argument to the shared arguments
         return $this;
     }
 
     /**
-     * Add arguments to be used in templates
+     * Add shared arguments to be used in templates
      *
      * @param array $data Arguments to add
      * @return ViewEngine
@@ -168,26 +167,26 @@ class ViewEngine
      */
     public function addArguments(array $data): ViewEngine
     {
-        if (!is_assoc_array($data)) {
+        if (array_is_list($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
-        $this->arguments = array_merge($this->arguments, $data); // Merge the arguments with the existing ones
+        $this->shared_arguments = array_merge($this->shared_arguments, $data); // Merge the arguments with the existing ones
         return $this;
     }
 
     /**
-     * Set the arguments to be used in templates, overwriting any existing arguments
+     * Set the shared arguments to be used in templates, overwriting any existing arguments
      *
-     * @param array $data Arguments to set
+     * @param array $data Shared arguments to set
      * @return ViewEngine
      * @throws InvalidArgumentException When the arguments are not an associative array
      */
     public function setArguments(array $data): ViewEngine
     {
-        if (!is_assoc_array($data)) {
+        if (array_is_list($data)) {
             throw new InvalidArgumentException('The arguments must be an associative array');
         }
-        $this->arguments = $data; // Set the arguments to the new ones
+        $this->shared_arguments = $data; // Set the arguments to the new ones
         return $this;
     }
 

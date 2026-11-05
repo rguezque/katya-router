@@ -10,18 +10,16 @@ declare(strict_types=1);
 
 namespace rguezque\Database;
 
+use function env;
+use function normalize_port;
+use function trimmed_string_or_default;
+use function trimmed_string_or_null;
 use InvalidArgumentException;
 use mysqli_sql_exception;
 use PDO;
 use PDOException;
 use rguezque\Contract\ConnectionInterface;
 use rguezque\Exception\MissingArgumentException;
-use function rguezque\functions\{
-    env,
-    normalize_port,
-    trimmed_string_or_default,
-    trimmed_string_or_null,
-};
 
 /**
  * Represents a database connection factory that can create PDO or MySQLi connections

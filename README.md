@@ -4,36 +4,48 @@ A lightweight PHP router
 
 **Tabla de contenidos**
 
-- [Install](#install)
-- [Configuration]("configuration")
-    - [Autoloader](#autoloader)
-- [Routing](#routing)
-    - [Shortcuts](#shortcuts)
-    - [Controllers](#controllers)
-- [Routes group](#routes-group)
-- [Wildcards](#wildcards)
-- [Views](#views)
+- [Instalación](#instalación)
+- [Configuración](#configuración)
+    - [Autoload](#autoload)
+- [Enrutamiento](#enrutamiento)
+    - [Métodos abreviados](#métodos-abreviados)
+    - [Controladores](#controladores)
+- [Grupos de rutas](#grupos-de-rutas)
+- [Comodines](#comodines)
+- [Vistas](#vistas)
+    - [Inicialización de vistas](#inicialización-de-vistas)
+    - [`fetch`: renderizar una plantilla](#fetch-renderizar-una-plantilla)
+    - [`addDirectory`: registrar un directorio con espacio de nombres](#adddirectory-registrar-un-directorio-con-espacio-de-nombres)
+    - [`fetchFragment`: guardar un fragmento como argumento](#fetchfragment-guardar-un-fragmento-como-argumento)
+    - [`insert`: imprimir una plantilla parcial](#insert-imprimir-una-plantilla-parcial)
+    - [`addArgument`: agregar un argumento compartido](#addargument-agregar-un-argumento-compartido)
+    - [`addArguments`: agregar varios argumentos compartidos](#addarguments-agregar-varios-argumentos-compartidos)
+    - [`setArguments`: reemplazar los argumentos compartidos](#setarguments-reemplazar-los-argumentos-compartidos)
+    - [`e`: escapar texto para HTML](#e-escapar-texto-para-html)
+    - [`asset`: generar una URL para un recurso](#asset-generar-una-url-para-un-recurso)
 - [Request](#request)
 - [Response](#response)
-    - [HttpHeaders](#httpheaders)
+    - [Encabezados HTTP](#encabezados-http)
 - [Stream](#stream)
-
-- [SapiEmitter](#sapiemitter)
-- [Session](#session)
-- [Services](#services)
-- [DB Connection](#db-connection)
-    - [Connecting using a Database URL](#connecting-using-a-database-url)
-    - [Using a unix socket](#using-a-unix-socket)
-    - [Auto connect](#auto-connect)
-    - [Simplified write operations](simplified-write-operations)
-    - [Create new instances](#create-new-instances)
-    - [Transactions](#transactions)
+- [Emisor SAPI](#emisor-sapi)
+- [Sesión](#sesión)
+- [Servicios](#servicios)
+- [Conexión a la base de datos](#conexión-a-la-base-de-datos)
+    - [Conexión mediante una URL de base de datos](#conexión-mediante-una-url-de-base-de-datos)
+    - [Uso de un socket Unix](#uso-de-un-socket-unix)
+    - [Conexión automática](#conexión-automática)
+    - [Operaciones de escritura simplificadas](#operaciones-de-escritura-simplificadas)
+        - [Insertar registros](#insertar-registros)
+        - [Actualizar registros](#actualizar-registros)
+        - [Eliminar registros](#eliminar-registros)
+    - [Crear nuevas instancias](#crear-nuevas-instancias)
+    - [Transacciones](#transacciones)
 - [Middlewares](#middlewares)
-- [CORS](#cors)
-- [Error Handler](#error-handler)
-- [helpers\*](#helpers)
+- [Intercambio de recursos de origen cruzado (CORS)](#intercambio-de-recursos-de-origen-cruzado-cors)
+- [Manejador de errores](#manejador-de-errores)
+- [Funciones auxiliares](#funciones-auxiliares)
 
-## Install
+## Instalación
 
 Desde la terminal en la raíz del proyecto:
 
@@ -41,7 +53,7 @@ Desde la terminal en la raíz del proyecto:
 composer require rguezque/katya-router
 ```
 
-## Configuration
+## Configuración
 
 Para servidor **Apache**, en el directorio del proyecto crea y edita un archivo `.htaccess` con lo siguiente:
 
@@ -83,7 +95,7 @@ php -S localhost:80
 
 Y abre en el navegador web la dirección `http://localhost:80`
 
-### Autoloader
+### Autoload
 
 Desde la terminal, ubícate dentro del directorio del proyecto y ejecuta:
 
@@ -91,7 +103,7 @@ Desde la terminal, ubícate dentro del directorio del proyecto y ejecuta:
 composer dump-autoload -o
 ```
 
-## Routing
+## Enrutamiento
 
 Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
 
@@ -189,7 +201,7 @@ try {
 SapiEmitter::emit($response);
 ```
 
-### Shortcuts
+### Métodos abreviados
 
 Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::delete` sirven respectivamente para agregar rutas de tipo `GET`, `POST`, `PUT`, `PATCH` y `DELETE` al router.
 
@@ -209,7 +221,7 @@ $katya->post('/', function(Request $request) {
 });
 ```
 
-### Controllers
+### Controladores
 
 Los controladores pueden ser: una función anónima, un método estático o un método de un objeto.
 
@@ -234,7 +246,7 @@ $katya->get('/user', [$user, 'showProfileAction']);
 > [!TIP]
 > Nombra las clases con el sufijo `Controller` y los métodos con el sufijo `Action` para identificarlos mejor.
 
-## Routes group
+## Grupos de rutas
 
 Para crear grupos de rutas bajo un mismo prefijo se utiliza `Katya::group`; recibe 2 argumentos, el prefijo de ruta y una función anónima que recibe un objeto `Group` con el cual se definen las rutas del grupo.
 
@@ -253,7 +265,7 @@ $katya->group('/foo', function(Group $group) {
 });
 ```
 
-## Wildcards
+## Comodines
 
 Los _wildcards_ son parámetros definidos en la ruta. El router busca las coincidencias de acuerdo a la petición y los envía como argumentos al controlador de ruta a través del objeto `Request`, estos argumentos son recuperados con el método `Request::getParams` que devuelve por default un objeto `Parameters` donde cada clave se corresponde con el mismo nombre de los _wildcards_. El argumento por default de esté método es `Request::PARAMS_ASSOC` el cual indica que el _array_ de parámetros tiene índices nombrados correspondientes a los _wildcards_ y no numéricos.
 
@@ -294,114 +306,145 @@ $katya->get('/hola/(\w+)/(\w+)/(\d+)', function(Request $request) {
 > [!IMPORTANT]
 > Evita mezclar parámetros nombrados y expresiones regulares en la misma definición de una ruta, pues no podrás recuperar por nombre los que hayan sido definidos como _regex_. En todo caso si esto sucede, envía el argumento `Request::PARAMS_BOTH` para recuperar un **_array_** con todos los parámetros en el orden que hayan sido definidos en la ruta.
 
-## Views
+## Vistas
 
-Las vistas son el medio por el cual el router devuelve y renderiza un objeto `HtmlResponse` con contenido HTML en el navegador. La única configuración que se necesita es definir el directorio donde estarán alojadas las plantillas.
+Las vistas contienen las plantillas que se renderizan para generar la respuesta HTML. Los archivos de plantilla deben terminar en `.view.php`.
+
+### Inicialización de vistas
 
 ```php
-use rguezque\View;
+use rguezque\ViewEngine;
 
-// Standalone
-$view = new ViewEngine(
-    __DIR__.'/views/templates', // Directorio donde se alojan los templates
-);
+$view = new ViewEngine(__DIR__.'/views/templates');
 
-// Enviandolo como un servicio
 $services = new Services();
-$services->register('view', function() {
-    return new ViewEngine(
-        __DIR__.'/views/templates'
-    );
+$services->register('view', static function (): ViewEngine {
+    return new ViewEngine(__DIR__.'/views/templates');
 });
 $router->setServices($services);
 ```
 
-El método `ViewEngine::fetch` recibe el nombre de la plantilla (puede omitirse el sufijo del archivo) y opcionalmente un array con variables. Devuelve en un string lo contenidos de la plantilla, listo para ser enviado como un `HtmlResponse`. Los archivos deben nombrarse con el sufijo y extensión `*.view.php`.
+### `fetch`: renderizar una plantilla
+
+`fetch(string $view, array $data = [])` renderiza la plantilla y devuelve su contenido como una cadena, por ejemplo, para usarlo en un `HtmlResponse`. El nombre puede incluir u omitir el sufijo `.view.php`; `$data` contiene las variables disponibles en la plantilla.
 
 ```php
-$router->get('/home', function(Request $request, Services $service): Response {
-    $view = $service->view();
-    $data = [
-    	'home' => '/',
-    	'about' => '/about-us',
-    	'contact' => '/contact-us'
-	];
-	$template = $view->fetch('menu', $data);
+$router->get('/home', function (Request $request, Services $services): Response {
+    $view = $services->view();
+    $template = $view->fetch('menu', [
+        'home' => '/',
+        'about' => '/about-us',
+        'contact' => '/contact-us',
+    ]);
+
     return new HtmlResponse($template);
 });
 ```
 
-Recibe los parámetros enviados en `$data` (según el ejemplo del bloque de código de arriba)
+La plantilla recibe esos valores como variables:
 
 ```php
-//menu.view.php
+<!-- menu.view.php -->
 <nav>
-    <ul>
-        <li><a href="<?= $home ?>">Home</a></li>
-        <li><a href="<?= $about ?>">About</a></li>
-        <li><a href="<?= $contact ?>">Contact</a></li>
-    </ul>
+    <a href="<?= $home ?>">Home</a>
+    <a href="<?= $about ?>">About</a>
+    <a href="<?= $contact ?>">Contact</a>
 </nav>
 ```
 
-También es posible agregar fragmentos de vistas, como argumentos para extender una vista principal, con el método `ViewEngine::fetchFragment`, que recibe tres argumentos: el nombre de la plantilla, el nombre con el que se inyectará a la plantilla principal y un array opcional de argumentos para la actual plantilla.
+### `addDirectory`: registrar un directorio con espacio de nombres
+
+`addDirectory(string $namespace, string $dir_path)` registra un directorio adicional de plantillas. Para renderizar una plantilla de ese directorio, antepón el namespace y `::` al nombre. El sufijo `.view.php` sigue siendo opcional.
 
 ```php
-$router->get('/home', function(Request $request, Services $service): Response {
-    $view = $service->view();
-    // Recibe el
-	$fragment = $view->fetchFragment('top_menu', 'menu_superior');
-    $template = $view->fetch('home');
-    return new HtmlResponse($template);
-});
+$view->addDirectory('admin', __DIR__.'/views/admin');
+$template = $view->fetch('admin::dashboard');
 ```
 
-Imprime en pantalla el contenido de `top_menu.php` guardado previamente con el alias `'menu_superior'`.
+### `fetchFragment`: guardar un fragmento como argumento
+
+`fetchFragment(string $template, string $name, array $data = [])` renderiza una plantilla y guarda el resultado como argumento compartido con el nombre indicado. Devuelve la instancia de `ViewEngine`, por lo que se puede encadenar con otros métodos.
 
 ```php
-// index.view.php
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento</title>
-</head>
-<body>
-    <?= $menu_superior ?>
-</body>
-</html>
+$view->fetchFragment('top_menu', 'menu_superior');
+$template = $view->fetch('home');
 ```
 
-O bien, directamente desde una plantilla con `ViewEngine::insert`:
+En `home.view.php`, el resultado está disponible como `$menu_superior`:
 
 ```php
-// index.view.php
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento</title>
-</head>
-<body>
-    <?= $this->insert('sidebar.view.php'); ?>
-</body>
-</html>
+<!-- home.view.php -->
+<header><?= $menu_superior ?></header>
 ```
 
-Otros métodos disponibles son:
+### `insert`: imprimir una plantilla parcial
 
-- `addArgument(string $key, mixed $value)`: Agrega un argumento por nombre a la vez.
-- `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
-- `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
-- `e(?string $string)`: Dentro de una plantilla, escapa una cadena de texto para una salida segura en HTML.
-- `asset(string $path)`: Dentro de una plantilla, busca el recurso desde `DOCUMENT_ROOT` (puedes pasar una ruta relativa, como `static/main.css`) y genera una URL desde la raíz del sitio con una marca de tiempo para invalidar la caché del navegador _(Cache Busting)_.
+`insert(string $partial, array $data = [])` renderiza una plantilla parcial e imprime su contenido en el punto de invocación. No devuelve una cadena como `fetch`; se puede proporcionar `$data` para pasar variables a la parcial. También acepta plantillas registradas con namespace.
 
-> [!IMPORTANT]
-> El método `ViewEngine::fetch` es el último que se debe invocar. Cualquier otro método que se invoque después de este, no tendrá efecto.
+```php
+<!-- home.view.php -->
+<main>
+    <?php $this->insert('sidebar', ['items' => ['Dashboard', 'Profile']]); ?>
+</main>
+```
+
+La plantilla parcial puede usar los datos recibidos:
+
+```php
+<!-- sidebar.view.php -->
+<aside>
+    <?php foreach ($items as $item): ?>
+        <p><?= $this->e($item) ?></p>
+    <?php endforeach; ?>
+</aside>
+```
+
+### `addArgument`: agregar un argumento compartido
+
+`addArgument(string $key, mixed $value)` agrega o reemplaza un argumento compartido por nombre. Los argumentos compartidos se proporcionan a las plantillas renderizadas por esa instancia de `ViewEngine` y pueden ser sobrescritos para una renderización concreta por los valores de `$data` de `fetch`.
+
+### `addArguments`: agregar varios argumentos compartidos
+
+`addArguments(array $data)` combina los argumentos del array asociativo con los argumentos compartidos existentes. Si una clave ya existe, el nuevo valor la reemplaza.
+
+### `setArguments`: reemplazar los argumentos compartidos
+
+`setArguments(array $data)` reemplaza el conjunto completo de argumentos compartidos. `addArguments` y `setArguments` esperan un array asociativo.
+
+Los tres métodos devuelven la instancia de `ViewEngine`, así que permiten encadenamiento:
+
+```php
+$view
+    ->addArgument('site_name', 'Mi sitio')
+    ->addArguments([
+        'support_email' => 'ayuda@example.com',
+        'year' => date('Y'),
+    ]);
+
+// Para reemplazar el conjunto completo de argumentos compartidos:
+$view->setArguments(['site_name' => 'Mi sitio']);
+```
+
+### `e`: escapar texto para HTML
+
+`e(?string $string)` escapa caracteres especiales y comillas para que un valor se pueda imprimir como texto en HTML. Si recibe `null`, devuelve una cadena vacía. Úsalo con datos variables para evitar que se interpreten como marcado HTML.
+
+```php
+<h1><?= $this->e($page_title) ?></h1>
+```
+
+Las plantillas no escapan automáticamente sus variables; aplica `e` a los valores no confiables antes de imprimirlos.
+
+### `asset`: generar una URL para un recurso
+
+`asset(string $path)` busca el archivo bajo `DOCUMENT_ROOT` y devuelve su URL desde la raíz del sitio. Agrega la fecha de modificación como parámetro `v` para invalidar la caché del navegador cuando cambia el archivo. Si no encuentra el archivo o no está configurado `DOCUMENT_ROOT`, lanza `FileNotFoundException`.
+
+```php
+<link rel="stylesheet" href="<?= $this->e($this->asset('static/main.css')) ?>">
+<script src="<?= $this->e($this->asset('static/app.js')) ?>"></script>
+```
+
+Los argumentos compartidos deben configurarse antes de renderizar las plantillas que los usarán. `fetch` devuelve el contenido renderizado en ese momento; los cambios posteriores a los argumentos no modifican la cadena ya devuelta.
 
 ## Request
 
@@ -448,7 +491,7 @@ $response->setStatusCode(\rguezque\HttpStatus::HTTP_NOT_FOUND);
 > [!TIP]
 > Utiliza `JsonResponse` para devolver datos de una API en formato `JSON` , `HtmlResponse` para devolver contenido `html` (vistas) y `RedirectResponse` para redirecciones.
 
-### HttpHeaders
+### Encabezados HTTP
 
 Métodos de la clase:
 
@@ -489,7 +532,7 @@ Los métodos de esta clase son:
 - `rewind()`: Rebobina el puntero del _stream_ al inicio.
 - `close()`: Cierra el flujo contra escritura.
 
-## SapiEmitter
+## Emisor SAPI
 
 Emite el `Response` con el método estático `SapiEmitter::emit`.
 
@@ -514,7 +557,7 @@ try {
 SapiEmitter::emit($response);
 ```
 
-## Session
+## Sesión
 
 La clase `Session` sirve para la creación de sesiones y la administración de variables de `$_SESSION` que son almacenadas en un _namespace_. Se inicializa o selecciona una colección de variables de sesión con el método estático `Session::withNamespace` el cual devuelve un objeto `Session`. Los métodos disponibles son:
 
@@ -540,7 +583,7 @@ $session->set('edad', 30);
 $session->get('nombre');
 ```
 
-## Services
+## Servicios
 
 La clase `Services` sirve para registrar servicios que se utilizarán en todo el proyecto. Con el método `Services::register` agregamos un servicio, este recibe 2 parámetros, un nombre y una función anónima. Para quitar un servicio `Services::unregister` recibe el nombre del servicio (o servicios, separados por coma) a eliminar.
 
@@ -583,7 +626,7 @@ $router->get('/', function(Request $request, Services $service) {
 })->useServices('view'); // Solamente recibirá el servicio 'view'
 ```
 
-## DB Connection
+## Conexión a la base de datos
 
 La clase `Connection` proporciona el medio para crear conexiones a MySQL a través del driver `PDO` o la clase `mysqli`. El método estático `Connection::create` funciona como un _factory_, y crea nuevas instancias de conexión devolviendo un objeto `ConnectionInterface`. Los valores posibles para el `driver` de conexión son: `pdomysql` o `mysqli`.
 
@@ -606,7 +649,7 @@ $db = Connection::create([
 >
 > Para conexiones con `mysqli` si se define el parámetro `unix_socket` el valor de `host` debe ser `localhost`.
 
-### Connecting using a Database URL
+### Conexión mediante una URL de base de datos
 
 Otra alternativa es usar una _database URL_ como parámetro de conexión, a través del método `DsnParser::parse`; este recibe una URL y la procesa para ser enviada a `Connection::create` de la siguiente forma:
 
@@ -634,7 +677,7 @@ Esto devolverá:
 ]
 ```
 
-### Using a unix socket
+### Uso de un socket Unix
 
 Si se define un _unix socket_ se le da prioridad en la conexión. Para conectarse especificando **parámetros** de conexión se hace de la siguiente forma:
 
@@ -663,7 +706,7 @@ $dsn = (new DsnParser)->parse($url);
 $db = Connection::create($params);
 ```
 
-### Auto connect
+### Conexión automática
 
 Si solo necesitas una conexión, el método estático `Connection::autoConnect` crea y devuelve una conexión singleton tomando automáticamente los parámetros definidos en un archivo `.env`.
 
@@ -705,7 +748,7 @@ O bien se puede configurar previamente asignando directamente un objeto `Connect
 > [!NOTE]
 > Se debe usar alguna librería que permita procesar la variables almacenadas en `.env` y cargarlas en las variables `$_ENV`. La más usual es `vlucas/phpdotenv`.
 
-### Simplified write operations
+### Operaciones de escritura simplificadas
 
 Las conexiones creadas con `Connection::create` o `Connection::autoConnect` incluyen los métodos `insert`, `update` y `delete`. Reciben datos y criterios como arreglos asociativos, preparan la consulta y devuelven el número de filas afectadas:
 
@@ -713,7 +756,7 @@ Las conexiones creadas con `Connection::create` o `Connection::autoConnect` incl
 $db = Connection::autoConnect();
 ```
 
-#### Insert records
+#### Insertar registros
 
 `insert` recibe el nombre de la tabla, un arreglo con columnas y valores y, opcionalmente, un arreglo con tipos de parámetros:
 
@@ -724,7 +767,7 @@ $inserted = $db->insert('users', [
 ]);
 ```
 
-#### Update records
+#### Actualizar registros
 
 `update` recibe el nombre de la tabla, los datos nuevos, los criterios de búsqueda y, opcionalmente, los tipos de parámetros. Los criterios se combinan con `AND`; un valor `null` busca columnas con `IS NULL`.
 
@@ -736,7 +779,7 @@ $updated = $db->update(
 );
 ```
 
-#### Delete records
+#### Eliminar registros
 
 `delete` recibe el nombre de la tabla, los criterios de búsqueda y, opcionalmente, los tipos de parámetros:
 
@@ -749,7 +792,7 @@ El arreglo opcional de tipos usa el nombre de la columna como clave. Para PDO se
 > [!WARNING]
 > Si `criteria` está vacío, `update` afecta todas las filas de la tabla y `delete` las elimina todas. Proporciona criterios cuando quieras limitar la operación a ciertos registros.
 
-### Transactions
+### Transacciones
 
 Por lo regular, una transacción se ve más o menos así:
 
@@ -856,7 +899,7 @@ $router->get('/user/{name}', function(Request $request) {
 > - Los middlewares a nivel de router se ejecutan primero, luego los de grupo y finalmente los de la ruta.
 > - Los middlewares a nivel de router se heredan a grupos y rutas; así como los middleware de grupo se heredan a sus rutas.
 
-## CORS
+## Intercambio de recursos de origen cruzado (CORS)
 
 _(Cross-Origin Resource Sharing)_. Esta configuración se define a través de un objeto `CorsConfig` en el cual se agregan los orígenes, y configuraciones adicionales. CORS es un ejemplo de middleware a nivel de router.
 
@@ -950,7 +993,7 @@ $cors_config->addOrigin(
 );
 ```
 
-## Error Handler
+## Manejador de errores
 
 Para registro de errores y ambiente de desarrollo se debe configurar `ErrorHandler` el cual recibe un objeto de configuración `ErrorhandlerConfig`
 
@@ -983,9 +1026,9 @@ Para registrar errores en bloques `try-catch` usa `FileErrorLogger::log` el cual
 > - Puedes crear un _Facade_ para encapsular una instancia de `FileErrorLogger` y manejar de forma global el registro de errores en bloques `try-catch`.
 > - Asegurate de definir tu zona horaria `set_default_timezone_set('America/Mexico_City')` antes de todo, de lo contrario los _logs_ mostrarán la fecha en `GMT` (Greenwich Mean Time) por default.
 
-## helpers
+## Funciones auxiliares
 
-Se incluyen también algunas funciones extras bajo el namespace `\rguezque\functions\`:
+Se incluyen también algunas funciones extras:
 
 - `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
 
@@ -993,15 +1036,13 @@ Se incluyen también algunas funciones extras bajo el namespace `\rguezque\funct
 
 - `pipe(...$fns)`: Devuelve el resultado de ejecutar una secuencia de funciones en pipeline sobre un valor específico. Ej. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` devuelve 'John Doe'.
 
-- `set_secure_cookie(string $name, string $value, int $expiration_seconds = 86400, string $path = '/', string $domain = '', string $same_site = 'Strict')`: Crea una cookie segura.
+- `set_secure_cookie(string $name, string $value, int $expiration_seconds = 86400, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Crea una cookie segura.
 
-- `unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Strict')`: Elimina una cookie de forma segura.
+- `unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Elimina una cookie de forma segura.
 
 - `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
 
 - `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
-
-- `is_assoc_array($value)`: Devuelve `true` si un array es asociativo (key-value): `false` en caso contrario.
 
 - `add_trailing_slash(string $str)`: Agrega un _slash_ al final de una cadena de texto.
 

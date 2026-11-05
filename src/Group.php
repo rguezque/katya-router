@@ -9,11 +9,10 @@
 namespace rguezque;
 
 use Closure;
-use rguezque\Exception\UnsupportedRequestMethodException;
+use function str_path;
 use rguezque\Contract\MiddlewareInterface;
+use rguezque\Exception\UnsupportedRequestMethodException;
 use rguezque\MiddlewareTrait;
-
-use function rguezque\functions\str_path;
 
 /**
  * Routes group

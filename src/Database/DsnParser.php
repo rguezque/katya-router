@@ -10,16 +10,14 @@ declare(strict_types=1);
 
 namespace rguezque\Database;
 
+use function decode_component;
+use function normalize_host;
+use function normalize_path;
+use function normalize_port;
+use function trimmed_string_or_default;
+use function trimmed_string_or_null;
 use InvalidArgumentException;
 use Throwable;
-use function rguezque\functions\{
-    decode_component,
-    normalize_host,
-    normalize_path,
-    normalize_port,
-    trimmed_string_or_default,
-    trimmed_string_or_null,
-};
 
 /**
  * Parses a database URL (DSN) into an associative array of connection parameters.
