@@ -398,7 +398,7 @@ Otros métodos disponibles son:
 - `addArguments(array $data)`: Agrega un array asociativo de argumentos de tipo clave-valor a los ya existentes.
 - `setArguments(array $data)`: Asigna o sobrescribe los argumentos para la plantilla.
 - `e(?string $string)`: Dentro de una plantilla, escapa una cadena de texto para una salida segura en HTML.
-- `asset(string $path)`: Dentro de una plantilla, genera una URL absoluta o relativa para un recurso (CSS, JS, imágenes) agregando una marca de tiempo para invalidar la caché del navegador _(Cache Busting)_.
+- `asset(string $path)`: Dentro de una plantilla, busca el recurso desde `DOCUMENT_ROOT` (puedes pasar una ruta relativa, como `static/main.css`) y genera una URL desde la raíz del sitio con una marca de tiempo para invalidar la caché del navegador _(Cache Busting)_.
 
 > [!IMPORTANT]
 > El método `ViewEngine::fetch` es el último que se debe invocar. Cualquier otro método que se invoque después de este, no tendrá efecto.
