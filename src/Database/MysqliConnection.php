@@ -16,6 +16,13 @@ use Throwable;
 
 final class MysqliConnection extends mysqli implements ConnectionInterface
 {
+    public const PARAM_NULL = 'null';
+    public const PARAM_INT = 'int';
+    public const PARAM_FLOAT = 'float';
+    public const PARAM_STR = 'string';
+    public const PARAM_BLOB = 'blob';
+    public const PARAM_BOOL = 'bool';
+
     /** @var string Default charset */
     private const DEFAULT_CHARSET = 'utf8mb4';
 
@@ -100,6 +107,148 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
                 $this->errno ?: 500
             );
         }
+    }
+
+    /**
+     * Insert a row into a table.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $data Column names and values to insert.
+     * @param array<string, string> $types Optional MysqliConnection parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function insert(string $table, array $data, array $types = []): int
+    {
+        self::validateTable($table);
+        if ($data === []) {
+            throw new InvalidArgumentException('At least one column must be provided for insert.');
+        }
+
+        $columns = [];
+        $values = [];
+        foreach ($data as $column => $value) {
+            self::validateColumn($column);
+            $columns[] = sprintf('`%s`', $column);
+            $values[] = $value;
+        }
+
+        $sql = sprintf(
+            'INSERT INTO `%s` (%s) VALUES (%s)',
+            $table,
+            implode(', ', $columns),
+            implode(', ', array_fill(0, count($columns), '?'))
+        );
+
+        return $this->executeStatement($sql, $values, array_keys($data), $types, array_keys($data), 'insert');
+    }
+
+    /**
+     * Update rows in a table matching the given criteria.
+     *
+     * An empty criteria array updates every row in the table, as with Doctrine DBAL.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $data Column names and values to update.
+     * @param array<string, mixed> $criteria Column names and values used to match rows.
+     * @param array<string, string> $types Optional MysqliConnection parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function update(string $table, array $data, array $criteria, array $types = []): int
+    {
+        self::validateTable($table);
+        if ($data === []) {
+            throw new InvalidArgumentException('At least one column must be provided for update.');
+        }
+
+        $set_clauses = [];
+        $where_clauses = [];
+        $values = [];
+        $parameter_columns = [];
+        foreach ($data as $column => $value) {
+            self::validateColumn($column);
+            $set_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        foreach ($criteria as $column => $value) {
+            self::validateColumn($column);
+            if ($value === null) {
+                $where_clauses[] = sprintf('`%s` IS NULL', $column);
+                continue;
+            }
+
+            $where_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        $sql = sprintf(
+            'UPDATE `%s` SET %s%s',
+            $table,
+            implode(', ', $set_clauses),
+            $where_clauses === [] ? '' : ' WHERE ' . implode(' AND ', $where_clauses)
+        );
+
+        return $this->executeStatement(
+            $sql,
+            $values,
+            $parameter_columns,
+            $types,
+            array_merge(array_keys($data), array_keys($criteria)),
+            'update'
+        );
+    }
+
+    /**
+     * Delete rows from a table matching the given criteria.
+     *
+     * An empty criteria array deletes every row in the table, as with Doctrine DBAL.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $criteria Column names and values used to match rows.
+     * @param array<string, string> $types Optional MysqliConnection parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function delete(string $table, array $criteria, array $types = []): int
+    {
+        self::validateTable($table);
+
+        $where_clauses = [];
+        $values = [];
+        $parameter_columns = [];
+        foreach ($criteria as $column => $value) {
+            self::validateColumn($column);
+            if ($value === null) {
+                $where_clauses[] = sprintf('`%s` IS NULL', $column);
+                continue;
+            }
+
+            $where_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        $sql = sprintf(
+            'DELETE FROM `%s`%s',
+            $table,
+            $where_clauses === [] ? '' : ' WHERE ' . implode(' AND ', $where_clauses)
+        );
+
+        return $this->executeStatement(
+            $sql,
+            $values,
+            $parameter_columns,
+            $types,
+            array_keys($criteria),
+            'delete'
+        );
     }
 
     /**
@@ -204,6 +353,113 @@ final class MysqliConnection extends mysqli implements ConnectionInterface
         }
 
         $this->error_mode_verified = true;
+    }
+
+    /**
+     * Prepare and execute a statement with values bound according to MySQLi parameter types.
+     *
+     * @param list<mixed> $values Values to bind, in placeholder order.
+     * @param list<string> $parameter_columns Column name for each value.
+     * @param array<string, string> $types Explicit MysqliConnection parameter types keyed by column.
+     * @param list<string> $valid_columns Columns that may have explicit parameter types.
+     */
+    private function executeStatement(
+        string $sql,
+        array $values,
+        array $parameter_columns,
+        array $types,
+        array $valid_columns,
+        string $operation
+    ): int {
+        $valid_types = [
+            self::PARAM_NULL,
+            self::PARAM_INT,
+            self::PARAM_FLOAT,
+            self::PARAM_STR,
+            self::PARAM_BLOB,
+            self::PARAM_BOOL,
+        ];
+        foreach ($types as $column => $type) {
+            if (!is_string($column) || !in_array($column, $valid_columns, true)) {
+                throw new InvalidArgumentException(
+                    sprintf('A parameter type was provided for an unknown column "%s".', (string) $column)
+                );
+            }
+            if (!in_array($type, $valid_types, true)) {
+                throw new InvalidArgumentException(
+                    sprintf('The parameter type for column "%s" is not a supported MySQLi parameter type.', $column)
+                );
+            }
+        }
+
+        $statement = $this->prepare($sql);
+        if ($statement === false) {
+            throw new RuntimeException(sprintf('Failed to prepare %s statement with MySQLi.', $operation));
+        }
+
+        try {
+            if ($values !== []) {
+                $bind_types = '';
+                foreach ($values as $index => $value) {
+                    $column = $parameter_columns[$index];
+                    $type = $types[$column] ?? match (true) {
+                        $value === null => self::PARAM_NULL,
+                        is_bool($value) => self::PARAM_BOOL,
+                        is_int($value) => self::PARAM_INT,
+                        is_float($value) => self::PARAM_FLOAT,
+                        default => self::PARAM_STR,
+                    };
+                    $bind_types .= match ($type) {
+                        self::PARAM_INT, self::PARAM_BOOL => 'i',
+                        self::PARAM_FLOAT => 'd',
+                        self::PARAM_BLOB => 'b',
+                        default => 's',
+                    };
+                }
+
+                $bind_parameters = [$bind_types];
+                foreach ($values as $index => &$value) {
+                    $bind_parameters[] = &$value;
+                }
+                unset($value);
+
+                if (!call_user_func_array([$statement, 'bind_param'], $bind_parameters)) {
+                    throw new RuntimeException(sprintf('Failed to bind %s parameters with MySQLi.', $operation));
+                }
+            }
+
+            if (!$statement->execute()) {
+                throw new RuntimeException(sprintf('Failed to execute %s statement with MySQLi.', $operation));
+            }
+
+            return $statement->affected_rows;
+        } finally {
+            $statement->close();
+        }
+    }
+
+    /**
+     * Validate a table identifier.
+     */
+    private static function validateTable(string $table): void
+    {
+        if ($table === '') {
+            throw new InvalidArgumentException('The table name cannot be empty.');
+        }
+        self::validateIdentifier($table, 'table');
+    }
+
+    /**
+     * Validate a column identifier.
+     *
+     * @param mixed $column
+     */
+    private static function validateColumn(mixed $column): void
+    {
+        if (!is_string($column) || $column === '') {
+            throw new InvalidArgumentException('Column names must be non-empty strings.');
+        }
+        self::validateIdentifier($column, 'column');
     }
 
     /**

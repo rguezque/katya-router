@@ -28,7 +28,7 @@ use function rguezque\functions\is_assoc_array;
  * @method ViewEngine setArguments(array $data) Set the arguments to be used in templates
  * @method void insert(string $partial, array $data = []) Allow insert a template fragment directly into a view template
  * @method string e(?string $string) Escape strings for secure HTML output
- * @method string asset(string $path) Generates an absolute or relative URL for a resource (CSS, JS, images) by adding a timestamp to break the browser cache (Cache Busting).
+ * @method string asset(string $path) Generates a root-relative URL for a resource (CSS, JS, images) by adding a timestamp to break the browser cache (Cache Busting).
  */
 class ViewEngine
 {
@@ -216,7 +216,7 @@ class ViewEngine
     }
 
     /**
-     * Generates an absolute or relative URL for a resource (CSS, JS, images)
+     * Generates a root-relative URL for a resource (CSS, JS, images)
      * by adding a timestamp to break the browser cache (Cache Busting).
      *
      * @param string $path Asset path
@@ -225,19 +225,36 @@ class ViewEngine
      */
     public function asset(string $path): string // Nota: Se agregó 'public' que faltaba en el original
     {
-        $path = '/' . ltrim($path, '/\\');
-        $asset_file = $_SERVER['DOCUMENT_ROOT'] . $path;
+        $url_parts = parse_url(str_replace('\\', '/', $path));
+        if ($url_parts === false) {
+            throw new FileNotFoundException(sprintf('The asset "%s" was not found', $path));
+        }
 
-        if (!file_exists($asset_file)) {
+        $url_path = $url_parts['path'] ?? '';
+        $document_root = $_SERVER['DOCUMENT_ROOT'] ?? '';
+
+        if ($url_path === '' || $document_root === '') {
+            throw new FileNotFoundException(sprintf('The asset "%s" was not found', $path));
+        }
+
+        $asset_file = rtrim($document_root, '/\\')
+            . DIRECTORY_SEPARATOR
+            . str_replace('/', DIRECTORY_SEPARATOR, rawurldecode(ltrim($url_path, '/')));
+
+        if (!is_file($asset_file)) {
             throw new FileNotFoundException(sprintf('The asset "%s" was not found', $asset_file));
         }
 
-        // Add the version parameter (keeps previous parameters if they existed)
-        $separator = str_contains($path, '?') ? '&' : '?';
         $version = filemtime($asset_file);
-        $cached_path = $asset_file . $separator . 'v=' . $version;
+        if ($version === false) {
+            throw new FileNotFoundException(sprintf('The asset "%s" was not found', $asset_file));
+        }
 
-        return $cached_path;
+        $asset_url = '/' . ltrim($url_path, '/');
+        $query = $url_parts['query'] ?? '';
+        $fragment = isset($url_parts['fragment']) ? '#' . $url_parts['fragment'] : '';
+
+        return $asset_url . '?' . ($query !== '' ? $query . '&' : '') . 'v=' . $version . $fragment;
     }
 
     /**
@@ -246,6 +263,8 @@ class ViewEngine
      * @param string $dir_path Directory to validate
      * @param string $namespace Directory namespace (optional)
      * @return string The normalized directory path
+     * @throws NotFoundException If the directory does not exist
+     * @throws PermissionException If the directory is not readable
      */
     private function validateDirectory(string $dir_path, ?string $namespace = null): string
     {
@@ -253,14 +272,13 @@ class ViewEngine
         $spl_ns_info = new SplFileInfo($dir);
 
         if (!$spl_ns_info->isDir()) {
-            (!is_null($namespace))
-                ? throw new NotFoundException(sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace))
-                : throw new NotFoundException(sprintf('The templates directory "%s" does not exist', $dir));;
+            $message_not_dir = !is_null($namespace) ? sprintf('The namespace directory "%s" for "%s" does not exist', $dir, $namespace) : sprintf('The templates directory "%s" does not exist', $dir);
+            throw new NotFoundException($message_not_dir);
         }
+
         if (!$spl_ns_info->isReadable()) {
-            (!is_null($namespace))
-                ? throw new PermissionException(sprintf('The namespace directory "%s" for "%s" is not readable', $dir, $namespace))
-                : throw new PermissionException(sprintf('The templates directory "%s" is not readable', $dir));;
+            $message_not_readable = !is_null($namespace) ? sprintf('The directory "%s" for is not readable for namespace "%s"', $dir, $namespace) : sprintf('The templates directory "%s" is not readable', $dir);
+            throw new PermissionException($message_not_readable);
         }
 
         return $dir;

@@ -70,6 +70,281 @@ final class PDOConnection extends PDO implements ConnectionInterface
     }
 
     /**
+     * Insert a row into a table.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $data Column names and values to insert.
+     * @param array<string, int> $types Optional PDO parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function insert(string $table, array $data, array $types = []): int
+    {
+        if ($table === '') {
+            throw new InvalidArgumentException('The table name cannot be empty.');
+        }
+        self::validateIdentifier($table, 'table');
+
+        if ($data === []) {
+            throw new InvalidArgumentException('At least one column must be provided for insert.');
+        }
+
+        $columns = [];
+        $column_names = [];
+        $placeholders = [];
+        $values = [];
+        foreach ($data as $column => $value) {
+            if (!is_string($column) || $column === '') {
+                throw new InvalidArgumentException('Column names must be non-empty strings.');
+            }
+            self::validateIdentifier($column, 'column');
+
+            $columns[] = sprintf('`%s`', $column);
+            $column_names[] = $column;
+            $placeholders[] = '?';
+            $values[] = $value;
+        }
+
+        foreach ($types as $column => $type) {
+            if (!is_string($column) || !array_key_exists($column, $data)) {
+                throw new InvalidArgumentException(
+                    sprintf('A parameter type was provided for an unknown column "%s".', (string) $column)
+                );
+            }
+            if (!in_array(
+                $type,
+                [PDO::PARAM_NULL, PDO::PARAM_INT, PDO::PARAM_STR, PDO::PARAM_LOB, PDO::PARAM_BOOL],
+                true
+            )) {
+                throw new InvalidArgumentException(
+                    sprintf('The parameter type for column "%s" is not a supported PDO parameter type.', $column)
+                );
+            }
+        }
+
+        $quoted_table = sprintf('`%s`', $table);
+        $sql = sprintf(
+            'INSERT INTO %s (%s) VALUES (%s)',
+            $quoted_table,
+            implode(', ', $columns),
+            implode(', ', $placeholders)
+        );
+
+        $statement = $this->prepare($sql);
+        if ($statement === false) {
+            throw new RuntimeException('Failed to prepare insert statement with PDO.');
+        }
+
+        foreach ($values as $index => $value) {
+            $column = $column_names[$index];
+            $type = $types[$column] ?? match (true) {
+                $value === null => PDO::PARAM_NULL,
+                is_bool($value) => PDO::PARAM_BOOL,
+                is_int($value) => PDO::PARAM_INT,
+                default => PDO::PARAM_STR,
+            };
+
+            if ($statement->bindValue($index + 1, $value, $type) === false) {
+                throw new RuntimeException('Failed to bind insert parameter with PDO.');
+            }
+        }
+
+        if ($statement->execute() === false) {
+            throw new RuntimeException('Failed to execute insert statement with PDO.');
+        }
+
+        return $statement->rowCount();
+    }
+
+    /**
+     * Update rows in a table matching the given criteria.
+     *
+     * An empty criteria array updates every row in the table, as with Doctrine DBAL.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $data Column names and values to update.
+     * @param array<string, mixed> $criteria Column names and values used to match rows.
+     * @param array<string, int> $types Optional PDO parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function update(string $table, array $data, array $criteria, array $types = []): int
+    {
+        if ($table === '') {
+            throw new InvalidArgumentException('The table name cannot be empty.');
+        }
+        self::validateIdentifier($table, 'table');
+
+        if ($data === []) {
+            throw new InvalidArgumentException('At least one column must be provided for update.');
+        }
+
+        $set_clauses = [];
+        $where_clauses = [];
+        $values = [];
+        $parameter_columns = [];
+
+        foreach ($data as $column => $value) {
+            if (!is_string($column) || $column === '') {
+                throw new InvalidArgumentException('Column names must be non-empty strings.');
+            }
+            self::validateIdentifier($column, 'column');
+
+            $set_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        foreach ($criteria as $column => $value) {
+            if (!is_string($column) || $column === '') {
+                throw new InvalidArgumentException('Criteria column names must be non-empty strings.');
+            }
+            self::validateIdentifier($column, 'column');
+
+            if ($value === null) {
+                $where_clauses[] = sprintf('`%s` IS NULL', $column);
+                continue;
+            }
+
+            $where_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        $valid_types = [PDO::PARAM_NULL, PDO::PARAM_INT, PDO::PARAM_STR, PDO::PARAM_LOB, PDO::PARAM_BOOL];
+        foreach ($types as $column => $type) {
+            if (!is_string($column) || (!array_key_exists($column, $data) && !array_key_exists($column, $criteria))) {
+                throw new InvalidArgumentException(
+                    sprintf('A parameter type was provided for an unknown column "%s".', (string) $column)
+                );
+            }
+            if (!in_array($type, $valid_types, true)) {
+                throw new InvalidArgumentException(
+                    sprintf('The parameter type for column "%s" is not a supported PDO parameter type.', $column)
+                );
+            }
+        }
+
+        $sql = sprintf(
+            'UPDATE `%s` SET %s%s',
+            $table,
+            implode(', ', $set_clauses),
+            $where_clauses === [] ? '' : ' WHERE ' . implode(' AND ', $where_clauses)
+        );
+
+        $statement = $this->prepare($sql);
+        if ($statement === false) {
+            throw new RuntimeException('Failed to prepare update statement with PDO.');
+        }
+
+        foreach ($values as $index => $value) {
+            $column = $parameter_columns[$index];
+            $type = $types[$column] ?? match (true) {
+                $value === null => PDO::PARAM_NULL,
+                is_bool($value) => PDO::PARAM_BOOL,
+                is_int($value) => PDO::PARAM_INT,
+                default => PDO::PARAM_STR,
+            };
+
+            if ($statement->bindValue($index + 1, $value, $type) === false) {
+                throw new RuntimeException('Failed to bind update parameter with PDO.');
+            }
+        }
+
+        if ($statement->execute() === false) {
+            throw new RuntimeException('Failed to execute update statement with PDO.');
+        }
+
+        return $statement->rowCount();
+    }
+
+    /**
+     * Delete rows from a table matching the given criteria.
+     *
+     * An empty criteria array deletes every row in the table, as with Doctrine DBAL.
+     *
+     * @param string $table The table name.
+     * @param array<string, mixed> $criteria Column names and values used to match rows.
+     * @param array<string, int> $types Optional PDO parameter types keyed by column name.
+     * @return int The number of affected rows.
+     * @throws InvalidArgumentException If a table, column, or parameter type is invalid.
+     * @throws RuntimeException If the statement cannot be prepared or executed.
+     */
+    public function delete(string $table, array $criteria, array $types = []): int
+    {
+        if ($table === '') {
+            throw new InvalidArgumentException('The table name cannot be empty.');
+        }
+        self::validateIdentifier($table, 'table');
+
+        $where_clauses = [];
+        $values = [];
+        $parameter_columns = [];
+        foreach ($criteria as $column => $value) {
+            if (!is_string($column) || $column === '') {
+                throw new InvalidArgumentException('Criteria column names must be non-empty strings.');
+            }
+            self::validateIdentifier($column, 'column');
+
+            if ($value === null) {
+                $where_clauses[] = sprintf('`%s` IS NULL', $column);
+                continue;
+            }
+
+            $where_clauses[] = sprintf('`%s` = ?', $column);
+            $values[] = $value;
+            $parameter_columns[] = $column;
+        }
+
+        $valid_types = [PDO::PARAM_NULL, PDO::PARAM_INT, PDO::PARAM_STR, PDO::PARAM_LOB, PDO::PARAM_BOOL];
+        foreach ($types as $column => $type) {
+            if (!is_string($column) || !array_key_exists($column, $criteria)) {
+                throw new InvalidArgumentException(
+                    sprintf('A parameter type was provided for an unknown column "%s".', (string) $column)
+                );
+            }
+            if (!in_array($type, $valid_types, true)) {
+                throw new InvalidArgumentException(
+                    sprintf('The parameter type for column "%s" is not a supported PDO parameter type.', $column)
+                );
+            }
+        }
+
+        $sql = sprintf(
+            'DELETE FROM `%s`%s',
+            $table,
+            $where_clauses === [] ? '' : ' WHERE ' . implode(' AND ', $where_clauses)
+        );
+
+        $statement = $this->prepare($sql);
+        if ($statement === false) {
+            throw new RuntimeException('Failed to prepare delete statement with PDO.');
+        }
+
+        foreach ($values as $index => $value) {
+            $column = $parameter_columns[$index];
+            $type = $types[$column] ?? match (true) {
+                $value === null => PDO::PARAM_NULL,
+                is_bool($value) => PDO::PARAM_BOOL,
+                is_int($value) => PDO::PARAM_INT,
+                default => PDO::PARAM_STR,
+            };
+
+            if ($statement->bindValue($index + 1, $value, $type) === false) {
+                throw new RuntimeException('Failed to bind delete parameter with PDO.');
+            }
+        }
+
+        if ($statement->execute() === false) {
+            throw new RuntimeException('Failed to execute delete statement with PDO.');
+        }
+
+        return $statement->rowCount();
+    }
+
+    /**
      * Execute a callback within a transaction.
      *
      * @param  Closure(ConnectionInterface): mixed $callback The callback with the business logic.
