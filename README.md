@@ -44,6 +44,7 @@ A lightweight PHP router
 - [Intercambio de recursos de origen cruzado (CORS)](#intercambio-de-recursos-de-origen-cruzado-cors)
 - [Manejador de errores](#manejador-de-errores)
 - [Funciones auxiliares](#funciones-auxiliares)
+- [Pruebas](#pruebas)
 
 ## Instalación
 
@@ -1057,3 +1058,18 @@ Se incluyen también algunas funciones extras:
 - `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
 
 - `foreach_empty(iterable $iterable, callable $each, callable $fallback)`: Permite iterar un array de datos y definir un fallback en caso de que el array esté vacío.
+
+## Pruebas
+
+Instala las dependencias de desarrollo y ejecuta la suite de PHPUnit desde la raíz del proyecto:
+
+```bash
+composer install
+composer test
+```
+
+Para ver el nombre de cada prueba ejecutada:
+
+```bash
+composer test -- --testdox
+```

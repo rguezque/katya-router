@@ -324,21 +324,29 @@ class Katya
     {
         // Normalize path
         $path = str_path($path);
-        // Escape special regex characters first
-        $escaped_path = preg_quote($path, '#');
-        // Replace named wildcards {name[:regex]} with named capture groups.
-        // If regex is not provided, use a default that matches any segment except '/'
-        $pattern = preg_replace_callback(
-            '#\\\{([a-zA-Z_][\w\-]*)(?::([^}]+))?\}#',
-            function (array $m): string {
-                $name = $m[1];
-                $regex = isset($m[2]) && '' !== $m[2] ? trim($m[2]) : '[^/]+';
-                // Escape the pattern delimiter if present in user regex
-                $regex = str_replace('#', '\#', $regex);
-                return '(?P<' . $name . '>' . $regex . ')';
+        $wildcards = [];
+        $path = preg_replace_callback(
+            '#\{([a-zA-Z_][\w\-]*)(?::([^}]+))?\}#',
+            function (array $matches) use (&$wildcards, &$path): string {
+                $token = 'KATYAROUTEWILDCARD' . count($wildcards) . 'TOKEN';
+                while (str_contains($path, $token)) {
+                    $token .= 'X';
+                }
+
+                $regex = isset($matches[2]) && '' !== $matches[2] ? trim($matches[2]) : '[^/]+';
+                $wildcards[$token] = '(?P<' . $matches[1] . '>' . str_replace('#', '\#', $regex) . ')';
+                return $token;
             },
-            $escaped_path
+            $path
         );
+
+        // Escape literal path content while keeping wildcard expressions intact.
+        $pattern = preg_quote($path, '#');
+
+        foreach ($wildcards as $token => $wildcard) {
+            $pattern = str_replace($token, $wildcard, $pattern);
+        }
+
         return '#^' . $pattern . '$#';
     }
 

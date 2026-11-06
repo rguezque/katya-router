@@ -83,7 +83,7 @@ final class Session implements BagInterface, ArgumentsInterface, Countable
         ?string $session_name = null,
         array $start_options = []
     ): void {
-        if (self::started()) {
+        if (PHP_SESSION_ACTIVE === session_status()) {
             throw new RuntimeException(
                 'Session must be configured before starting it.'
             );

@@ -9,8 +9,6 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-use InvalidArgumentException;
-
 if (!function_exists('trimmed_string_or_null')) {
     /**
      * Returns a trimmed string or null if the value is empty or invalid.

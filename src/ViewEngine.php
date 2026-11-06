@@ -67,7 +67,7 @@ class ViewEngine
 
         // Validate and store extra namespaces
         foreach ($namespaces as $namespace => $dir) {
-            $dir = $this->validateDirectory($namespace, $dir);
+            $dir = $this->validateDirectory($dir, $namespace);
             $this->namespaces[trim($namespace)] = $dir;
         }
     }
