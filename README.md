@@ -145,7 +145,7 @@ try {
     $response = $new Response($message, HttpStatus::HTTP_METHOD_NOT_ALLOWED);
 }
 
-SapiEmitter::emit($response);
+(new SapiEmitter)->emit($response);
 ```
 
 El router acepta un prefijo global, este se aplica a cada una de las rutas que se definan.
@@ -199,7 +199,7 @@ try {
     $response = $e->getResponse();
 }
 
-SapiEmitter::emit($response);
+(new SapiEmitter)->emit($response);
 ```
 
 ### Métodos abreviados
@@ -539,7 +539,7 @@ Emite el `Response` con el método estático `SapiEmitter::emit`.
 
 ```php
 $response = $router->run(Request::fromGlobals());
-SapiEmitter::emit($response);
+(new SapiEmitter)->emit($response);
 ```
 
 Para más control utiliza `try-catch`:
@@ -555,7 +555,7 @@ try {
     $response = new Response('Ruta no encontrada', HttpStatus::HTTP_NOT_FOUND);
 }
 
-SapiEmitter::emit($response);
+(new SapiEmitter)->emit($response);
 ```
 
 ## Sesión
