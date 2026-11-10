@@ -139,26 +139,6 @@ if (!function_exists('str_path')) {
     }
 }
 
-if (!function_exists('json_file_get_contents')) {
-    /**
-     * Reads entire json file into an associative array
-     * * This function reads a JSON file and decodes its contents into an associative array.
-     * 
-     * @param string $file Json file path
-     * @return array
-     * @throws FileNotFoundException
-     */
-    function json_file_get_contents(string $file): array
-    {
-        if (!file_exists($file)) {
-            throw new FileNotFoundException(sprintf('The file %s wasn\'t found.', $file));
-        }
-
-        $contents = file_get_contents($file);
-        return json_decode($contents, true);
-    }
-}
-
 if (!function_exists('set_secure_cookie')) {
     /**
      * Create a cookie with advanced security options.
@@ -288,7 +268,7 @@ if (!function_exists('is_localhost')) {
     }
 }
 
-if (!function_exists('foreach_empty')) {
+if (!function_exists('foreach_or_fallback')) {
     /**
      * Execute a loop over an iterable element or perform a default action if it is empty.
      * 
@@ -301,14 +281,17 @@ if (!function_exists('foreach_empty')) {
      * @param callable $fallback Función a ejecutar si el iterable no tiene elementos. e.g. `function()`
      * @return void
      */
-    function foreach_empty(iterable $iterable, callable $each, callable $fallback): void
+    function foreach_or_fallback(iterable $iterable, callable $each, callable $fallback): void
     {
-        if (!empty($iterable)) {
-            foreach ($iterable as $key => $value) {
-                $each($value, $key);
-            }
-        } else {
+        // If it is empty, we execute the fallback and exit immediately
+        if (empty($iterable)) {
             $fallback();
+            return;
+        }
+
+        // Otherwise we iterate normally
+        foreach ($iterable as $key => $value) {
+            $each($value, $key);
         }
     }
 }

@@ -1043,8 +1043,6 @@ Se incluyen también algunas funciones extras:
 
 - `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
 
-- `json_file_get_contents(string $file)`: Recupera el contenido de un archivo `.json` y lo devuelve como un array asociativo.
-
 - `add_trailing_slash(string $str)`: Agrega un _slash_ al final de una cadena de texto.
 
 - `remove_trailing_slash(string $str)`: Elimina los _slashes_ al final de una cadena de texto.
@@ -1057,7 +1055,20 @@ Se incluyen también algunas funciones extras:
 
 - `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
 
-- `foreach_empty(iterable $iterable, callable $each, callable $fallback)`: Permite iterar un array de datos y definir un fallback en caso de que el array esté vacío.
+- `foreach_or_fallback(iterable $iterable, callable $each, callable $fallback)`: Permite iterar un array de datos y definir un fallback en caso de que el array esté vacío.
+
+    ```php
+    $names = ['john', 'maggie', 'jane', 'michael'];
+    foreach_or_fallback(
+        $names, 
+        function($value, $key) {
+            echo $value;
+        }, 
+        function() {
+            echo 'No se encontraron datos';
+        }
+    )
+    ```
 
 ## Pruebas
 

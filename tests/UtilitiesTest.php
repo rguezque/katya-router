@@ -23,19 +23,15 @@ use RuntimeException;
 
 final class UtilitiesTest extends TestCase
 {
-    private string $jsonFile;
     private array $originalServer;
 
     protected function setUp(): void
     {
-        $this->jsonFile = tempnam(sys_get_temp_dir(), 'katya-json-');
-        file_put_contents($this->jsonFile, '{"answer":42}');
         $this->originalServer = $_SERVER;
     }
 
     protected function tearDown(): void
     {
-        unlink($this->jsonFile);
         $_SERVER = $this->originalServer;
     }
 
@@ -59,16 +55,8 @@ final class UtilitiesTest extends TestCase
         unset($_ENV['KATYA_TEST_ENV']);
     }
 
-    public function testFileAndValueNormalizationHelpers(): void
+    public function testValueNormalizationHelpers(): void
     {
-        self::assertSame(['answer' => 42], \json_file_get_contents($this->jsonFile));
-        try {
-            \json_file_get_contents($this->jsonFile . '.missing');
-            self::fail('Missing JSON files must raise an exception.');
-        } catch (FileNotFoundException) {
-            self::assertTrue(true);
-        }
-
         self::assertSame('value', \trimmed_string_or_null(' value '));
         self::assertNull(\trimmed_string_or_null('  '));
         self::assertSame('default', \trimmed_string_or_default([], 'default'));
@@ -94,7 +82,7 @@ final class UtilitiesTest extends TestCase
 
         $seen = [];
         $fallback = false;
-        \foreach_empty(
+        \foreach_or_fallback(
             ['first', 'second'],
             static function (string $value, int $key) use (&$seen): void {
                 $seen[$key] = $value;
@@ -106,7 +94,7 @@ final class UtilitiesTest extends TestCase
         self::assertSame([0 => 'first', 1 => 'second'], $seen);
         self::assertFalse($fallback);
 
-        \foreach_empty([], static function (): void {}, static function () use (&$fallback): void {
+        \foreach_or_fallback([], static function (): void {}, static function () use (&$fallback): void {
             $fallback = true;
         });
         self::assertTrue($fallback);
