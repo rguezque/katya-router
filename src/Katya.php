@@ -274,26 +274,34 @@ class Katya
                 array_shift($arguments);
                 $request = $request->withParams($arguments);
                 $services = $this->services;
+                
                 // Filter the services for route
                 if ([] !== $route->getRouteServices() && null !== $services) $services = $services->filter($route->getRouteServices());
+                
                 // Controller wrapped
+                $controller = $route->getController();
                 if (!is_null($services)) {
-                    $next = fn($request) => call_user_func($route->getController(), $request, $services);
+                    $next = fn($request) => call_user_func($controller, $request, $services);
                 } else {
-                    $next = fn($request) => call_user_func($route->getController(), $request);
+                    $next = fn($request) => call_user_func($controller, $request);
                 }
+
                 // Global middlewares (at the router level) are merged with route middlewares
                 // Due to the reverse execution of the layered structure, the global middlewares are merged at the end.
                 $global_middlewares = array_merge($route->getMiddlewares(), $this->getMiddlewares());
+                
                 // Build the layered structure (onion) where each new layer envelops the previous one.
                 foreach ($global_middlewares as $middleware) {
                     $next = fn($request) => call_user_func($middleware, $request, $next);
                 }
+
                 // Triggers the reverse execution of the middlewares and finally the controller
                 $result = call_user_func($next, $request);
+                
                 if (!$result instanceof Response) {
                     throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', get_debug_type($result)));
                 }
+                
                 // Early return to end the routing
                 return $result;
             }
