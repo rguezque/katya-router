@@ -25,7 +25,6 @@ use rguezque\Exception\NotFoundException;
  * @method Services unregister(string ...$alias) Unregister one or multiple services by name
  * @method Services filter(array $names) Returns a Services instance filtered with only the defined services
  * @method bool has(string $key) Return true if a service exists
- * @method array all() Return all the services array
  * @method array names() Return the key names of availables services
  * @method int count() Return the count of services
  */
@@ -45,12 +44,17 @@ final class Services {
      * @throws InvalidArgumentException When the services array does not comply with the expected structure
      */
     public function __construct(array $services_array = []) {
+        // Quickly validate if the array is not empty and is a numerically indexed list
+        if (!empty($services_array) && array_is_list($services_array)) {
+            throw new InvalidArgumentException('The collection of services must be an associative array, not a sequential list.');
+        }
+
         foreach($services_array as $name => $service) {
             if(!is_string($name)) {
-                throw new InvalidArgumentException('The collection of services must be an associative array, whose keys must be of type string and its values ​​of type Closure.');
+                throw new InvalidArgumentException(sprintf('The collection of services must be an associative array, whose keys must be of type string, got type %s.', gettype($name)));
             }
             if(!($service instanceof Closure)) {
-                throw new InvalidArgumentException(sprintf('Error processing service registration for "%s". Each service must be defined within a Closure; catched %s', $name, gettype($service)));
+                throw new InvalidArgumentException(sprintf('Error processing service registration for "%s". Each service must be defined within a Closure; got type %s', $name, get_debug_type($service)));
             }
         }
 
@@ -72,7 +76,9 @@ final class Services {
             throw new BadNameException(sprintf('Whitespaces not allowed in name definition for service "%s".', $name));
         }
 
-        if(in_array($name, get_class_methods($this))) {
+        static $reserved_names;
+        $reserved_names ??= get_class_methods(self::class);
+        if(in_array($name, $reserved_names)) {
             throw new InvalidArgumentException(sprintf('"%s" is a reserved name for an existent property of %s and can\'t be overwrited.', $name, __CLASS__));
         }
 

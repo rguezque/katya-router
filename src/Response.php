@@ -8,6 +8,9 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
+use RuntimeException;
+
 /**
  * Represent an HTTP response
  * 
@@ -51,17 +54,32 @@ class Response {
      * the provided value or defaults to 200 (HTTP OK).
      * 
      * @param string $content The content of http response
-     * @param int $status_code The http status code of response
+     * @param int $status_code The HTTP status code of response
      * @param array $headers HTTP headers for response
+     * @throws InvalidArgumentException When the status code is outside the valid HTTP range
+     * @throws RuntimeException When the response body stream cannot be created or written
      */
     public function __construct(string $content = '', int $status_code = HttpStatus::HTTP_OK, array $headers = []) {
-        $this->status_code = $status_code;
+        $this->setStatusCode($status_code);
         $this->headers = new HttpHeaders($headers);
-        $stream = new Stream(fopen('php://temp/maxmemory:2097152', 'r+b'));
-        if('' !== trim($content)) {
-            $stream->write($content);
+        $resource = fopen('php://temp/maxmemory:2097152', 'r+b');
+        if (false === $resource) {
+            throw new RuntimeException('Unable to create the response body stream.');
         }
-        $this->body = $stream;
+
+        $length = strlen($content);
+        $written = 0;
+        while ($written < $length) {
+            $bytesWritten = fwrite($resource, substr($content, $written));
+            if (false === $bytesWritten || 0 === $bytesWritten) {
+                fclose($resource);
+                throw new RuntimeException('Unable to write the complete response body.');
+            }
+
+            $written += $bytesWritten;
+        }
+
+        $this->body = new Stream($resource);
     }
 
     /**
@@ -69,8 +87,13 @@ class Response {
      * 
      * @param int $code HTTP status code
      * @return void
+     * @throws InvalidArgumentException When the status code is outside the valid HTTP range
      */
     public function setStatusCode(int $code): void {
+        if ($code < 100 || $code > 599) {
+            throw new InvalidArgumentException(sprintf('Invalid HTTP status code: %d', $code));
+        }
+
         $this->status_code = $code;
     }
 

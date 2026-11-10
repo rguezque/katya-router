@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace rguezque;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Represent a server request
@@ -109,7 +110,7 @@ final class Request
     private ?Parameters $files_object = null;
     private ?Parameters $headers_object = null;
     private ?Uri $uri_object = null;
-    private ?string $raw_input = null;
+    private ?Stream $body_stream = null;
 
     /**
      * This constructor initializes the Request object with the provided parameters.
@@ -181,7 +182,34 @@ final class Request
      */
     public function getBody(): Stream
     {
-        return new Stream($this->raw_input ??= file_get_contents('php://input'));
+        if (null !== $this->body_stream) {
+            return $this->body_stream;
+        }
+
+        $input = fopen('php://input', 'rb');
+        if (false === $input) {
+            throw new RuntimeException('Unable to open the request body.');
+        }
+
+        $stream = fopen('php://temp', 'r+');
+        if (false === $stream) {
+            fclose($input);
+            throw new RuntimeException('Unable to create a stream for the request body.');
+        }
+
+        $copiedBytes = stream_copy_to_stream($input, $stream);
+        fclose($input);
+        if (false === $copiedBytes) {
+            fclose($stream);
+            throw new RuntimeException('Unable to copy the request body into its stream.');
+        }
+
+        if (!rewind($stream)) {
+            fclose($stream);
+            throw new RuntimeException('Unable to rewind the request body stream.');
+        }
+
+        return $this->body_stream = new Stream($stream);
     }
 
     /**
@@ -465,7 +493,24 @@ final class Request
      */
     public static function buildQuery(string $uri, array $params): string
     {
-        $query = http_build_query($params);
-        return $query === '' ? trim($uri) : trim($uri) . '?' . $query;
+        $uri = trim($uri);
+
+        if (empty($params)) {
+            return $uri;
+        }
+
+        $query_data = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+        // If the URI contains a fragment (#hash), the parameters must come before the fragment
+        $fragment = '';
+        if (($fragment_pos = strpos($uri, '#')) !== false) {
+            $fragment = substr($uri, $fragment_pos);
+            $uri = substr($uri, 0, $fragment_pos);
+        }
+
+        // Determine if we should use '?' or '&' depending on whether parameters already exist in the URI
+        $delimiter = strpos($uri, '?') !== false ? '&' : '?';
+
+        return $uri . $delimiter . $query_data . $fragment;
     }
 }

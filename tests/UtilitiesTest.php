@@ -168,7 +168,14 @@ final class UtilitiesTest extends TestCase
         $oldCode = http_response_code();
         try {
             $this->expectException(InvalidArgumentException::class);
-            $emitter->emit(new Response('', 99));
+            $response = new class extends Response {
+                public function __construct()
+                {
+                    parent::__construct();
+                    $this->status_code = 99;
+                }
+            };
+            $emitter->emit($response);
         } finally {
             if ($oldCode !== false) {
                 http_response_code($oldCode);

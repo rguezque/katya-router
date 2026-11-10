@@ -6,6 +6,7 @@ namespace Tests;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use rguezque\HtmlResponse;
 use rguezque\HttpHeaders;
 use rguezque\HttpStatus;
@@ -153,6 +154,39 @@ final class HttpComponentsTest extends TestCase
         fclose($resource);
     }
 
+    public function testStreamValidatesResourcesAndClosedState(): void
+    {
+        try {
+            new Stream('not a stream');
+            self::fail('Expected an invalid stream resource to be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        }
+
+        $stream = new Stream(fopen('php://temp', 'r+'));
+        $stream->close();
+
+        $this->expectException(RuntimeException::class);
+        $stream->read(1);
+    }
+
+    public function testStreamRejectsInvalidReadLength(): void
+    {
+        $stream = new Stream(fopen('php://temp', 'r+'));
+
+        $this->expectException(InvalidArgumentException::class);
+        $stream->read(0);
+    }
+
+    public function testRequestBodyIsAReusableStream(): void
+    {
+        $request = new Request([], [], [], [], [], []);
+        $body = $request->getBody();
+
+        self::assertSame($body, $request->getBody());
+        self::assertIsString($body->getContents());
+    }
+
     public function testResponseCanBeResetAndTypedResponsesSetHeaders(): void
     {
         $response = new Response('body', 201, ['X-Test' => 'yes']);
@@ -171,6 +205,22 @@ final class HttpComponentsTest extends TestCase
         self::assertSame('/new', $redirect->headers->get('Location'));
         $this->expectException(InvalidArgumentException::class);
         new RedirectResponse('/new', 200);
+    }
+
+    public function testResponsePreservesWhitespaceAndValidatesStatusCodes(): void
+    {
+        self::assertSame('  ', self::responseBody(new Response('  ')));
+
+        try {
+            new Response(status_code: 99);
+            self::fail('Expected an invalid status code to be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        }
+
+        $response = new Response();
+        $this->expectException(InvalidArgumentException::class);
+        $response->setStatusCode(600);
     }
 
     public function testJsonResponseEncodesDataAndRejectsUnsupportedValues(): void

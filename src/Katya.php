@@ -313,7 +313,7 @@ class Katya
                 $result = call_user_func($next, $request);
                 
                 if (!$result instanceof Response) {
-                    throw new UnexpectedValueException(sprintf('Controller must return a Response object, catched %s', get_debug_type($result)));
+                    throw new UnexpectedValueException(sprintf('Controller must return a Response object, got type %s', get_debug_type($result)));
                 }
                 
                 // Early return to end the routing

@@ -8,6 +8,9 @@
 
 namespace rguezque;
 
+use InvalidArgumentException;
+use RuntimeException;
+
 /**
  * Represent a PHP stream
  * 
@@ -17,12 +20,12 @@ namespace rguezque;
  * stream has been reached. The stream can be detached, and it will be automatically closed
  * when the object is destroyed.
  * 
- * @method int|false write(mixed $string) Write content to stream and return the total bytes written, or false on error
+ * @method int|false write(string $string) Write content to stream and return the total bytes written, or false on error
  * @method string|false read(int $length) Read the stream
  * @method string|false getContents() Retrieve the remainder content of the stream from current pointer position
  * @method mixed detach() Free and return the current stream
- * @method int getSize() Returns the bytes size of the stream
- * @method int tell() Return the current position of the stream read/write pointer
+ * @method ?int getSize() Returns the bytes size of the stream, or null when unavailable
+ * @method int|false tell() Return the current position of the stream read/write pointer
  * @method bool eof() Return true if the stream pointer is at end-of-file, otherwise false
  * @method void seek(int $offset, int $whence = SEEK_SET) Sets the file position indicator for the file referenced by stream. The new position, measured in bytes from the beginning of the file, is obtained by adding offset to the position specified by whence.
  * @method void rewind() Rewind the stream pointer at beginning
@@ -36,8 +39,13 @@ final class Stream {
      * Initialize the stream
      * 
      * @param mixed $resource Resource of type stream
+     * @throws InvalidArgumentException When the resource is not a valid stream
      */
     public function __construct(mixed $resource){
+        if (!is_resource($resource) || 'stream' !== get_resource_type($resource)) {
+            throw new InvalidArgumentException('A valid stream resource is required.');
+        }
+
         $this->stream = $resource;
     }
 
@@ -51,11 +59,11 @@ final class Stream {
     /**
      * Write content to stream and return the total bytes written, or false on error
      * 
-     * @param mixed $string
+     * @param string $string
      * @return int|false
      */
-    public function write(mixed $string): int|false {
-        return fwrite($this->stream, $string);
+    public function write(string $string): int|false {
+        return fwrite($this->getStream(), $string);
     }
 
     /**
@@ -65,7 +73,11 @@ final class Stream {
      * @return string|false
      */
     public function read(int $length): string|false {
-        return fread($this->stream, $length);
+        if ($length < 1) {
+            throw new InvalidArgumentException('The read length must be greater than zero.');
+        }
+
+        return fread($this->getStream(), $length);
     }
 
     /**
@@ -74,7 +86,7 @@ final class Stream {
      * @return string|false
      */
     public function getContents(): string|false {
-        return stream_get_contents($this->stream);
+        return stream_get_contents($this->getStream());
     }
 
     /**
@@ -91,10 +103,15 @@ final class Stream {
     /**
      * Returns the bytes size of the stream
      * 
-     * @return int
+     * @return ?int
      */
-    public function getSize(): int {
-        return fstat($this->stream)['size'];
+    public function getSize(): ?int {
+        $stats = fstat($this->getStream());
+        if (false === $stats || !isset($stats['size']) || $stats['size'] < 0) {
+            return null;
+        }
+
+        return $stats['size'];
     }
 
     /**
@@ -103,7 +120,7 @@ final class Stream {
      * @return int|false
      */
     public function tell(): int|false {
-        return ftell($this->stream);
+        return ftell($this->getStream());
     }
 
     /**
@@ -112,7 +129,7 @@ final class Stream {
      * @return bool
      */
     public function eof(): bool {
-        return feof($this->stream);
+        return feof($this->getStream());
     }
 
     /**
@@ -123,7 +140,13 @@ final class Stream {
      * @return void
      */
     public function seek(int $offset, int $whence = SEEK_SET): void {
-        fseek($this->stream, $offset, $whence);
+        if (!in_array($whence, [SEEK_SET, SEEK_CUR, SEEK_END], true)) {
+            throw new InvalidArgumentException('Invalid seek mode.');
+        }
+
+        if (0 !== fseek($this->getStream(), $offset, $whence)) {
+            throw new RuntimeException('Unable to seek in the stream.');
+        }
     }
 
     /**
@@ -141,10 +164,10 @@ final class Stream {
      * @return void
      */
     public function close(): void {
-        if ($this->stream) {
+        if (is_resource($this->stream) && 'stream' === get_resource_type($this->stream)) {
             fclose($this->stream);
-            $this->stream = null;
         }
+        $this->stream = null;
     }
 
     /**
@@ -154,10 +177,39 @@ final class Stream {
      * @return bool `true` on success, otherwise `false`
      */
     public function truncate(int $size): bool {
-        return ftruncate($this->stream, $size);
+        if ($size < 0) {
+            throw new InvalidArgumentException('The truncate size cannot be negative.');
+        }
+
+        return ftruncate($this->getStream(), $size);
     }
 
-    public function __toString() {
-        return $this->getContents();
+    /**
+     * Return the remaining stream contents as a string.
+     *
+     * @return string
+     * @throws RuntimeException When the stream contents cannot be read
+     */
+    public function __toString(): string {
+        $contents = $this->getContents();
+        if (false === $contents) {
+            throw new RuntimeException('Unable to read the stream contents.');
+        }
+
+        return $contents;
+    }
+
+    /**
+     * Return the underlying stream resource when it is still open.
+     *
+     * @return resource
+     * @throws RuntimeException When the stream is closed or detached
+     */
+    private function getStream(): mixed {
+        if (!is_resource($this->stream) || 'stream' !== get_resource_type($this->stream)) {
+            throw new RuntimeException('The stream is closed or detached.');
+        }
+
+        return $this->stream;
     }
 }
