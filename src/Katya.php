@@ -74,6 +74,15 @@ class Katya
     /** @var Group[] Route groups collection */
     private array $groups = [];
 
+    /** @var int Number of route groups already processed */
+    private int $processed_groups = 0;
+
+    /** @var array<int, string> Compiled route patterns keyed by route object ID */
+    private array $route_patterns = [];
+
+    /** @var bool Whether duplicate route validation is current */
+    private bool $routes_validated = false;
+
     /** @var Services Services collection */
     private ?Services $services = null;
 
@@ -190,6 +199,8 @@ class Katya
         }
         $route = new Route($verb, $path, $controller);
         $this->routes[$verb][] = $route;
+        $this->route_patterns[spl_object_id($route)] = $this->getPattern($this->basepath . $route->getPath());
+        $this->routes_validated = false;
         return $route;
     }
 
@@ -214,8 +225,9 @@ class Katya
      */
     private function processGroups(): void
     {
-        foreach ($this->groups as $group) {
-            $group();
+        while (isset($this->groups[$this->processed_groups])) {
+            $this->groups[$this->processed_groups]();
+            $this->processed_groups++;
         }
     }
 
@@ -231,7 +243,10 @@ class Katya
     public function run(Request $request): ?Response
     {
         $this->processGroups();
-        $this->checkDuplicity();
+        if (!$this->routes_validated) {
+            $this->checkDuplicity();
+            $this->routes_validated = true;
+        }
         return $this->handleRequest($request);
     }
 
@@ -269,8 +284,7 @@ class Katya
         // Select the routes collection according to the http request method
         $routes = $this->routes[$request_method] ?? [];
         foreach ($routes as $route) {
-            $full_path = $this->basepath . $route->getPath();
-            if (preg_match($this->getPattern($full_path), $request_uri, $arguments)) {
+            if (preg_match($this->route_patterns[spl_object_id($route)], $request_uri, $arguments)) {
                 array_shift($arguments);
                 $request = $request->withParams($arguments);
                 $services = $this->services;

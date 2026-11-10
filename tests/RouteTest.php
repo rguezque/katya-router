@@ -162,6 +162,40 @@ final class RouteTest extends TestCase
         self::assertStringContainsString('No routes registered', self::responseBody($response));
     }
 
+    public function testRouterProcessesEachGroupOnceAndAcceptsGroupsAddedLater(): void
+    {
+        $router = new Katya('/');
+        $firstGroupRuns = 0;
+        $router->group('/first', static function (Group $group) use (&$firstGroupRuns): void {
+            $firstGroupRuns++;
+            $group->get('/route', static fn(): Response => new Response('first'));
+        });
+
+        self::assertSame('first', self::responseBody($router->run(self::request('GET', '/first/route'))));
+        self::assertSame('first', self::responseBody($router->run(self::request('GET', '/first/route'))));
+        self::assertSame(1, $firstGroupRuns);
+
+        $secondGroupRuns = 0;
+        $router->group('/second', static function (Group $group) use (&$secondGroupRuns): void {
+            $secondGroupRuns++;
+            $group->get('/route', static fn(): Response => new Response('second'));
+        });
+
+        self::assertSame('second', self::responseBody($router->run(self::request('GET', '/second/route'))));
+        self::assertSame(1, $secondGroupRuns);
+    }
+
+    public function testRouterRechecksDuplicatesAfterRoutesAreAdded(): void
+    {
+        $router = new Katya('/');
+        $router->get('/route', static fn(): Response => new Response('first'));
+        $router->run(self::request('GET', '/route'));
+        $router->get('/route', static fn(): Response => new Response('duplicate'));
+
+        $this->expectException(DuplicityException::class);
+        $router->run(self::request('GET', '/route'));
+    }
+
     public function testGroupsApplyPrefixMiddlewareAndInheritedServices(): void
     {
         $router = new Katya('/');
