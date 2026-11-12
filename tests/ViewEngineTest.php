@@ -70,6 +70,90 @@ final class ViewEngineTest extends TestCase
         self::assertSame('partial content', $inserted);
     }
 
+    public function testAddDirectoryRegistersNamespacedTemplates(): void
+    {
+        $this->write($this->adminTemplates . '/dashboard.view.php', 'Admin dashboard');
+        $views = new ViewEngine($this->templates);
+
+        self::assertSame('Admin dashboard', $views->addDirectory('admin', $this->adminTemplates)->fetch('admin::dashboard'));
+    }
+
+    public function testLayoutsRenderSectionsAndDefaultsWithoutLeakingBetweenFetches(): void
+    {
+        $this->write(
+            $this->templates . '/layout.view.php',
+            '<header><?= $this->yieldSection(\'header\', \'Default header\') ?></header>'
+                . '<main><?= $this->yieldSection(\'content\', \'Default content\') ?></main>'
+        );
+        $this->write(
+            $this->templates . '/page.view.php',
+            '<?php $this->extends(\'layout\'); '
+                . 'if ($showHeader) { $this->startSection(\'header\'); ?>Custom header'
+                . '<?php $this->stopSection(); } '
+                . '$this->startSection(\'content\'); ?><?= $message ?>'
+                . '<?php $this->stopSection(); ?>'
+        );
+        $views = new ViewEngine($this->templates);
+
+        self::assertSame(
+            '<header>Custom header</header><main>First page</main>',
+            $views->fetch('page', ['showHeader' => true, 'message' => 'First page'])
+        );
+        self::assertSame(
+            '<header>Default header</header><main>Second page</main>',
+            $views->fetch('page', ['showHeader' => false, 'message' => 'Second page'])
+        );
+    }
+
+    public function testSectionMethodsRejectInvalidNamesAndUnbalancedBuffers(): void
+    {
+        $views = new ViewEngine($this->templates);
+
+        try {
+            $views->startSection(' ');
+            self::fail('Empty section names must be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        }
+
+        try {
+            $views->stopSection();
+            self::fail('Stopping without an active section must be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        }
+
+        $views->startSection('content');
+        ob_start();
+        try {
+            $views->stopSection();
+            self::fail('Unbalanced section buffers must be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        } finally {
+            ob_end_clean();
+            $views->stopSection();
+        }
+    }
+
+    public function testExtendsRejectsEmptyAndCircularLayouts(): void
+    {
+        $views = new ViewEngine($this->templates);
+
+        try {
+            $views->extends(' ');
+            self::fail('Empty layout names must be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertTrue(true);
+        }
+
+        $this->write($this->templates . '/first.view.php', '<?php $this->extends(\'second\'); ?>');
+        $this->write($this->templates . '/second.view.php', '<?php $this->extends(\'first\'); ?>');
+
+        $this->expectException(InvalidArgumentException::class);
+        $views->fetch('first');
+    }
+
     public function testArgumentCollectionsAndNamespaceValidation(): void
     {
         $this->write($this->templates . '/current.view.php', '<?= $value ?>');

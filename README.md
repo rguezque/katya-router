@@ -15,6 +15,7 @@ A lightweight PHP router
 - [Vistas](#vistas)
     - [Inicialización de vistas](#inicialización-de-vistas)
     - [`fetch`: renderizar una plantilla](#fetch-renderizar-una-plantilla)
+    - [`extends`, `startSection`, `stopSection` y `yieldSection`: usar layouts](#extends-startsection-stopsection-y-yieldsection-usar-layouts)
     - [`addDirectory`: registrar un directorio con espacio de nombres](#adddirectory-registrar-un-directorio-con-espacio-de-nombres)
     - [`fetchFragment`: guardar un fragmento como argumento](#fetchfragment-guardar-un-fragmento-como-argumento)
     - [`insert`: imprimir una plantilla parcial](#insert-imprimir-una-plantilla-parcial)
@@ -351,6 +352,34 @@ La plantilla recibe esos valores como variables:
     <a href="<?= $about ?>">About</a>
     <a href="<?= $contact ?>">Contact</a>
 </nav>
+```
+
+### `extends`, `startSection`, `stopSection` y `yieldSection`: usar layouts
+
+Una vista puede seleccionar un layout con `extends(string $template)` e insertar su contenido en secciones. En la vista, `startSection(string $name)` y `stopSection()` delimitan cada sección; el layout la imprime con `yieldSection(string $name, string $default = '')`. Si la vista no define una sección, se muestra el contenido predeterminado.
+
+Al usar un layout, el resultado de la vista se reemplaza por el del layout; coloca en secciones todo el contenido de la vista que quieras conservar. El layout recibe los mismos datos que `fetch`. Los nombres de layout y sección no pueden estar vacíos, y las dependencias circulares entre layouts generan una `InvalidArgumentException`.
+
+```php
+<!-- page.view.php -->
+<?php $this->extends('layouts/main'); ?>
+<?php $this->startSection('title'); ?>Inicio<?php $this->stopSection(); ?>
+<?php $this->startSection('content'); ?>
+    <h1>Bienvenido, <?= $this->e($name) ?></h1>
+<?php $this->stopSection(); ?>
+```
+
+```php
+<!-- layouts/main.view.php -->
+<!doctype html>
+<html>
+    <head><title><?= $this->yieldSection('title', 'Mi sitio') ?></title></head>
+    <body>
+        <header>Cabecera compartida</header>
+        <main><?= $this->yieldSection('content') ?></main>
+        <footer>Pie de página compartido</footer>
+    </body>
+</html>
 ```
 
 ### `addDirectory`: registrar un directorio con espacio de nombres
