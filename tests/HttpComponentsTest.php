@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use InvalidArgumentException;
+use JsonException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use rguezque\HtmlResponse;
@@ -230,9 +231,45 @@ final class HttpComponentsTest extends TestCase
         self::assertSame('application/json; charset=utf-8', $response->headers->get('Content-Type'));
         self::assertSame(['answer' => 42], json_decode(self::responseBody($response), true));
         self::assertSame('{"ok":true}', self::responseBody(new JsonResponse('{"ok":true}')));
+        self::assertSame('"not-json"', self::responseBody(new JsonResponse('not-json')));
 
         $this->expectException(InvalidArgumentException::class);
-        new JsonResponse('not-json');
+        new JsonResponse(fopen('php://temp', 'r+'));
+    }
+
+    public function testJsonResponseEncodesScalarAndNullValues(): void
+    {
+        foreach ([
+            ['text', '"text"'],
+            [true, 'true'],
+            [42, '42'],
+            [1.5, '1.5'],
+            [null, 'null'],
+        ] as [$data, $expected]) {
+            self::assertSame($expected, self::responseBody(new JsonResponse($data)));
+        }
+    }
+
+    public function testJsonResponseSupportsJsonSerializableValuesAndEncodingFlags(): void
+    {
+        $serializable = new class implements \JsonSerializable {
+            public function jsonSerialize(): array
+            {
+                return ['serialized' => true];
+            }
+        };
+
+        self::assertSame('{"serialized":true}', self::responseBody(new JsonResponse($serializable)));
+        self::assertSame(
+            "{\n    \"answer\": 42\n}",
+            self::responseBody(new JsonResponse(['answer' => 42], json_flags: JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT))
+        );
+    }
+
+    public function testJsonResponseThrowsWhenDataCannotBeEncoded(): void
+    {
+        $this->expectException(JsonException::class);
+        new JsonResponse(INF);
     }
 
     public function testJsonResponseRejectsResponseObjectsAsSerializableData(): void
