@@ -95,14 +95,15 @@ final class RouteTest extends TestCase
         $router = new Katya('/');
         $routes = [
             $router->get('/get', static fn(): Response => new Response('get')),
+            $router->head('/head', static fn(): Response => new Response('head')),
             $router->post('/post', static fn(): Response => new Response('post')),
             $router->put('/put', static fn(): Response => new Response('put')),
             $router->patch('/patch', static fn(): Response => new Response('patch')),
             $router->delete('/delete', static fn(): Response => new Response('delete')),
-            $router->route(' options ', '/options', static fn(): Response => new Response('options')),
+            $router->options('/options', static fn(): Response => new Response('options')),
         ];
 
-        self::assertSame(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], array_map(
+        self::assertSame(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], array_map(
             static fn(Route $route): string => $route->getMethod(),
             $routes
         ));
@@ -129,10 +130,11 @@ final class RouteTest extends TestCase
         $router->run(self::request('GET', '/duplicate'));
     }
 
-    public function testRouterReportsUnknownRoutesAndUnsupportedRequestMethods(): void
+    public function testRouterMatchesHeadAndOptionsRoutes(): void
     {
         $router = new Katya('/');
-        $router->get('/known', static fn(): Response => new Response());
+        $router->head('/head', static fn(): Response => new Response('head'));
+        $router->options('/options', static fn(): Response => new Response('options'));
 
         try {
             $router->run(self::request('GET', '/unknown'));
@@ -141,8 +143,8 @@ final class RouteTest extends TestCase
             self::assertTrue(true);
         }
 
-        $this->expectException(UnsupportedRequestMethodException::class);
-        $router->run(self::request('HEAD', '/known'));
+        self::assertSame('head', self::responseBody($router->run(self::request('HEAD', '/head'))));
+        self::assertSame('options', self::responseBody($router->run(self::request('OPTIONS', '/options'))));
     }
 
     public function testRouterRequiresControllersToReturnAResponse(): void
@@ -217,6 +219,18 @@ final class RouteTest extends TestCase
         $response = $router->run(self::request('GET', '/api/items'));
 
         self::assertSame('ran:database', self::responseBody($response));
+    }
+
+    public function testGroupsExposeHeadAndOptionsShortcuts(): void
+    {
+        $router = new Katya('/');
+        $router->group('/api', static function (Group $group): void {
+            $group->head('/head', static fn(): Response => new Response('head'));
+            $group->options('/options', static fn(): Response => new Response('options'));
+        });
+
+        self::assertSame('head', self::responseBody($router->run(self::request('HEAD', '/api/head'))));
+        self::assertSame('options', self::responseBody($router->run(self::request('OPTIONS', '/api/options'))));
     }
 
     public function testExplicitRouteServicesOverrideGroupServices(): void

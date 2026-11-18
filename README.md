@@ -205,7 +205,7 @@ try {
 
 ### Métodos abreviados
 
-Los atajos `Katya::get`, `Katya::post`, `Katya::put`, `Katya::patch` y `Katya::delete` sirven respectivamente para agregar rutas de tipo `GET`, `POST`, `PUT`, `PATCH` y `DELETE` al router.
+Los atajos `Katya::get`, `Katya::head`, `Katya::post`, `Katya::put`, `Katya::patch`, `Katya::delete` y `Katya::options` sirven respectivamente para agregar rutas de tipo `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE` y `OPTIONS` al router.
 
 ```php
 $katya = new Katya;

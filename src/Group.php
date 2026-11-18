@@ -18,15 +18,17 @@ use rguezque\MiddlewareTrait;
  * Routes group
  * 
  * This class allows you to define a group of routes with a common prefix.
- * You can define routes using different HTTP methods (GET, POST, PUT, PATCH, DELETE)
+ * You can define routes using different HTTP methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS)
  * and apply middleware (hooks) that will be executed before the route controller.
  * 
  * @method Route route(string $verb, string $path, callable $controller)
  * @method Route get(string $path, callable $controller)
+ * @method Route head(string $path, callable $controller)
  * @method Route post(string $path, callable $controller)
  * @method Route put(string $path, callable $controller)
  * @method Route patch(string $path, callable $controller)
  * @method Route delete(string $path, callable $controller)
+ * @method Route options(string $path, callable $controller)
  * @method Group before(MiddlewareInterface $middleware)
  * @method Group useServices(string ...$names)
  */
@@ -103,6 +105,19 @@ class Group {
     }
 
     /**
+     * Shortcut to add route with HEAD method
+     *
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     */
+    public function head(string $path, callable $controller): Route {
+        $route = $this->router->head($this->prefix.$path, $controller);
+        return $this->applyGroupSettings($route);
+    }
+
+    /**
      * Shortcut to add route with POST method
      * 
      * @param string $path The route path
@@ -151,6 +166,19 @@ class Group {
      */
     public function delete(string $path, callable $controller): Route {
         $route = $this->router->delete($this->prefix.$path, $controller);
+        return $this->applyGroupSettings($route);
+    }
+
+    /**
+     * Shortcut to add route with OPTIONS method
+     *
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http method isn't allowed
+     */
+    public function options(string $path, callable $controller): Route {
+        $route = $this->router->options($this->prefix.$path, $controller);
         return $this->applyGroupSettings($route);
     }
 

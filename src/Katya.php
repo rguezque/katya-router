@@ -26,7 +26,7 @@ use function str_path;
  * Router engine
  *
  * This class provides a simple and flexible way to define routes and handle HTTP requests.
- * It allows you to define routes with different HTTP methods (GET, POST, PUT, PATCH, DELETE)
+ * It allows you to define routes with different HTTP methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS)
  * and associate them with controllers (callable functions).
  * You can also group routes under a common prefix, set CORS configurations, and manage services
  * and variables to be used in controllers. See the documentation for more details.
@@ -34,10 +34,12 @@ use function str_path;
  * @see https://github.com/rguezque/katya-router
  * @method Route route(string $verb, string $path, callable $controller) Add a route to router.
  * @method Route get(string $path, callable $controller) Shortcut to add route with GET method.
+ * @method Route head(string $path, callable $controller) Shortcut to add route with HEAD method.
  * @method Route post(string $path, callable $controller) Shortcut to add route with POST method.
  * @method Route put(string $path, callable $controller) Shortcut to add route with PUT method.
  * @method Route patch(string $path, callable $controller) Shortcut to add route with PATCH method.
  * @method Route delete(string $path, callable $controller) Shortcut to add route with DELETE method.
+ * @method Route options(string $path, callable $controller) Shortcut to add route with OPTIONS method.
  * @method Group group(string $prefix, Closure $closure) Routes group definition under a common prefix.
  * @method Katya setServices(Services $services) Set services to use into controllers.
  * @method ?Response run(Request $request) Start the router and return the response.
@@ -48,10 +50,13 @@ class Katya
     use MiddlewareTrait;
 
     /** @var string[] Supported HTTP request methods */
-    private const SUPPORTED_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+    private const SUPPORTED_VERBS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
     /** @var string "GET" http method */
     const GET = 'GET';
+
+    /** @var string "HEAD" http method */
+    const HEAD = 'HEAD';
 
     /** @var string "POST" http method */
     const POST = 'POST';
@@ -130,6 +135,19 @@ class Katya
     }
 
     /**
+     * Shortcut to add route with HEAD method.
+     *
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function head(string $path, callable $controller): Route
+    {
+        return $this->route(self::HEAD, $path, $controller);
+    }
+
+    /**
      * Shortcut to add route with POST method.
      *
      * @param string $path The route path
@@ -179,6 +197,19 @@ class Katya
     public function delete(string $path, callable $controller): Route
     {
         return $this->route(self::DELETE, $path, $controller);
+    }
+
+    /**
+     * Shortcut to add route with OPTIONS method.
+     *
+     * @param string $path The route path
+     * @param callable $controller The route controller
+     * @return Route
+     * @throws UnsupportedRequestMethodException When the http request method isn't supported
+     */
+    public function options(string $path, callable $controller): Route
+    {
+        return $this->route(self::OPTIONS, $path, $controller);
     }
 
     /**
