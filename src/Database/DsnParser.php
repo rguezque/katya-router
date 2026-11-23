@@ -10,17 +10,17 @@ declare(strict_types=1);
 
 namespace rguezque\Database;
 
-use function decode_component;
-use function normalize_host;
-use function normalize_path;
-use function normalize_port;
-use function trimmed_string_or_default;
-use function trimmed_string_or_null;
+use function rguezque\functions\decode_component;
+use function rguezque\functions\normalize_host;
+use function rguezque\functions\normalize_path;
+use function rguezque\functions\normalize_port;
+use function rguezque\functions\trimmed_string_or_default;
+use function rguezque\functions\trimmed_string_or_null;
 use InvalidArgumentException;
 use Throwable;
 
 /**
- * Parses a database URL (DSN) into an associative array of connection parameters.
+ * Parses database URLs (DSNs) and retains the most recently parsed parameters.
  */
 final class DsnParser
 {
@@ -32,22 +32,36 @@ final class DsnParser
         'mysqli'    => 'mysqli',
     ];
 
-    /** @var array<string, mixed> Parameters parsed from URL */
-    private array $params;
-
     /**
      * Parse a database URL into an associative array.
      *
-     * @param string $url
-     * @return array<string, mixed>
+     * @param string $url The database URL to parse
+     * @return array{
+     *     driver: string,
+     *     host: string,
+     *     port: int,
+     *     db_name: string,
+     *     charset: string,
+     *     user: string,
+     *     password: string,
+     *     unix_socket: string|null
+     * } The normalized connection parameters
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException If the URL is empty, malformed, or has an unsupported scheme
      */
     public function parse(string $url): array
     {
         $url = trim($url);
         if ($url === '') {
             throw new InvalidArgumentException('Database URL cannot be empty.', 400);
+        }
+
+        $scheme_separator = strpos($url, '://');
+        if ($scheme_separator !== false) {
+            $scheme = strtolower(substr($url, 0, $scheme_separator));
+            if (isset(self::SCHEME_ALIASES[$scheme])) {
+                $url = self::SCHEME_ALIASES[$scheme] . substr($url, $scheme_separator);
+            }
         }
 
         $dsn = $this->parseDsn($url);
@@ -92,9 +106,9 @@ final class DsnParser
      * to parse the URL, it falls back to PHP's native `parse_url()`.
      *
      * @param string $url The URL to parse
-     * @return array<string, mixed>|false
+     * @return array<string, int|string>|false The parsed URL components, or false if parsing fails
      */
-    private function parseDsn(string $url)
+    private function parseDsn(string $url): array|false
     {
         $uri_class = \Uri\Rfc3986\Uri::class;
         if (class_exists($uri_class)) {

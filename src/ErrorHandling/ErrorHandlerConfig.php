@@ -13,7 +13,7 @@ namespace rguezque\ErrorHandling;
 
 use InvalidArgumentException;
 
-use function env;
+use function rguezque\functions\env;
 
 /**
  * Immutable configuration for error handling.

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+namespace rguezque\functions;
+
+use InvalidArgumentException;
+
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -9,7 +13,7 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-if (!function_exists('trimmed_string_or_null')) {
+if (!function_exists(__NAMESPACE__ . '\\trimmed_string_or_null')) {
     /**
      * Returns a trimmed string or null if the value is empty or invalid.
      * 
@@ -28,7 +32,7 @@ if (!function_exists('trimmed_string_or_null')) {
     }
 }
 
-if (!function_exists('trimmed_string_or_default')) {
+if (!function_exists(__NAMESPACE__ . '\\trimmed_string_or_default')) {
     /**
      * Returns a trimmed string or a default value if the value is empty or invalid.
      *
@@ -48,7 +52,7 @@ if (!function_exists('trimmed_string_or_default')) {
     }
 }
 
-if (!function_exists('string_or_default')) {
+if (!function_exists(__NAMESPACE__ . '\\string_or_default')) {
     /**
      * Returns a string without trimming.
      * Useful for credentials, because passwords may contain intentional spaces.
@@ -68,7 +72,7 @@ if (!function_exists('string_or_default')) {
 }
 
 
-if (!function_exists('normalize_port')) {
+if (!function_exists(__NAMESPACE__ . '\\normalize_port')) {
     /**
      * Normalizes and validates a port value.
      *
@@ -119,7 +123,7 @@ if (!function_exists('normalize_port')) {
     }
 }
 
-if (!function_exists('normalize_path')) {
+if (!function_exists(__NAMESPACE__ . '\\normalize_path')) {
     /**
      * Normalize the path parameter.
      *
@@ -136,7 +140,7 @@ if (!function_exists('normalize_path')) {
     }
 }
 
-if (!function_exists('normalize_host')) {
+if (!function_exists(__NAMESPACE__ . '\\normalize_host')) {
     /**
      * Normalize and validate a `host` value. Usually used for database connections.
      *
@@ -157,7 +161,7 @@ if (!function_exists('normalize_host')) {
     }
 }
 
-if (!function_exists('decode_component')) {
+if (!function_exists(__NAMESPACE__ . '\\decode_component')) {
     /**
      * Decode a URL component.
      *

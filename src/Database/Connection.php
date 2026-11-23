@@ -10,10 +10,10 @@ declare(strict_types=1);
 
 namespace rguezque\Database;
 
-use function env;
-use function normalize_port;
-use function trimmed_string_or_default;
-use function trimmed_string_or_null;
+use function rguezque\functions\env;
+use function rguezque\functions\normalize_port;
+use function rguezque\functions\trimmed_string_or_default;
+use function rguezque\functions\trimmed_string_or_null;
 use InvalidArgumentException;
 use mysqli_sql_exception;
 use PDO;

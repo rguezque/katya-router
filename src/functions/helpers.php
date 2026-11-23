@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace rguezque\functions;
+
 /**
  * @author    Luis Arturo Rodríguez
  * @copyright Copyright (c) 2022-2025 Luis Arturo Rodríguez <rguezque@gmail.com>
@@ -9,25 +11,23 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT    MIT License
  */
 
-use rguezque\Exception\FileNotFoundException;
-
-if (!function_exists('env')) {
+if (!function_exists(__NAMESPACE__ . '\\env')) {
     /**
-     * Get an environment variable
-     * * This function retrieves the value of an environment variable. If the variable is not set, it returns a default value.
+     * Get an environment variable from `$_ENV` or the process environment.
      * 
      * @param string $key The name of the environment variable
-     * @param mixed $default The default value to return if the environment variable is not set
-     * @return mixed The value of the environment variable or the default value
+     * @param mixed $default The value to return if the variable is not set
+     * @return mixed The environment value or the default value
      */
     function env(string $key, mixed $default = null): mixed
     {
-        $value = $_ENV[$key] ?? null;
-        return isset($value) ? $value : $default;
+        $value = $_ENV[$key] ?? getenv($key);
+
+        return $value === false ? $default : $value;
     }
 }
 
-if (!function_exists('add_trailing_slash')) {
+if (!function_exists(__NAMESPACE__ . '\\add_trailing_slash')) {
     /**
      * Add a trailing slash
      * * This function adds a trailing slash to a string, ensuring that the string ends with a slash.
@@ -41,7 +41,7 @@ if (!function_exists('add_trailing_slash')) {
     }
 }
 
-if (!function_exists('remove_trailing_slash')) {
+if (!function_exists(__NAMESPACE__ . '\\remove_trailing_slash')) {
     /**
      * Remove trailing slashes
      * * This function removes trailing slashes from a string, ensuring that the string does not end with a slash or backslash.
@@ -55,7 +55,7 @@ if (!function_exists('remove_trailing_slash')) {
     }
 }
 
-if (!function_exists('add_leading_slash')) {
+if (!function_exists(__NAMESPACE__ . '\\add_leading_slash')) {
     /**
      * Add a leading slash
      * * This function adds a leading slash to a string, ensuring that the string starts with a slash.
@@ -69,7 +69,7 @@ if (!function_exists('add_leading_slash')) {
     }
 }
 
-if (!function_exists('remove_leading_slash')) {
+if (!function_exists(__NAMESPACE__ . '\\remove_leading_slash')) {
     /**
      * Remove leading slashes
      * * * This function removes leading slashes from a string, ensuring that the string does not start with a slash or backslash.
@@ -83,7 +83,7 @@ if (!function_exists('remove_leading_slash')) {
     }
 }
 
-if (!function_exists('namespace_format')) {
+if (!function_exists(__NAMESPACE__ . '\\namespace_format')) {
     /**
      * Return a string like namespace format slashes
      * * This function ensures that the namespace string is properly formatted with a trailing backslash.
@@ -97,7 +97,7 @@ if (!function_exists('namespace_format')) {
     }
 }
 
-if (!function_exists('str_prepend')) {
+if (!function_exists(__NAMESPACE__ . '\\str_prepend')) {
     /**
      * Prepend strings to subject string
      * * This function prepends one or more strings to the beginning of a subject string.
@@ -111,7 +111,7 @@ if (!function_exists('str_prepend')) {
     }
 }
 
-if (!function_exists('str_append')) {
+if (!function_exists(__NAMESPACE__ . '\\str_append')) {
     /**
      * Append strings to subject string
      * * This function appends one or more strings to the end of a subject string.
@@ -125,7 +125,7 @@ if (!function_exists('str_append')) {
     }
 }
 
-if (!function_exists('str_path')) {
+if (!function_exists(__NAMESPACE__ . '\\str_path')) {
     /**
      * Clean and prepare a string path
      * * This function ensures that the path starts with a leading slash and does not end with a trailing slash.
@@ -139,7 +139,7 @@ if (!function_exists('str_path')) {
     }
 }
 
-if (!function_exists('set_secure_cookie')) {
+if (!function_exists(__NAMESPACE__ . '\\set_secure_cookie')) {
     /**
      * Create a cookie with advanced security options.
      *
@@ -170,7 +170,7 @@ if (!function_exists('set_secure_cookie')) {
     }
 }
 
-if (!function_exists('unset_secure_cookie')) {
+if (!function_exists(__NAMESPACE__ . '\\unset_secure_cookie')) {
     /**
      * Secure delete for a cookie
      *
@@ -199,7 +199,7 @@ if (!function_exists('unset_secure_cookie')) {
     }
 }
 
-if (!function_exists('getcookie')) {
+if (!function_exists(__NAMESPACE__ . '\\getcookie')) {
     /**
      * Get a cookie value
      * * This function retrieves the value of a cookie by its name. If the cookie does not exist, it returns a default value.
@@ -213,7 +213,7 @@ if (!function_exists('getcookie')) {
     }
 }
 
-if (!function_exists('equals')) {
+if (!function_exists(__NAMESPACE__ . '\\equals')) {
     /**
      * Returns true if two strings are equals, otherwise false
      * * This function uses `strcmp` to compare the two strings.
@@ -228,7 +228,7 @@ if (!function_exists('equals')) {
     }
 }
 
-if (!function_exists('pipe')) {
+if (!function_exists(__NAMESPACE__ . '\\pipe')) {
     /**
      * Returns the result of executing a sequence of pipelined functions on a specific value.
      * Eg. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` will return 'John Doe'
@@ -245,7 +245,7 @@ if (!function_exists('pipe')) {
     }
 }
 
-if (!function_exists('is_localhost')) {
+if (!function_exists(__NAMESPACE__ . '\\is_localhost')) {
     /**
      * Returns `true` if the client IP is in localhost, `false` en caso contrario.
      * 
@@ -268,7 +268,7 @@ if (!function_exists('is_localhost')) {
     }
 }
 
-if (!function_exists('foreach_or_fallback')) {
+if (!function_exists(__NAMESPACE__ . '\\foreach_or_fallback')) {
     /**
      * Execute a loop over an iterable element or perform a default action if it is empty.
      * 

@@ -20,6 +20,28 @@ use rguezque\Request;
 use rguezque\Response;
 use rguezque\SapiEmitter;
 use RuntimeException;
+use function rguezque\functions\{
+    add_leading_slash,
+    add_trailing_slash,
+    decode_component,
+    env,
+    equals,
+    foreach_or_fallback,
+    is_localhost,
+    namespace_format,
+    normalize_host,
+    normalize_path,
+    normalize_port,
+    pipe,
+    remove_leading_slash,
+    remove_trailing_slash,
+    str_append,
+    str_path,
+    str_prepend,
+    string_or_default,
+    trimmed_string_or_default,
+    trimmed_string_or_null
+};
 
 final class UtilitiesTest extends TestCase
 {
@@ -37,52 +59,72 @@ final class UtilitiesTest extends TestCase
 
     public function testPathStringEnvironmentAndCollectionHelpers(): void
     {
-        self::assertSame('prefix/name/', \add_trailing_slash('prefix/name///'));
-        self::assertSame('prefix/name', \remove_trailing_slash('prefix/name/'));
-        self::assertSame('/name', \add_leading_slash('\\name'));
-        self::assertSame('name', \remove_leading_slash('/\\name'));
-        self::assertSame('App\\', \namespace_format('\\App\\'));
-        self::assertSame('prefix/value', \str_prepend('value', 'prefix/', ''));
-        self::assertSame('value/suffix', \str_append('value', '/', 'suffix'));
-        self::assertSame('/a\\b', \str_path('\\a\\b/'));
-        self::assertTrue(\equals('same', 'same'));
-        self::assertFalse(\equals('same', 'different'));
-        self::assertSame('John Doe', \pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  '));
+        self::assertSame('prefix/name/', add_trailing_slash('prefix/name///'));
+        self::assertSame('prefix/name', remove_trailing_slash('prefix/name/'));
+        self::assertSame('/name', add_leading_slash('\\name'));
+        self::assertSame('name', remove_leading_slash('/\\name'));
+        self::assertSame('App\\', namespace_format('\\App\\'));
+        self::assertSame('prefix/value', str_prepend('value', 'prefix/', ''));
+        self::assertSame('value/suffix', str_append('value', '/', 'suffix'));
+        self::assertSame('/a\\b', str_path('\\a\\b/'));
+        self::assertTrue(equals('same', 'same'));
+        self::assertFalse(equals('same', 'different'));
+        self::assertSame('John Doe', pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  '));
 
         $_ENV['KATYA_TEST_ENV'] = 'configured';
-        self::assertSame('configured', \env('KATYA_TEST_ENV'));
-        self::assertSame('fallback', \env('KATYA_MISSING_ENV', 'fallback'));
+        self::assertSame('configured', env('KATYA_TEST_ENV'));
+        self::assertSame('fallback', env('KATYA_MISSING_ENV', 'fallback'));
         unset($_ENV['KATYA_TEST_ENV']);
+
+        $_ENV['KATYA_TEST_EMPTY_ENV'] = '';
+        $_ENV['KATYA_TEST_ZERO_ENV'] = '0';
+        self::assertSame('', env('KATYA_TEST_EMPTY_ENV', 'fallback'));
+        self::assertSame('0', env('KATYA_TEST_ZERO_ENV', 'fallback'));
+        unset($_ENV['KATYA_TEST_EMPTY_ENV'], $_ENV['KATYA_TEST_ZERO_ENV']);
+
+        $key = 'KATYA_TEST_PROCESS_ENV';
+        $previousValue = getenv($key);
+        unset($_ENV[$key]);
+        putenv($key . '=from-process');
+        try {
+            self::assertSame('from-process', env($key));
+        } finally {
+            if ($previousValue === false) {
+                putenv($key);
+            } else {
+                putenv($key . '=' . $previousValue);
+            }
+        }
     }
 
     public function testValueNormalizationHelpers(): void
     {
-        self::assertSame('value', \trimmed_string_or_null(' value '));
-        self::assertNull(\trimmed_string_or_null('  '));
-        self::assertSame('default', \trimmed_string_or_default([], 'default'));
-        self::assertSame('  pass  ', \string_or_default('  pass  ', 'default'));
-        self::assertSame(3307, \normalize_port('3307'));
-        self::assertSame(3306, \normalize_port(0));
-        self::assertSame('my db', \normalize_path('/my%20db/'));
-        self::assertSame('2001:db8::1', \normalize_host('[2001:db8::1]'));
-        self::assertSame('a/b', \decode_component('a%2Fb'));
+        self::assertSame('value', trimmed_string_or_null(' value '));
+        self::assertNull(trimmed_string_or_null('  '));
+        self::assertSame('default', trimmed_string_or_default([], 'default'));
+        self::assertSame('  pass  ', string_or_default('  pass  ', 'default'));
+        self::assertSame(3307, normalize_port('3307'));
+        self::assertSame(3306, normalize_port(0));
+        self::assertSame('my db', normalize_path('/my%20db/'));
+        self::assertSame('2001:db8::1', normalize_host('[2001:db8::1]'));
+        self::assertSame('a/b', decode_component('a%2Fb'));
 
         $this->expectException(InvalidArgumentException::class);
-        \normalize_port('not-a-port');
+        normalize_port('not-a-port');
     }
 
     public function testLocalhostAndFallbackIterationHelpers(): void
     {
         $_SERVER = ['REMOTE_ADDR' => '127.0.0.1', 'SERVER_NAME' => 'example.test'];
-        self::assertTrue(\is_localhost());
+        self::assertTrue(is_localhost());
         $_SERVER = ['REMOTE_ADDR' => '203.0.113.1', 'SERVER_NAME' => 'localhost'];
-        self::assertTrue(\is_localhost());
+        self::assertTrue(is_localhost());
         $_SERVER = ['REMOTE_ADDR' => '203.0.113.1', 'SERVER_NAME' => 'example.test'];
-        self::assertFalse(\is_localhost());
+        self::assertFalse(is_localhost());
 
         $seen = [];
         $fallback = false;
-        \foreach_or_fallback(
+        foreach_or_fallback(
             ['first', 'second'],
             static function (string $value, int $key) use (&$seen): void {
                 $seen[$key] = $value;
@@ -94,7 +136,7 @@ final class UtilitiesTest extends TestCase
         self::assertSame([0 => 'first', 1 => 'second'], $seen);
         self::assertFalse($fallback);
 
-        \foreach_or_fallback([], static function (): void {}, static function () use (&$fallback): void {
+        foreach_or_fallback([], static function (): void {}, static function () use (&$fallback): void {
             $fallback = true;
         });
         self::assertTrue($fallback);

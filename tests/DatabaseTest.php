@@ -47,7 +47,11 @@ final class DatabaseTest extends TestCase
     public function testDsnParserAcceptsDriverAliasesAndRejectsInvalidUrls(): void
     {
         self::assertSame('mysqli', (new DsnParser())->parse('mysqli://localhost/app')['driver']);
-        self::assertSame('pdomysql', (new DsnParser())->parse('pdo_mysql://localhost/app')['driver']);
+        $pdo_mysql = (new DsnParser())->parse('pdo_mysql://alice:secret@db.example.test:3307/app');
+        self::assertSame('pdomysql', $pdo_mysql['driver']);
+        self::assertSame('db.example.test', $pdo_mysql['host']);
+        self::assertSame(3307, $pdo_mysql['port']);
+        self::assertSame('app', $pdo_mysql['db_name']);
 
         foreach (['', 'postgres://localhost/app'] as $url) {
             try {
@@ -57,6 +61,21 @@ final class DatabaseTest extends TestCase
                 self::assertTrue(true);
             }
         }
+    }
+
+    public function testDsnParserCanBeReusedForDifferentUrls(): void
+    {
+        $parser = new DsnParser();
+
+        $mysql = $parser->parse('mysql://first.example.test/first_app');
+        $mysqli = $parser->parse('mysqli://second.example.test/second_app');
+
+        self::assertSame('pdomysql', $mysql['driver']);
+        self::assertSame('first.example.test', $mysql['host']);
+        self::assertSame('first_app', $mysql['db_name']);
+        self::assertSame('mysqli', $mysqli['driver']);
+        self::assertSame('second.example.test', $mysqli['host']);
+        self::assertSame('second_app', $mysqli['db_name']);
     }
 
     public function testConnectionFactoryValidatesInputAndExposesDrivers(): void
