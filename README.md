@@ -107,7 +107,7 @@ composer dump-autoload -o
 
 ## Enrutamiento
 
-Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos, el método de petición (solo son soportados `GET`, `POST`, `PUT`, `PATCH` y `DELETE`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores siempre reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (Ver [Request](#request)) y deben devolver un `Response` (Ver [Response](#response)).
+Cada ruta se define con el método `Katya::route`, que recibe 3 argumentos: el método de petición (`GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE` u `OPTIONS`), la ruta y el controlador a ejecutar para dicha ruta. Los controladores reciben un objeto `Request` que contiene los métodos necesarios para manejar una petición (ver [Request](#request)) y deben devolver un `Response` (ver [Response](#response)).
 
 Para iniciar el router se invoca el método `Katya::run` y se le envía un objeto `Request`.
 
@@ -155,7 +155,7 @@ El router acepta un prefijo global, este se aplica a cada una de las rutas que s
 $katya = new Katya('/nombre_directorio_base');
 ```
 
-El router devuelve tres posibles excepciones, `RouteNotFoundException` cuando no se encuentra una ruta, `UnsupportedRequestMethodException` cuando un método de petición no está soportado por el router o un `UnexpectedValueException` cuando el controlador no devuelve un tipo `Response`. Utiliza un `try-catch` para atraparlas y manejar el `Response` apropiado como se ve en el ejemplo anterior.
+El router puede lanzar `RouteNotFoundException` cuando no se encuentra una ruta, `UnsupportedRequestMethodException` cuando el método de petición no está soportado, `UnexpectedValueException` cuando el controlador no devuelve un `Response` y `DuplicityException` si se registran rutas duplicadas con el mismo método y ruta. La validación de duplicados ocurre al ejecutar `run`. Utiliza bloques `try-catch` para atraparlas y manejar el `Response` apropiado.
 
 **Detener el router**
 
@@ -1058,7 +1058,17 @@ Para registrar errores en bloques `try-catch` usa `FileErrorLogger::log` el cual
 
 ## Funciones auxiliares
 
-Se incluyen también algunas funciones extras:
+Composer carga estas funciones automáticamente desde el namespace `rguezque\functions`. Para usarlas fuera de ese namespace, importa cada función con `use function`, por ejemplo:
+
+```php
+use function rguezque\functions\env;
+use function rguezque\functions\str_path;
+
+$environment = env('APP_ENV', 'production');
+$path = str_path('users/'); // "/users"
+```
+
+Funciones definidas en `src/functions/helpers.php`:
 
 - `env(string $key, mixed $default = null)`: Esta función devuelve el valor de una variable de entorno. si la variable no existe, devuelve el valor default especificado.
 
@@ -1066,11 +1076,11 @@ Se incluyen también algunas funciones extras:
 
 - `pipe(...$fns)`: Devuelve el resultado de ejecutar una secuencia de funciones en pipeline sobre un valor específico. Ej. `pipe('strtolower', 'ucwords', 'trim')('  jOHn dOE  ')` devuelve 'John Doe'.
 
-- `set_secure_cookie(string $name, string $value, int $expiration_seconds = 86400, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Crea una cookie segura.
+- `set_secure_cookie(string $name, string $value, int $expiration_seconds = 86400, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Crea una cookie con atributos `Secure`, `HttpOnly` y `SameSite`.
 
-- `unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Elimina una cookie de forma segura.
+- `unset_secure_cookie(string $name, string $path = '/', string $domain = '', string $same_site = 'Lax')`: Elimina una cookie con los mismos atributos de seguridad; devuelve `false` si no existe en `$_COOKIE`.
 
-- `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre, si no existe devuelve el valor default especificado.
+- `getcookie(string $name, $default = null)`: Devuelve una cookie por nombre o el valor predeterminado si no existe.
 
 - `add_trailing_slash(string $str)`: Agrega un _slash_ al final de una cadena de texto.
 
@@ -1080,9 +1090,15 @@ Se incluyen también algunas funciones extras:
 
 - `remove_leading_slash(string $str)`: Elimina los _slashes_ al inicio de una cadena de texto.
 
-- `str_prepend(string $subject, string ...$prepend)`: Concatena una o más cadenas de texto al inicio de una cadena de texto original. Los elementos se concatenan siguiendo el orden **FIFO** (el primero que se define es el primero que se concatena al inicio y así sucesivamente). Ej: `str_prepend("foo", "bar", "baz")` daría como resultado `"bazbarfoo"`.
+- `namespace_format(string $namespace)`: Recorta las barras invertidas iniciales y finales del namespace y agrega una barra invertida al final.
 
-- `str_append(string $subject, string ...$append)`: Concatena una o más cadenas de texto al final de una cadena de texto original. Al igual que `str_prepend` sigue el orden **FIFO**.
+- `str_path(string $path)`: Normaliza una ruta para que comience con `/` y no termine en `/`. Por ejemplo, `str_path('users/')` devuelve `'/users'`.
+
+- `str_prepend(string $subject, string ...$prepend)`: Concatena las cadenas indicadas antes de `$subject`. Por ejemplo, `str_prepend('foo', 'bar', 'baz')` devuelve `'bazbarfoo'`.
+
+- `str_append(string $subject, string ...$append)`: Concatena una o más cadenas al final de `$subject`, respetando el orden de los argumentos.
+
+- `is_localhost()`: Devuelve `true` si la dirección IP del cliente es `127.0.0.1` o `::1`, o si el nombre del servidor es `localhost`.
 
 - `foreach_or_fallback(iterable $iterable, callable $each, callable $fallback)`: Permite iterar un array de datos y definir un fallback en caso de que el array esté vacío.
 
@@ -1098,6 +1114,16 @@ Se incluyen también algunas funciones extras:
         }
     )
     ```
+
+También se cargan automáticamente las funciones de normalización de `src/functions/value_helpers.php`:
+
+- `trimmed_string_or_null(mixed $value)`: Devuelve el valor escalar convertido a cadena y recortado, o `null` si no es escalar o queda vacío.
+- `trimmed_string_or_default(mixed $value, string $default)`: Devuelve el valor escalar convertido a cadena y recortado, o el valor predeterminado si no es escalar o queda vacío.
+- `string_or_default(mixed $value, string $default)`: Devuelve el valor escalar convertido a cadena sin recortar espacios, o el valor predeterminado si es `null`, `false` o no es escalar.
+- `normalize_port(mixed $port, int $default = 3306, int $min = 0, int $max = 65535)`: Valida y normaliza un puerto entero; usa el valor predeterminado para entradas vacías y, si `$min` es `0`, también para `0`. Lanza `InvalidArgumentException` si el puerto no es un entero dentro del rango.
+- `normalize_path(?string $path)`: Decodifica y elimina barras y espacios de los extremos de una ruta; devuelve `''` para valores nulos o vacíos.
+- `normalize_host(mixed $host, string $default = '127.0.0.1')`: Decodifica y normaliza un host, quitando corchetes de direcciones IPv6; usa el valor predeterminado si queda vacío.
+- `decode_component(mixed $value)`: Decodifica una cadena con `rawurldecode`; devuelve `''` si el valor no es una cadena.
 
 ## Pruebas
 
